@@ -1,0 +1,14 @@
+﻿*.bak
+*.bacpac
+database/old/
+.env
+appsettings.Development.json
+secrets.json
+bin/
+obj/
+.vs/
+node_modules/
+dist/
+build/
+.vscode/
+Thumbs.db
