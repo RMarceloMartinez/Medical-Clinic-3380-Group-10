@@ -6,9 +6,9 @@ GO
 CREATE TABLE Office (
     OfficeID INT IDENTITY(1000000, 1) NOT NULL,
     --<Address> (Composite Attribute)
-    BuildingNum VARCHAR(5) NOT NULL,
+    -- number + street name
+    StreetAddress VARCHAR(80) NOT NULL,
     SuiteNum VARCHAR(5) NULL,
-    Street VARCHAR(38) NOT NULL,
     City VARCHAR(48) NOT NULL,
     State VARCHAR(20) NOT NULL,
     ZipCode VARCHAR(5) NOT NULL,     
@@ -31,9 +31,9 @@ CREATE TABLE Member(
     MiddleName VARCHAR(15) NULL,
     LastName VARCHAR(31) NOT NULL,
     --<Address> (Composite Attribute)
+    -- number + street name, e.g. '4800 Calhoun Road'
+    StreetAddress VARCHAR(80) NOT NULL,     
     ApartmentNum VARCHAR(5) NULL,
-    HouseNum VARCHAR(5) NULL,
-    Street VARCHAR(38) NOT NULL,
     City VARCHAR(48) NOT NULL,
     State VARCHAR(20) NOT NULL,
     ZipCode VARCHAR(5) NOT NULL,
