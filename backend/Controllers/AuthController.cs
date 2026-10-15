@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Antiforgery;
 
 namespace ClinicApi.Controllers;
 
@@ -75,5 +76,42 @@ public class AuthController : ControllerBase
             username = User.Identity?.Name,
             role = User.FindFirstValue(ClaimTypes.Role)
         });
+
     }
+    [AllowAnonymous]
+    [HttpGet("csrf")]
+    public IActionResult GetCsrfToken(
+        [FromServices] IAntiforgery antiforgery)
+    {
+        var tokens = antiforgery.GetAndStoreTokens(HttpContext);
+
+        return Ok(new
+        {
+            token = tokens.RequestToken
+        });
+    }
+
+    [Authorize]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(
+        [FromServices] IAntiforgery antiforgery)
+    {
+        try
+        {
+            await antiforgery.ValidateRequestAsync(HttpContext);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return BadRequest(new
+            {
+                message = "Invalid request verification token."
+            });
+        }
+
+        await HttpContext.SignOutAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme);
+
+        return NoContent();
+    }
+    
 }
