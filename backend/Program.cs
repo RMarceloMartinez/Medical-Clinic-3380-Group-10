@@ -15,6 +15,8 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddScoped<AuthService>();
 
+builder.Services.AddScoped<PatientService>();builder.Services.AddScoped<PatientService>();
+
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
