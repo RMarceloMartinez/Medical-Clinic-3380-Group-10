@@ -1,4 +1,8 @@
+using ClinicApi.Data;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddScoped<SqlConnectionFactory>();
 
 // Add services to the container.
 
