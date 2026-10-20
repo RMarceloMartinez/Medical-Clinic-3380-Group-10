@@ -6,10 +6,40 @@
   min-height: 100vh;
    background: rgb(14, 39, 68);
 }
-
+.dashboard
+{
+  min-height: 100 vh;
+  padding: 30px;
+  background-color:  rgb(14, 39, 68);
+  color: white;
+  box-sizing: border-box;
+}
+.dashboard-nav 
+{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 24px 0;
+}
+.dashboard-nav button 
+{
+  
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  background-color: #4882da;
+  color: rgb(248, 244, 244);
+  cursor: pointer;
+}
+.dashboard-nav button:hover 
+{
+  background-color: #0d1727;
+}
 .login-card
 {
-  background: white;
+  background: #4882da;
   padding: 32px;
   border-radius: 12px;
   text-align: center;
@@ -32,7 +62,7 @@
 }
 .login-card h1
 {
-  color: rgb(109, 209, 226);
+  color:white;
   -webkit-text-stroke: .1px black;
 }
 
@@ -41,11 +71,15 @@
   width: 100%;
   padding: 12px;
   margin-top: 16px;
-  background: rgb(109, 209, 226);
-  color: rgb(14, 11, 11);
+  background: #253d5f;
+  color: rgb(255, 253, 253);
   border: 1px solid black;
   border-radius: 6px;
   cursor: pointer;
+}
+.login-card button:hover
+{
+  background-color: #101927;
 }
 html,
 body,
@@ -58,4 +92,14 @@ body,
 body
 {
   min-height: 100vh;
+}
+.back-button
+{
+  display: block;
+  margin: 20px auto 0;
+  width: 100%;
+  padding: 12px;
+  background: #4882da;
+  color: white;
+  border: 1px solid black;
 }
