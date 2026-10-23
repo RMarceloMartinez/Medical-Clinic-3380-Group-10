@@ -1,4 +1,4 @@
-import { use, useState } from 'react'
+import { useState } from 'react'
 import './App.css'
 
 function App() {
@@ -107,9 +107,19 @@ function App() {
             </div>
             {section === 'patients' &&
              (
+              <div className='Patient Management'>
             <button onClick={() => setSection('addPatient')}>
               Add Patient
               </button>
+
+              <button onClick={() => setSection('editPatient')}>
+              Edit Patient
+              </button>
+
+              <button onClick={() => setSection('removePatient')}>
+              Remove Patient
+              </button>
+              </div>
             )}
             {section === 'addPatient' && 
             (
@@ -224,6 +234,26 @@ function App() {
                 </button>
               </div> 
 
+            )}
+            {section ==='editPatient' && 
+            (
+              <div className='edit-Patient'>
+                <h2>Edit Patient</h2>
+                <label>Patient ID</label>
+                <input  
+                  type='text'
+                  placeholder='Enter Patient ID'
+                  />
+                <button type ="button">
+                  Search Patient
+                </button>
+                <button
+                  className='back-button'
+                  onClick={()=>setSection('patients')}
+                >
+                  Back to Patients
+                </button>
+                </div>
             )}
           </div>
         )
