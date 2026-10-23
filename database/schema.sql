@@ -16,12 +16,15 @@ CREATE TABLE Office (
     Phone VARCHAR(10) NOT NULL,
     OpeningTime TIME NOT NULL,
     ClosingTime TIME NOT NULL,
+    DeletionFlag BIT NOT NULL,
+
 
     CONSTRAINT PK_Office PRIMARY KEY(OfficeID),
     CONSTRAINT CK_Office_OfficeID CHECK(OfficeID BETWEEN 1000000 AND 9999999),
     CONSTRAINT CK_Office_ZipCode CHECK(LEN(ZipCode) = 5 AND ZipCode NOT LIKE '%[^0-9]%'),
     CONSTRAINT CK_Office_Phone CHECK(LEN(Phone) = 10 AND Phone NOT LIKE '%[^0-9]%'),
-    CONSTRAINT CK_Office_Time CHECK(ClosingTime > OpeningTime)
+    CONSTRAINT CK_Office_Time CHECK(ClosingTime > OpeningTime),
+    CONSTRAINT CK_Office_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE Member(
@@ -42,6 +45,7 @@ CREATE TABLE Member(
     Sex CHAR(1) NOT NULL,
     DateOfBirth DATE NOT NULL,     
     Email VARCHAR(100) NOT NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_Member PRIMARY KEY(MemberID),
     CONSTRAINT CK_Member_MemberID CHECK(MemberID BETWEEN 1000000 AND 9999999),
@@ -55,53 +59,65 @@ CREATE TABLE Member(
     CONSTRAINT CK_Member_Sex CHECK(Sex IN('M','F','I')),
     CONSTRAINT CK_Member_DateOfBirth CHECK(DateOfBirth <= CAST(GETDATE() AS DATE)),
     CONSTRAINT UQ_Member_Email UNIQUE(Email),
-    CONSTRAINT CK_Member_Email CHECK(Email LIKE '%_@_%._%' AND Email NOT LIKE '% %')
+    CONSTRAINT CK_Member_Email CHECK(Email LIKE '%_@_%._%' AND Email NOT LIKE '% %'),
+    CONSTRAINT CK_Member_DeletionFlag CHECK (DeletionFlag IN (0, 1))
+
 );
 
 CREATE TABLE Employee(
     EmployeeID  INT NOT NULL,
     HiringDate DATE NOT NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_Employee PRIMARY KEY(EmployeeID),
     CONSTRAINT FK_Employee_Member FOREIGN KEY(EmployeeID) REFERENCES Member(MemberID) ON DELETE NO ACTION,
-    CONSTRAINT CK_Employee_HiringDate CHECK(HiringDate <= CAST(GETDATE() AS DATE))
+    CONSTRAINT CK_Employee_HiringDate CHECK(HiringDate <= CAST(GETDATE() AS DATE)),
+    CONSTRAINT CK_Employee_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE Doctor(
     DoctorID INT NOT NULL,
     LicenseNum VARCHAR(11) NOT NULL,
     Specialty VARCHAR(30) NOT NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_Doctor PRIMARY KEY(DoctorID),
     CONSTRAINT FK_Doctor_Employee FOREIGN KEY(DoctorID) REFERENCES Employee(EmployeeID) ON DELETE NO ACTION,
-    CONSTRAINT UQ_Doctor_LicenseNum UNIQUE(LicenseNum)
+    CONSTRAINT UQ_Doctor_LicenseNum UNIQUE(LicenseNum),
+    CONSTRAINT CK_Doctor_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE Nurse(
     NurseID INT NOT NULL,
     OfficeID INT NOT NULL,
     LicenseNum VARCHAR(10) NOT NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_Nurse PRIMARY KEY(NurseID),
     CONSTRAINT FK_Nurse_Employee FOREIGN KEY(NurseID) REFERENCES Employee(EmployeeID) ON DELETE NO ACTION,
     CONSTRAINT FK_Nurse_Office FOREIGN KEY(OfficeID) REFERENCES Office(OfficeID) ON DELETE NO ACTION,
-    CONSTRAINT UQ_Nurse_LicenseNum UNIQUE(LicenseNum)
+    CONSTRAINT UQ_Nurse_LicenseNum UNIQUE(LicenseNum),
+    CONSTRAINT CK_Nurse_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE Receptionist(
     ReceptionistID INT NOT NULL,
     OfficeID INT NOT NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_Receptionist PRIMARY KEY(ReceptionistID),
     CONSTRAINT FK_Receptionist_Employee FOREIGN KEY(ReceptionistID) REFERENCES Employee(EmployeeID) ON DELETE NO ACTION,
-    CONSTRAINT FK_Receptionist_Office FOREIGN KEY(OfficeID) REFERENCES Office(OfficeID) ON DELETE NO ACTION
+    CONSTRAINT FK_Receptionist_Office FOREIGN KEY(OfficeID) REFERENCES Office(OfficeID) ON DELETE NO ACTION,
+    CONSTRAINT CK_Receptionist_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE Patient(
     PatientID INT NOT NULL,
+    DeletionFlag BIT NOT NULL,
     
     CONSTRAINT PK_Patient PRIMARY KEY(PatientID),
-    CONSTRAINT FK_Patient_Member FOREIGN KEY(PatientID) REFERENCES Member(MemberID) ON DELETE NO ACTION
+    CONSTRAINT FK_Patient_Member FOREIGN KEY(PatientID) REFERENCES Member(MemberID) ON DELETE NO ACTION,
+    CONSTRAINT CK_Patient_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE UserAccount(
@@ -112,13 +128,15 @@ CREATE TABLE UserAccount(
     LastLogin  DATETIME2(0) NULL,
     Role VARCHAR(12) NOT NULL,
     IsActive BIT NOT NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_UserAccount PRIMARY KEY(AccountID),
     CONSTRAINT CK_UserAccount_AccountID CHECK(AccountID BETWEEN 1000000 AND 9999999),
     CONSTRAINT FK_UserAccount_Member FOREIGN KEY(UserID) REFERENCES Member(MemberID) ON DELETE NO ACTION,
     CONSTRAINT UQ_UserAccount_UserID UNIQUE(UserID),
     CONSTRAINT UQ_UserAccount_Username UNIQUE(Username),
-    CONSTRAINT CK_UserAccount_Role CHECK (Role IN ('Patient', 'Doctor', 'Nurse', 'Receptionist', 'Admin'))
+    CONSTRAINT CK_UserAccount_Role CHECK (Role IN ('Patient', 'Doctor', 'Nurse', 'Receptionist', 'Admin')),
+    CONSTRAINT CK_UserAccount_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE Insurance(
@@ -131,6 +149,7 @@ CREATE TABLE Insurance(
     EffectiveDate DATE NULL,
     ExpirationDate DATE NULL,
     IsPrimary BIT NOT NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_Insurance PRIMARY KEY(InsuranceID),
     CONSTRAINT CK_Insurance_InsuranceID CHECK(InsuranceID BETWEEN 1000000 AND 9999999),
@@ -138,7 +157,8 @@ CREATE TABLE Insurance(
     CONSTRAINT CK_Insurance_PolicyNum CHECK(LEN(PolicyNum) = 13 AND PolicyNum NOT LIKE '%[^0-9]%'),
     CONSTRAINT CK_Insurance_GroupNum CHECK(LEN(GroupNum) = 15 AND GroupNum NOT LIKE '%[^0-9]%'),
     CONSTRAINT CK_Insurance_EffectiveDate CHECK(EffectiveDate <= CAST(GETDATE() AS DATE)),
-    CONSTRAINT CK_Insurance_ExpirationDate CHECK(ExpirationDate > EffectiveDate)
+    CONSTRAINT CK_Insurance_ExpirationDate CHECK(ExpirationDate > EffectiveDate),
+    CONSTRAINT CK_Insurance_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE UNIQUE INDEX UX_Insurance_OnePrimary
@@ -153,6 +173,7 @@ CREATE TABLE EmergencyContact(
     LastName VARCHAR(31) NOT NULL,
     Phone VARCHAR(10) NOT NULL,
     Relationship VARCHAR(20) NOT NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_EmergencyContact PRIMARY KEY(ContactID),
     CONSTRAINT CK_EmergencyContact_ContactID CHECK(ContactID BETWEEN 1000000 AND 9999999),
@@ -160,7 +181,8 @@ CREATE TABLE EmergencyContact(
     CONSTRAINT CK_EmergencyContact_FirstName CHECK(FirstName NOT LIKE '%[0-9]%'),
     CONSTRAINT CK_EmergencyContact_MiddleName CHECK(MiddleName NOT LIKE '%[0-9]%'),
     CONSTRAINT CK_EmergencyContact_LastName CHECK(LastName NOT LIKE '%[0-9]%'),
-    CONSTRAINT CK_EmergencyContact_Phone CHECK(LEN(Phone) = 10 AND Phone NOT LIKE '%[^0-9]%')
+    CONSTRAINT CK_EmergencyContact_Phone CHECK(LEN(Phone) = 10 AND Phone NOT LIKE '%[^0-9]%'),
+    CONSTRAINT CK_EmergencyContact_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE PatientCondition(
@@ -171,13 +193,15 @@ CREATE TABLE PatientCondition(
     IsHereditary BIT NOT NULL,
     Severity VARCHAR(8) NOT NULL,
     DateDiagnosed DATE NULL,
+    DeletionFlag BIT NOT NULL,
     
     CONSTRAINT PK_PatientCondition PRIMARY KEY(ConditionID),
     CONSTRAINT CK_PatientCondition_ConditionID CHECK(ConditionID BETWEEN 1000000 AND 9999999),
     CONSTRAINT FK_PatientCondition_Patient FOREIGN KEY(PatientID) REFERENCES Patient(PatientID) ON DELETE NO ACTION,
     CONSTRAINT CK_PatientCondition_ConditionType CHECK (ConditionType IN ('Acute', 'Chronic')),
     CONSTRAINT CK_PatientCondition_Severity CHECK(Severity IN('Low','Moderate','Critical')),
-    CONSTRAINT CK_PatientCondition_DateDiagnosed CHECK(DateDiagnosed <= CAST(GETDATE() AS DATE))
+    CONSTRAINT CK_PatientCondition_DateDiagnosed CHECK(DateDiagnosed <= CAST(GETDATE() AS DATE)),
+    CONSTRAINT CK_PatientCondition_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE Allergy(
@@ -187,12 +211,14 @@ CREATE TABLE Allergy(
     ReactionType VARCHAR(60) NOT NULL,
     Severity VARCHAR(17) NOT NULL,
     DateIdentified  DATE NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_Allergy PRIMARY KEY(AllergyID),
     CONSTRAINT CK_Allergy_AllergyID CHECK(AllergyID BETWEEN 1000000 AND 9999999),
     CONSTRAINT FK_Allergy_Patient FOREIGN KEY(PatientID) REFERENCES Patient(PatientID) ON DELETE NO ACTION,
     CONSTRAINT CK_Allergy_Severity CHECK(Severity IN('Mild','Moderate','Severe', 'Life Threatening', 'Fatal')), 
-    CONSTRAINT CK_Allergy_DateIdentified CHECK(DateIdentified <= CAST(GETDATE() AS DATE))
+    CONSTRAINT CK_Allergy_DateIdentified CHECK(DateIdentified <= CAST(GETDATE() AS DATE)),
+    CONSTRAINT CK_Allergy_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE FamilyCondition(
@@ -201,10 +227,12 @@ CREATE TABLE FamilyCondition(
     ConditionName VARCHAR(60) NOT NULL,
     FamilyRelationship VARCHAR(20) NOT NULL ,
     Notes VARCHAR(200) NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_FamilyCondition PRIMARY KEY(FamilyConditionID),
     CONSTRAINT CK_FamilyCondition_FamilyConditionID CHECK(FamilyConditionID BETWEEN 1000000 AND 9999999),
     CONSTRAINT FK_FamilyCondition_Patient FOREIGN KEY(PatientID) REFERENCES Patient(PatientID) ON DELETE NO ACTION,
+    CONSTRAINT CK_FamilyCondition_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE Surgery(
@@ -215,22 +243,26 @@ CREATE TABLE Surgery(
     Facility VARCHAR(80) NOT NULL,
     Surgeon VARCHAR(30) NOT NULL,
     Notes VARCHAR(200) NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_Surgery PRIMARY KEY(SurgeryID),
     CONSTRAINT CK_Surgery_SurgeryID CHECK(SurgeryID BETWEEN 1000000 AND 9999999),
     CONSTRAINT FK_Surgery_Patient FOREIGN KEY(PatientID) REFERENCES Patient(PatientID) ON DELETE NO ACTION,
-    CONSTRAINT CK_Surgery_SurgeryDate CHECK(SurgeryDate <= CAST(GETDATE() AS DATE))
+    CONSTRAINT CK_Surgery_SurgeryDate CHECK(SurgeryDate <= CAST(GETDATE() AS DATE)),
+    CONSTRAINT CK_Surgery_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE DoctorSchedule(
     DoctorID INT NOT NULL,
     OfficeID INT NOT NULL,
     DayOfWeek CHAR(3) NOT NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_DoctorSchedule PRIMARY KEY(DoctorID, OfficeID, DayOfWeek),
     CONSTRAINT FK_DoctorSchedule_Doctor FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE CASCADE,
     CONSTRAINT FK_DoctorSchedule_Office FOREIGN KEY(OfficeID) REFERENCES Office(OfficeID) ON DELETE NO ACTION,
-    CONSTRAINT CK_DoctorSchedule_DayOfWeek CHECK(DayOfWeek IN('Mon','Tue','Wed','Thu','Fri','Sat','Sun'))
+    CONSTRAINT CK_DoctorSchedule_DayOfWeek CHECK(DayOfWeek IN('Mon','Tue','Wed','Thu','Fri','Sat','Sun')),
+    CONSTRAINT CK_DoctorSchedule_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE PatientDoctor(
@@ -238,12 +270,14 @@ CREATE TABLE PatientDoctor(
     DoctorID INT NOT NULL,
     RolePlayed VARCHAR(10) NOT NULL,
     StartDate DATE NOT NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_PatientDoctor PRIMARY KEY(PatientID, DoctorID),
     CONSTRAINT FK_PatientDoctor_Patient FOREIGN KEY(PatientID) REFERENCES Patient(PatientID) ON DELETE NO ACTION,
     CONSTRAINT FK_PatientDoctor_Doctor FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE NO ACTION,
     CONSTRAINT CK_PatientDoctor_RolePlayed CHECK(RolePlayed IN('Primary','Specialist')),
-    CONSTRAINT CK_PatientDoctor_StartDate CHECK(StartDate <= CAST(GETDATE() AS DATE))
+    CONSTRAINT CK_PatientDoctor_StartDate CHECK(StartDate <= CAST(GETDATE() AS DATE)),
+    CONSTRAINT CK_PatientDoctor_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 -- A patient can only have one primary doctor
 CREATE UNIQUE INDEX UX_PatientDoctor_OnePrimary
@@ -257,6 +291,7 @@ CREATE TABLE Referral(
     PrimaryID INT NOT NULL,
     DateIssued DATE NOT NULL,
     RefStatus VARCHAR(9) NOT NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_Referral PRIMARY KEY(ReferralID),
     CONSTRAINT CK_Referral_ReferralID CHECK(ReferralID BETWEEN 1000000 AND 9999999),
@@ -265,7 +300,8 @@ CREATE TABLE Referral(
     CONSTRAINT FK_Referral_Primary FOREIGN KEY(PrimaryID) REFERENCES Doctor(DoctorID) ON DELETE NO ACTION,
     CONSTRAINT CK_Referral_DateIssued CHECK(DateIssued <= CAST(GETDATE() AS DATE)),
     CONSTRAINT CK_Referral_RefStatus CHECK(RefStatus IN('Scheduled', 'Finished', 'Cancelled')),
-    CONSTRAINT CK_Referral_DifferentDoctors CHECK (PrimaryID <> SpecialistID)
+    CONSTRAINT CK_Referral_DifferentDoctors CHECK (PrimaryID <> SpecialistID),
+    CONSTRAINT CK_Referral_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE Appointment(
@@ -280,6 +316,7 @@ CREATE TABLE Appointment(
     Channel VARCHAR(10) NOT NULL,
     CancelReason VARCHAR(200) NULL,
     CancelledBy VARCHAR(7) NULL,
+    DeletionFlag BIT NOT NULL,
         
     CONSTRAINT PK_Appointment PRIMARY KEY(AppointmentID),
     CONSTRAINT CK_Appointment_AppointmentID CHECK(AppointmentID BETWEEN 1000000 AND 9999999),
@@ -298,7 +335,8 @@ CREATE TABLE Appointment(
         (AppointStatus <> 'Cancelled'
             AND CancelReason IS NULL
             AND CancelledBy IS NULL)
-    )
+    ),
+    CONSTRAINT CK_Appointment_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE MedicalRecord(
@@ -314,6 +352,7 @@ CREATE TABLE MedicalRecord(
     HeightInches NUMERIC(4,1) NOT NULL,
     TreatmentPlan VARCHAR(200) NULL,
     FollowUp VARCHAR(200) NULL,
+    DeletionFlag BIT NOT NULL,
         
     CONSTRAINT PK_MedicalRecord PRIMARY KEY(RecordID),
     CONSTRAINT CK_MedicalRecord_RecordID CHECK(RecordID BETWEEN 1000000 AND 9999999),
@@ -325,7 +364,8 @@ CREATE TABLE MedicalRecord(
     CONSTRAINT CK_MedicalRecord_Temperature CHECK(Temperature BETWEEN 56 AND 110),
     CONSTRAINT CK_MedicalRecord_BloodPressure CHECK (SystolicBP > DiastolicBP),
     CONSTRAINT CK_MedicalRecord_WeightPounds CHECK (WeightPounds > 0),
-    CONSTRAINT CK_MedicalRecord_HeightInches CHECK (HeightInches > 0)
+    CONSTRAINT CK_MedicalRecord_HeightInches CHECK (HeightInches > 0),
+    CONSTRAINT CK_MedicalRecord_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE Diagnosis(
@@ -333,11 +373,13 @@ CREATE TABLE Diagnosis(
     RecordID INT NOT NULL,
     DiagnosisDescription VARCHAR(100) NOT NULL,
     DiagnosisType VARCHAR(9) NOT NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_Diagnosis PRIMARY KEY(DiagnosisID, RecordID),
     CONSTRAINT CK_Diagnosis_DiagnosisID CHECK (DiagnosisID >= 1),
     CONSTRAINT FK_Diagnosis_MedicalRecord FOREIGN KEY(RecordID) REFERENCES MedicalRecord(RecordID) ON DELETE CASCADE,
-    CONSTRAINT CK_Diagnosis_DiagnosisType CHECK(DiagnosisType IN('Primary', 'Secondary'))
+    CONSTRAINT CK_Diagnosis_DiagnosisType CHECK(DiagnosisType IN('Primary', 'Secondary')),
+    CONSTRAINT CK_Diagnosis_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE Prescription(
@@ -348,26 +390,30 @@ CREATE TABLE Prescription(
     Frequency VARCHAR(20) NOT NULL,
     Duration VARCHAR(20) NOT NULL,
     Instructions VARCHAR(100) NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_Prescription PRIMARY KEY(PrescriptionID, RecordID),
     CONSTRAINT CK_Prescription_PrescriptionID CHECK (PrescriptionID >= 1),
-    CONSTRAINT FK_Prescription_MedicalRecord FOREIGN KEY(RecordID) REFERENCES MedicalRecord(RecordID) ON DELETE CASCADE
+    CONSTRAINT FK_Prescription_MedicalRecord FOREIGN KEY(RecordID) REFERENCES MedicalRecord(RecordID) ON DELETE CASCADE,
+    CONSTRAINT CK_Prescription_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE PaymentMethod(
     MethodID INT NOT NULL,
     MethodName VARCHAR(20) NOT NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_PaymentMethod PRIMARY KEY(MethodID),
-    CONSTRAINT UQ_PaymentMethod_MethodName UNIQUE(MethodName)
+    CONSTRAINT UQ_PaymentMethod_MethodName UNIQUE(MethodName),
+    CONSTRAINT CK_PaymentMethod_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
-INSERT INTO PaymentMethod (MethodID, MethodName) VALUES
-    (1, 'Cash'),
-    (2, 'Credit Card'),
-    (3, 'Debit Card'),
-    (4, 'Insurance'),
-    (5, 'Check');
+INSERT INTO PaymentMethod (MethodID, MethodName, DeletionFlag) VALUES
+    (1, 'Cash', 0),
+    (2, 'Credit Card', 0),
+    (3, 'Debit Card', 0),
+    (4, 'Insurance', 0),
+    (5, 'Check', 0);
 
 CREATE TABLE Payment(
     PaymentID INT IDENTITY (1000000,1) NOT NULL,
@@ -375,22 +421,26 @@ CREATE TABLE Payment(
     InstallmentNumber INT NOT NULL,
     PaymentDate DATE NOT NULL,
     PayStatus VARCHAR(9) NOT NULL,
-        
+    DeletionFlag BIT NOT NULL,
+       
     CONSTRAINT PK_Payment PRIMARY KEY(PaymentID),
     CONSTRAINT CK_Payment_PaymentID CHECK(PaymentID BETWEEN 1000000 AND 9999999),
     CONSTRAINT FK_Payment_Appointment FOREIGN KEY(AppointmentID) REFERENCES Appointment(AppointmentID) ON DELETE NO ACTION,
     CONSTRAINT CK_Payment_InstallmentNumber CHECK(InstallmentNumber >= 1),
     CONSTRAINT UQ_Payment_AppointmentInstallment UNIQUE (AppointmentID, InstallmentNumber),
-    CONSTRAINT CK_Payment_PayStatus CHECK (PayStatus IN ('Pending', 'Completed', 'Refunded'))
+    CONSTRAINT CK_Payment_PayStatus CHECK (PayStatus IN ('Pending', 'Completed', 'Refunded')),
+    CONSTRAINT CK_Payment_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE PaymentDetail(
     PaymentID INT NOT NULL,
     MethodID INT NOT NULL,
     AmountApplied NUMERIC(10,2) NOT NULL,
+    DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_PaymentDetail PRIMARY KEY(PaymentID, MethodID),
     CONSTRAINT FK_PaymentDetail_Payment FOREIGN KEY(PaymentID) REFERENCES Payment(PaymentID) ON DELETE CASCADE,
     CONSTRAINT FK_PaymentDetail_PaymentMethod FOREIGN KEY(MethodID) REFERENCES PaymentMethod(MethodID) ON DELETE NO ACTION,
-    CONSTRAINT CK_PaymentDetail_AmountApplied CHECK(AmountApplied >= 0)
+    CONSTRAINT CK_PaymentDetail_AmountApplied CHECK(AmountApplied >= 0),
+    CONSTRAINT CK_PaymentDetail_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
