@@ -26,8 +26,7 @@ BEGIN
 END;
 GO
 -- Test call (the backend runs this with the user's input)
-EXEC usp_DoctorWeekAppointments @DoctorID = 1000001, @WeekStart = '2026-10-19';
-
+EXEC usp_DoctorWeekAppointments @DoctorID = 1000001, @WeekStart = '2026-10-05';  -- James Wilson: Oct 6, Michael Brown, Completed
 GO
 CREATE OR ALTER PROCEDURE usp_PatientBalance
     @PatientID INT
@@ -59,8 +58,8 @@ SELECT @Billed AS Billed, @Paid AS Paid, @Billed - @Paid AS Balance;
 END;
 GO
 
-EXEC usp_PatientBalance @PatientID = 1000007;   -- Ethan: 200.00 / 200.00 / 0.00
-EXEC usp_PatientBalance @PatientID = 1000006;   -- Olivia: 0.00 / 0.00 / 0.00
+EXEC usp_PatientBalance @PatientID = 1000002;   -- Emily Garcia: 600.00 / 600.00 / 0.00
+EXEC usp_PatientBalance @PatientID = 1000004;   -- Olivia Davis: 375.00 / 375.00 / 0.00
 
 GO
 -- Query 3: search patients by name and/or date of birth
@@ -85,6 +84,6 @@ AS BEGIN
 END;
 GO
 
-EXEC usp_SearchPatients @Name = 'ben',  @DateOfBirth = NULL;          -- Olivia Bennett
-EXEC usp_SearchPatients @Name = NULL,   @DateOfBirth = '1988-12-05';        -- Ethan's birth date: Ethan only
-EXEC usp_SearchPatients @Name = 'zzz',  @DateOfBirth = NULL;          -- no rows
+EXEC usp_SearchPatients @Name = 'gar', @DateOfBirth = NULL;           -- Emily Garcia
+EXEC usp_SearchPatients @Name = NULL,  @DateOfBirth = '1990-07-08';   -- Michael Brown
+EXEC usp_SearchPatients @Name = 'zzz', @DateOfBirth = NULL;           -- no rows
