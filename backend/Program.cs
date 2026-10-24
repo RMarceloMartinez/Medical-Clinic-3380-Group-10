@@ -19,6 +19,8 @@ builder.Services.AddScoped<PatientService>();builder.Services.AddScoped<PatientS
 
 builder.Services.AddScoped<PaymentService>();
 
+builder.Services.AddScoped<AppointmentService>();
+
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
