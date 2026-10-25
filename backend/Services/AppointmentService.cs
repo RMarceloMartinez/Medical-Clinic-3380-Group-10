@@ -22,7 +22,7 @@ public class AppointmentService
         {
             throw new ArgumentException("Appointment date and time is required.");
         }  
-        
+
         using var connection = _connectionFactory.CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
@@ -39,7 +39,7 @@ public class AppointmentService
         INTO @NewAppointment(AppointmentID)
         Values(
                 @OfficeID, @DoctorID, @PatientID, @ReferralID,
-                @Date_Time, @TotalCost, @Channel, 'Scheduled',
+                @AppointmentDateTime, @TotalCost, @Channel, 'Scheduled',
                 NULL, NULL, 0
                 );
         SELECT AppointmentID FROM @NewAppointment
@@ -51,7 +51,7 @@ public class AppointmentService
         command.Parameters.Add("@ReferralID", SqlDbType.Int).Value = request.ReferralID.HasValue
                                                                     ? request.ReferralID
                                                                     : DBNull.Value;
-        command.Parameters.Add("@Date_Time", SqlDbType.DateTime2).Value = request.AppointmentDateTime.Value;
+        command.Parameters.Add("@AppointmentDateTime", SqlDbType.DateTime2).Value = request.AppointmentDateTime.Value;
         var costParameter = command.Parameters.Add("@TotalCost", SqlDbType.Decimal);
         costParameter.Precision = 10;
         costParameter.Scale = 2;
