@@ -1,5 +1,5 @@
 
-USE MedicalClinicDB;
+USE MedicalClinic;
 GO
 
 -- 1. SAMPLE OFFICES
