@@ -124,8 +124,8 @@ END;
 -- 3. SAMPLE EMPLOYEES
 
 -- EmployeeID references MemberID.
--- EmployeeID is an IDENTITY column, so
--- IDENTITY_INSERT is required for explicit IDs.
+-- EmployeeID is not an IDENTITY column.
+-- Use the corresponding MemberID when inserting employees.
 
 DECLARE @SarahID INT;
 DECLARE @JamesID INT;
