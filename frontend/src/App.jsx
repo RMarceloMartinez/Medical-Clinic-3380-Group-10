@@ -21,6 +21,12 @@ function App() {
   const [dateOfBirth,setDateOfBirth]=useState('')
   const [email,setEmail]=useState('')
   const [formErrors,setFormErrors]=useState({})
+  const [paymentPatientId,setPatientId]=useState('')
+  const [paymentAmount,setPaymentAmount]=useState('')
+  const [paymentDate, setPaymentDate]=useState('')
+  const [paymentMethod, setPaymentMethod]=useState('')
+  const [paymentStatus, setPaymentStatus]=useState('')
+  const [payments, setPayments]= useState([]);
 
   function handleLogin()
   {
@@ -35,6 +41,44 @@ function App() {
       return
     }
     setPage('Dashboard')
+  }
+  const handleRecordPayment = ()=>
+  {
+    if(
+        !paymentPatientId ||
+        !paymentAmount  ||
+        !paymentDate ||
+        !paymentMethod ||
+        !paymentStatus 
+      )
+      {
+        alert("Please fill in all payment fields")
+        return;
+      }
+      if(Number(paymentAmount)<=0)
+      {
+        alert("Payment amount must be grater then 0")
+        return;
+      }
+      const payment = {
+        patientID: paymentPatientId,
+        amount: Number(paymentAmount),
+        date: paymentDate,
+        method: paymentMethod,
+        status: paymentStatus,
+      };
+      setPayments((previousPayments)=> [
+        ...previousPayments,
+        payment,
+      ]);
+      console.log("Payment information:" , payment);
+      alert("Payment information calidated check the console");
+      setPatientId('');
+      setPaymentAmount('');
+      setPaymentDate('');
+      setPaymentMethod('');
+      setPaymentStatus('');
+      
   }
   function handleAddPatient()
   {
@@ -183,6 +227,8 @@ function App() {
               <input 
                 type='text'
                 placeholder='Enter Patient ID'
+                value={paymentPatientId}
+                onChange={(e)=>setPatientId(e.target.value)}
                 />
               <label>Payment Amount ($)</label>
                 <input
@@ -190,12 +236,20 @@ function App() {
                 placeholder='Enter Amount'
                 min="0"
                 step="0.01"
+                value={paymentAmount}
+                onChange={(e)=>setPaymentAmount(e.target.value)}
                 />
             <label>Payment Date</label>
-              <input type='date'/>
+              <input type='date'
+                 value={paymentDate}
+                onChange={(e)=>setPaymentDate(e.target.value)}
+              />
 
               <label> Payment methods</label>
-                <select defaultValue="">
+                <select 
+                   value={paymentMethod}
+                onChange={(e)=>setPaymentMethod(e.target.value)}
+                >
                   <option value="" disabled>
                     Select Payment Method
                   </option>
@@ -206,7 +260,10 @@ function App() {
                 </select>
 
                 <label>Payment Status</label>
-                  <select defaultValue="">
+                  <select 
+                     value={paymentStatus}
+                onChange={(e)=>setPaymentStatus(e.target.value)}
+                  >
                     <option value="" disabled>
                       Select Status
                     </option>
@@ -215,7 +272,7 @@ function App() {
                     <option value="failed">Failed</option>
                   </select>
 
-                  <button type='button'>
+                  <button type='button' onClick={handleRecordPayment}>
                     Record Payment
                   </button>
 
@@ -226,6 +283,31 @@ function App() {
                     >
                       Back to dashboard
                     </button>
+                    <h3>Recorded Payments</h3>
+
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Patient ID</th>
+                          <th>Amount</th>
+                          <th>Date</th>
+                          <th>Method</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {payments.map((payment,index)=>(
+                          <tr key={index}>
+                            <td>{payment.patientID}</td>
+                            <td>${payment.amount.toFixed(2)}</td>
+                            <td>{payment.date}</td>
+                            <td>{payment.method}</td>
+                            <td>{payment.status}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
 
          )}  

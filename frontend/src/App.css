@@ -315,3 +315,39 @@ body
   color: white;
   font-weight: bold;
 }
+.payment-form table{
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+  background-color: white;
+  color: black;
+}
+
+.payment-form th,
+.payment-form td{
+    border: 1px solid #cccccc;
+    padding: 10px;
+    text-align: center;
+}
+
+.payment-form th{
+  background-color: #253d5f;
+  color: white;
+}
+.payment-form tr:nth-child(even)
+{
+  background-color: rgb(158, 151, 151);
+}
+.payment-form
+{
+  max-width: 900px;
+}
+.payment-form table{
+  table-layout: fixed;
+  overflow-wrap: anywhere;
+}
+
+.payment-form th,
+.payment-form td{
+  padding: 8px 4px;
+}
