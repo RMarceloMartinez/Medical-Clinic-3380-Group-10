@@ -1,6 +1,7 @@
 using System.Data;
 using ClinicApi.Data;
 using ClinicApi.Models;
+using Microsoft.Data.SqlClient;
 
 namespace ClinicApi.Services;
 
@@ -90,6 +91,56 @@ public class AppointmentService
         if(!await reader.ReadAsync(cancellationToken)){
             return null;
         }
+        return Map(reader);
+    }
+
+    public async Task<List<AppointmentResponse>>ListAsync(
+        int? doctorId,
+        int? patientId,
+        int? officeId,
+        DateTime? from,
+        DateTime? to,
+        string? status,
+        CancellationToken cancellationToken = default
+    )
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+
+        command.CommandText =   """
+                                SELECT *
+                                FROM dbo.Appointment
+                                WHERE DeletionFlag = 0
+                                AND (@DoctorID  IS NULL OR DoctorID  = @DoctorID)
+                                AND (@PatientID IS NULL OR PatientID = @PatientID)
+                                AND (@OfficeID  IS NULL OR OfficeID = @OfficeID)
+                                AND (@Status    IS NULL OR AppointStatus = @Status)
+                                AND (@From      IS NULL OR Date_Time >= @From)
+                                AND (@To        IS NULL OR Date_Time <  DATEADD(DAY, 1, @To))
+                                ORDER BY Date_Time;
+                                """;
+        
+        command.Parameters.Add("@DoctorID", SqlDbType.Int).Value = (object?)doctorId ?? DBNull.Value;
+        command.Parameters.Add("@PatientID", SqlDbType.Int).Value = (object?)patientId ?? DBNull.Value;
+        command.Parameters.Add("@OfficeID", SqlDbType.Int).Value  = (object?)officeId  ?? DBNull.Value;
+        command.Parameters.Add("@Status", SqlDbType.VarChar, 9).Value = (object?)status ?? DBNull.Value;
+        command.Parameters.Add("@From", SqlDbType.Date).Value = (object?)from ?? DBNull.Value;
+        command.Parameters.Add("@To", SqlDbType.Date).Value   = (object?)to   ?? DBNull.Value;
+
+        var appointments = new List<AppointmentResponse>();
+        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        while(await reader.ReadAsync(cancellationToken))
+        {
+            appointments.Add(Map(reader));
+        }
+        return appointments;
+    }
+
+    private static AppointmentResponse Map(SqlDataReader reader)
+    {
         return new AppointmentResponse
         {
             AppointmentID = reader.GetInt32(reader.GetOrdinal("AppointmentID")),

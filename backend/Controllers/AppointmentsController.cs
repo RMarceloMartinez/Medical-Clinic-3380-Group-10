@@ -20,6 +20,41 @@ public class AppointmentsController : ControllerBase
     {
         _appointmentService = appointmentService;
     }
+
+    [HttpGet]
+    public async Task<ActionResult<List<AppointmentResponse>>> List(
+        [FromQuery] int? doctorId,
+        [FromQuery] int? patientId,
+        [FromQuery] int? officeId,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] string? status,
+        CancellationToken cancellationToken
+
+    )
+    {
+        if(from.HasValue && to.HasValue && from.Value > to.Value)
+        {
+            return BadRequest(new
+            {
+                message = "The start date must be on or before the end date."
+            });
+        }
+        if(status is not null && status is not("Scheduled" or "Completed" or "Cancelled"))
+        {
+            return BadRequest(new
+            {
+                message = "Status must be Scheduled, Completed, or Cancelled."
+            });
+        }
+
+        var appointments = await _appointmentService.ListAsync(
+            doctorId, patientId, officeId, from, to, status, cancellationToken
+        );
+
+        return Ok(appointments);
+    }
+
     [HttpGet("{id:int}")]
 
     public async Task<ActionResult<AppointmentResponse>> GetById(
