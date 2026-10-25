@@ -8,7 +8,7 @@
 }
 .dashboard
 {
-  min-height: 100 vh;
+  min-height: 100vh;
   padding: 30px;
   background-color:  rgb(14, 39, 68);
   color: white;
@@ -93,6 +93,17 @@ body
 {
   min-height: 100vh;
 }
+.Patient button
+{
+  display: block;
+  margin: 20px auto 0;
+  width: 100%;
+  padding: 12px;
+  background: #4882da;
+  color: white;
+  border: 1px solid black;
+
+}
 .back-button
 {
   display: block;
@@ -102,4 +113,205 @@ body
   background: #4882da;
   color: white;
   border: 1px solid black;
+}
+
+.edit-Patient
+{
+  max-width: 500px;
+  margin: 30px auto;
+  padding: 24px;
+  background-color: #4882da;
+  color: white;
+  border-radius: 12px;
+}
+.edit-Patient h2 
+{
+  text-align: center;
+}
+
+.edit-Patient label 
+{
+  display: block;
+  margin-top: 14px;
+  font-weight: bold;
+}
+
+.edit-Patient input
+{
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  margin-top: 6px;
+  border: 1px solid rgb(0, 0, 0);
+  border-radius: 6px;
+}
+
+.edit-Patient button
+{
+  padding: 10px 16px;
+  margin-top: 16px;
+  background-color:#253d5f    ;
+  border: 1px solid black;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.edit-Patient button:hover
+{
+  background-color: #101927;
+  color: white;
+}
+.add-Patient
+{
+  max-width: 500px;
+  margin: 30px auto;
+  padding: 24px;
+  background-color: #4882da;
+  color: rgb(252, 249, 249);
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+.add-Patient button
+{
+  padding: 10px 16px;
+  margin-top: 16px;
+  background-color:#253d5f    ;
+  border: 1px solid black;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.add-Patient button:hover
+{
+  background-color: #101927;
+  color: white;
+}
+.add-Patient h2
+{
+  text-align: center;
+  margin-bottom:24px;
+}
+.add-Patient label
+{
+  display: block;
+  margin-top: 14px;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+.add-Patient input,
+.add-Patient select 
+{
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px;
+  border: 1px solid #253d5f;
+  border-radius: 6px;
+  color:#ffffff;
+  font-size: 15px;
+}
+.remove-patient
+{
+  max-width: 500px;
+  margin: 30px auto;
+  padding: 24px;
+  background-color: #4882da;
+  color: white;
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+
+.remove-patient h2
+{
+  text-align: center;
+}
+
+.remove-patient label
+{
+  display: block;
+  margin-top: 14px;
+  font-weight: bold;
+}
+.remove-patient input
+{
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  margin-top: 6px;
+  border: 1px solid black;
+  border-radius: 6px;
+}
+.remove-patient button
+{
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin-top: 16px;
+  background-color: #253d5f;
+  color: white;
+  border: 1px solid black;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.remove-patient button:hover
+{
+  background-color: #101927;
+}
+.field-error
+{
+  color: red;
+  background-color: #4882da;
+  padding: 6px 8px;
+  margin: 5px 0 0;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: bold;
+}
+.payment-form
+{
+  max-width: 500px;
+  margin: 30px auto;
+  padding: 24px;
+  background-color: #4882da;
+  color: white;
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+.payment-form h2{
+  text-align: center;
+  margin-bottom: 24px;
+
+}
+
+.payment-form label
+{
+  display: block;
+  margin-top: 14px;
+  font-weight: bold;
+}
+.payment-form input,
+.payment-form select
+{
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin-top: 6px;
+  box-sizing: border-box;
+  
+  color: white;
+  border: 1px solid #cccccc;
+  border-radius: 6px;
+
+}
+.payment-form button{
+  width: 100%;
+  padding: 12px;
+  margin-top: 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background-color: #253d5f;
+  color: white;
+  font-weight: bold;
 }
