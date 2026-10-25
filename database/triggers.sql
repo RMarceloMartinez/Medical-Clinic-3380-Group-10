@@ -21,6 +21,7 @@ IF EXISTS(
             AND ds.OfficeID = i.OfficeID
             AND ds.DayOfWeek = CHOOSE(DATEDIFF(DAY, '19000101', i.Date_Time) % 7 + 1,
                                                 'Mon','Tue','Wed','Thu','Fri','Sat','Sun')
+            AND ds.DeletionFlag = 0
         )
 )
 
@@ -157,3 +158,107 @@ BEGIN
     END;
 END;
 GO
+
+CREATE OR ALTER TRIGGER TR_Appointment_StatusTransition
+ON dbo.Appointment
+AFTER UPDATE
+AS BEGIN
+SET NOCOUNT ON;
+
+    IF NOT(UPDATE(AppointStatus)) RETURN;
+
+IF EXISTS(
+    SELECT 1
+    FROM deleted AS d
+    JOIN inserted AS i ON i.AppointmentID = d.AppointmentID
+    WHERE d.AppointStatus IN('Cancelled', 'Completed')
+    AND i.AppointStatus <> d.AppointStatus
+)
+BEGIN 
+    ROLLBACK TRANSACTION;
+    THROW 50005, 'A completed or cancelled appointment cannot change status.', 1;
+    END;
+END;
+GO
+
+CREATE OR ALTER TRIGGER TR_Referral_IssuedByPrimary
+ON dbo.Referral
+AFTER INSERT, UPDATE
+AS BEGIN
+SET NOCOUNT ON;
+    IF NOT(UPDATE(PatientID) OR UPDATE(PrimaryID)) RETURN;
+IF EXISTS(
+    SELECT 1
+    FROM inserted AS i
+    WHERE NOT EXISTS(
+                SELECT 1
+                FROM PatientDoctor AS pd 
+                WHERE pd.PatientID = i.PatientID
+                AND pd.DoctorID = i.PrimaryID
+                AND pd.RolePlayed = 'Primary'
+                AND pd.DeletionFlag = 0
+              )
+)
+BEGIN 
+    ROLLBACK TRANSACTION;
+    THROW 50004, 'Only the patient''s primary doctor can issue a referral.', 1;
+    END;
+END;
+GO
+
+CREATE OR ALTER TRIGGER TR_Appointment_SpecialistReferral
+ON dbo.Appointment
+AFTER INSERT, UPDATE
+AS BEGIN
+SET NOCOUNT ON;
+    IF NOT(UPDATE(PatientID) OR UPDATE(DoctorID) OR UPDATE(Date_Time) OR UPDATE(AppointStatus)) RETURN;
+IF EXISTS(
+    SELECT 1
+    FROM inserted AS i
+    WHERE i.AppointStatus <> 'Cancelled'
+    AND NOT EXISTS (
+                    SELECT 1
+                    FROM PatientDoctor AS pd
+                    WHERE i.PatientID = pd.PatientID
+                    AND i.DoctorID = pd.DoctorID
+                    AND pd.RolePlayed = 'Primary'
+                    AND pd.DeletionFlag = 0
+                    )
+    AND NOT EXISTS (
+                    SELECT 1
+                    FROM Referral AS r
+                    WHERE r.PatientID = i.PatientID
+                    AND r.SpecialistID = i.DoctorID
+                    AND r.RefStatus = 'Scheduled'
+                    AND r.DateIssued <= CAST(i.Date_Time AS DATE)
+                    )
+)
+BEGIN 
+    ROLLBACK TRANSACTION;
+    THROW 50006, 'Seeing a specialist requires a valid referral from the patient''s primary doctor.', 1;
+    END;
+END;
+GO
+
+CREATE OR ALTER TRIGGER TR_Payment_CancelledAppointment
+ON dbo.Payment
+AFTER INSERT, UPDATE
+AS BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT(UPDATE(PayStatus) OR UPDATE(AppointmentID)) RETURN;
+
+IF EXISTS(
+    SELECT 1
+    FROM inserted AS i
+    JOIN Appointment AS a ON a.AppointmentID = i.AppointmentID
+    WHERE a.AppointStatus = 'Cancelled'
+    AND i.PayStatus <> 'Refunded'
+)
+BEGIN 
+    ROLLBACK TRANSACTION;
+    THROW 50007, 'A payment cannot be recorded for a cancelled appointment.', 1;
+    END;
+END;
+GO
+

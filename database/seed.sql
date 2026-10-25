@@ -1,4 +1,3 @@
-
 USE MedicalClinic;
 GO
 
@@ -13,10 +12,10 @@ IF NOT EXISTS (
 BEGIN
     INSERT INTO dbo.Office
         (StreetAddress, SuiteNum, City, State,
-         ZipCode, Country, Phone, OpeningTime, ClosingTime)
+         ZipCode, Country, Phone, OpeningTime, ClosingTime, DeletionFlag)
     VALUES
         ('1234 Main Street', '100', 'Houston', 'Texas',
-         '77002', 'USA', '7135550100', '08:00', '17:00');
+         '77002', 'USA', '7135550100', '08:00', '17:00', 0);
 END;
 
 IF NOT EXISTS (
@@ -28,10 +27,10 @@ IF NOT EXISTS (
 BEGIN
     INSERT INTO dbo.Office
         (StreetAddress, SuiteNum, City, State,
-         ZipCode, Country, Phone, OpeningTime, ClosingTime)
+         ZipCode, Country, Phone, OpeningTime, ClosingTime, DeletionFlag)
     VALUES
         ('5678 Westheimer Road', '200', 'Houston', 'Texas',
-         '77056', 'USA', '7135550200', '09:00', '18:00');
+         '77056', 'USA', '7135550200', '09:00', '18:00', 0);
 END;
 
 -- 2. SAMPLE MEMBERS
@@ -45,12 +44,12 @@ BEGIN
     INSERT INTO dbo.Member
         (SSN, FirstName, MiddleName, LastName,
          StreetAddress, ApartmentNum, City, State,
-         ZipCode, Country, Phone, Sex, DateOfBirth, Email)
+         ZipCode, Country, Phone, Sex, DateOfBirth, Email, DeletionFlag)
     VALUES
         ('900-10-0001', 'Sarah', NULL, 'Patel',
          '100 Oak Street', NULL, 'Houston', 'Texas',
          '77002', 'USA', '7135551001', 'F',
-         '1980-05-12', 'sarah.patel@example.com');
+         '1980-05-12', 'sarah.patel@example.com', 0);
 END;
 
 -- James Wilson (Doctor)
@@ -62,12 +61,12 @@ BEGIN
     INSERT INTO dbo.Member
         (SSN, FirstName, MiddleName, LastName,
          StreetAddress, ApartmentNum, City, State,
-         ZipCode, Country, Phone, Sex, DateOfBirth, Email)
+         ZipCode, Country, Phone, Sex, DateOfBirth, Email, DeletionFlag)
     VALUES
         ('900-10-0002', 'James', NULL, 'Wilson',
          '200 Pine Street', NULL, 'Houston', 'Texas',
          '77056', 'USA', '7135551002', 'M',
-         '1975-09-21', 'james.wilson@example.com');
+         '1975-09-21', 'james.wilson@example.com', 0);
 END;
 
 -- Emily Garcia (Patient)
@@ -79,12 +78,12 @@ BEGIN
     INSERT INTO dbo.Member
         (SSN, FirstName, MiddleName, LastName,
          StreetAddress, ApartmentNum, City, State,
-         ZipCode, Country, Phone, Sex, DateOfBirth, Email)
+         ZipCode, Country, Phone, Sex, DateOfBirth, Email, DeletionFlag)
     VALUES
         ('900-10-0003', 'Emily', NULL, 'Garcia',
          '300 Elm Street', '12', 'Houston', 'Texas',
          '77003', 'USA', '7135551003', 'F',
-         '1998-03-15', 'emily.garcia@example.com');
+         '1998-03-15', 'emily.garcia@example.com', 0);
 END;
 
 -- Michael Brown (Patient)
@@ -96,12 +95,12 @@ BEGIN
     INSERT INTO dbo.Member
         (SSN, FirstName, MiddleName, LastName,
          StreetAddress, ApartmentNum, City, State,
-         ZipCode, Country, Phone, Sex, DateOfBirth, Email)
+         ZipCode, Country, Phone, Sex, DateOfBirth, Email, DeletionFlag)
     VALUES
         ('900-10-0004', 'Michael', NULL, 'Brown',
          '400 Maple Street', NULL, 'Houston', 'Texas',
          '77004', 'USA', '7135551004', 'M',
-         '1990-07-08', 'michael.brown@example.com');
+         '1990-07-08', 'michael.brown@example.com', 0);
 END;
 
 -- Olivia Davis (Patient)
@@ -113,19 +112,19 @@ BEGIN
     INSERT INTO dbo.Member
         (SSN, FirstName, MiddleName, LastName,
          StreetAddress, ApartmentNum, City, State,
-         ZipCode, Country, Phone, Sex, DateOfBirth, Email)
+         ZipCode, Country, Phone, Sex, DateOfBirth, Email, DeletionFlag)
     VALUES
         ('900-10-0005', 'Olivia', NULL, 'Davis',
          '500 Cedar Street', '4B', 'Houston', 'Texas',
          '77005', 'USA', '7135551005', 'F',
-         '2001-11-25', 'olivia.davis@example.com');
+         '2001-11-25', 'olivia.davis@example.com', 0);
 END;
 
 -- 3. SAMPLE EMPLOYEES
 
 -- EmployeeID references MemberID.
--- EmployeeID is not an IDENTITY column.
--- Use the corresponding MemberID when inserting employees.
+-- EmployeeID is an IDENTITY column, so
+-- IDENTITY_INSERT is required for explicit IDs.
 
 DECLARE @SarahID INT;
 DECLARE @JamesID INT;
@@ -144,9 +143,9 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO dbo.Employee
-        (EmployeeID, HiringDate)
+        (EmployeeID, HiringDate, DeletionFlag)
     VALUES
-        (@SarahID, '2022-06-01');
+        (@SarahID, '2022-06-01', 0);
 END;
 
 IF NOT EXISTS (
@@ -155,9 +154,9 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO dbo.Employee
-        (EmployeeID, HiringDate)
+        (EmployeeID, HiringDate, DeletionFlag)
     VALUES
-        (@JamesID, '2021-03-15');
+        (@JamesID, '2021-03-15', 0);
 END;
 
 -- 3A. ADD NURSE AND RECEPTIONIST MEMBERS
@@ -171,12 +170,12 @@ BEGIN
     INSERT INTO dbo.Member
         (SSN, FirstName, MiddleName, LastName,
          StreetAddress, ApartmentNum, City, State,
-         ZipCode, Country, Phone, Sex, DateOfBirth, Email)
+         ZipCode, Country, Phone, Sex, DateOfBirth, Email, DeletionFlag)
     VALUES
         ('900-10-0006', 'Jessica', NULL, 'Lee',
          '600 Willow Street', NULL, 'Houston', 'Texas',
          '77006', 'USA', '7135551006', 'F',
-         '1992-04-18', 'jessica.lee@example.com');
+         '1992-04-18', 'jessica.lee@example.com', 0);
 END;
 
 -- Receptionist: Daniel Martinez
@@ -188,12 +187,12 @@ BEGIN
     INSERT INTO dbo.Member
         (SSN, FirstName, MiddleName, LastName,
          StreetAddress, ApartmentNum, City, State,
-         ZipCode, Country, Phone, Sex, DateOfBirth, Email)
+         ZipCode, Country, Phone, Sex, DateOfBirth, Email, DeletionFlag)
     VALUES
         ('900-10-0007', 'Daniel', NULL, 'Martinez',
          '700 Birch Street', NULL, 'Houston', 'Texas',
          '77007', 'USA', '7135551007', 'M',
-         '1995-08-22', 'daniel.martinez@example.com');
+         '1995-08-22', 'daniel.martinez@example.com', 0);
 END;
 
 -- 3B. ADD EMPLOYEE RECORDS
@@ -214,8 +213,8 @@ IF NOT EXISTS (
     WHERE EmployeeID = @JessicaID
 )
 BEGIN
-    INSERT INTO dbo.Employee (EmployeeID, HiringDate)
-    VALUES (@JessicaID, '2023-01-10');
+    INSERT INTO dbo.Employee (EmployeeID, HiringDate, DeletionFlag)
+    VALUES (@JessicaID, '2023-01-10', 0);
 END;
 
 IF NOT EXISTS (
@@ -223,8 +222,8 @@ IF NOT EXISTS (
     WHERE EmployeeID = @DanielID
 )
 BEGIN
-    INSERT INTO dbo.Employee (EmployeeID, HiringDate)
-    VALUES (@DanielID, '2024-05-15');
+    INSERT INTO dbo.Employee (EmployeeID, HiringDate, DeletionFlag)
+    VALUES (@DanielID, '2024-05-15', 0);
 END;
 
 -- 3C. ADD NURSE
@@ -235,9 +234,10 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO dbo.Nurse
-        (NurseID, OfficeID, LicenseNum)
+        (NurseID, OfficeID, LicenseNum, DeletionFlag)
     SELECT
-        @JessicaID, OfficeID, 'TXRN10001'
+        @JessicaID, OfficeID, 'TXRN10001',
+    0
     FROM dbo.Office
     WHERE StreetAddress = '1234 Main Street'
       AND SuiteNum = '100'
@@ -252,9 +252,10 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO dbo.Receptionist
-        (ReceptionistID, OfficeID)
+        (ReceptionistID, OfficeID, DeletionFlag)
     SELECT
-        @DanielID, OfficeID
+        @DanielID, OfficeID,
+    0
     FROM dbo.Office
     WHERE StreetAddress = '5678 Westheimer Road'
       AND SuiteNum = '200'
@@ -270,9 +271,9 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO dbo.Doctor
-        (DoctorID, LicenseNum, Specialty)
+        (DoctorID, LicenseNum, Specialty, DeletionFlag)
     VALUES
-        (@SarahID, 'TX-MD-10001', 'Family Medicine');
+        (@SarahID, 'TX-MD-10001', 'Family Medicine', 0);
 END;
 
 IF NOT EXISTS (
@@ -281,9 +282,9 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO dbo.Doctor
-        (DoctorID, LicenseNum, Specialty)
+        (DoctorID, LicenseNum, Specialty, DeletionFlag)
     VALUES
-        (@JamesID, 'TX-MD-10002', 'Cardiology');
+        (@JamesID, 'TX-MD-10002', 'Cardiology', 0);
 END;
 
 -- 5. SAMPLE PATIENTS
@@ -309,8 +310,8 @@ IF NOT EXISTS (
     WHERE PatientID = @EmilyID
 )
 BEGIN
-    INSERT INTO dbo.Patient (PatientID)
-    VALUES (@EmilyID);
+    INSERT INTO dbo.Patient (PatientID, DeletionFlag)
+    VALUES (@EmilyID, 0);
 END;
 
 IF NOT EXISTS (
@@ -318,8 +319,8 @@ IF NOT EXISTS (
     WHERE PatientID = @MichaelID
 )
 BEGIN
-    INSERT INTO dbo.Patient (PatientID)
-    VALUES (@MichaelID);
+    INSERT INTO dbo.Patient (PatientID, DeletionFlag)
+    VALUES (@MichaelID, 0);
 END;
 
 IF NOT EXISTS (
@@ -327,8 +328,8 @@ IF NOT EXISTS (
     WHERE PatientID = @OliviaID
 )
 BEGIN
-    INSERT INTO dbo.Patient (PatientID)
-    VALUES (@OliviaID);
+    INSERT INTO dbo.Patient (PatientID, DeletionFlag)
+    VALUES (@OliviaID, 0);
 END;
 -- 6. SAMPLE DOCTOR SCHEDULES
 -- Sarah Patel: Monday, Wednesday, Friday
@@ -350,8 +351,9 @@ WHERE StreetAddress = '5678 Westheimer Road'
   AND City = 'Houston';
 
 INSERT INTO dbo.DoctorSchedule
-    (DoctorID, OfficeID, DayOfWeek)
-SELECT v.DoctorID, v.OfficeID, v.DayOfWeek
+    (DoctorID, OfficeID, DayOfWeek, DeletionFlag)
+SELECT v.DoctorID, v.OfficeID, v.DayOfWeek,
+    0
 FROM (VALUES
     (@SarahID, @Office1ID, 'Mon'),
     (@SarahID, @Office1ID, 'Wed'),
@@ -367,13 +369,101 @@ WHERE NOT EXISTS (
       AND ds.DayOfWeek = v.DayOfWeek
 );
 
+-- 6B. SAMPLE PATIENT-DOCTOR RELATIONSHIPS
+-- Must come before Referrals and Appointments (triggers 3 and 4 read it)
+
+INSERT INTO dbo.PatientDoctor
+    (PatientID, DoctorID, RolePlayed, StartDate, DeletionFlag)
+SELECT
+    v.PatientID,
+    v.DoctorID,
+    v.RolePlayed,
+    v.StartDate,
+    0
+FROM (VALUES
+    -- Emily: Sarah is primary, James is specialist
+    (@EmilyID, @SarahID, 'Primary',
+     CAST('2026-01-15' AS DATE)),
+
+    (@EmilyID, @JamesID, 'Specialist',
+     CAST('2026-07-01' AS DATE)),
+
+    -- Michael: Sarah is primary, James is specialist
+    (@MichaelID, @SarahID, 'Primary',
+     CAST('2026-02-10' AS DATE)),
+
+    (@MichaelID, @JamesID, 'Specialist',
+     CAST('2026-07-01' AS DATE)),
+
+    -- Olivia: Sarah is primary, James is specialist
+    (@OliviaID, @SarahID, 'Primary',
+     CAST('2026-03-05' AS DATE)),
+
+    (@OliviaID, @JamesID, 'Specialist',
+     CAST('2026-07-01' AS DATE))
+
+) AS v(PatientID, DoctorID, RolePlayed, StartDate)
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM dbo.PatientDoctor pd
+    WHERE pd.PatientID = v.PatientID
+      AND pd.DoctorID = v.DoctorID
+);
+
+-- 6C. SAMPLE REFERRALS
+-- Must come after PatientDoctor (trigger 4: issued by the patient's primary)
+-- and before Appointments (trigger 3: specialist visits need an open referral)
+
+INSERT INTO dbo.Referral
+    (PatientID, SpecialistID, PrimaryID,
+     DateIssued, RefStatus, DeletionFlag)
+SELECT
+    v.PatientID,
+    v.SpecialistID,
+    v.PrimaryID,
+    v.DateIssued,
+    v.RefStatus,
+    0
+FROM (VALUES
+
+    -- Emily referred to James by Sarah
+    -- (stays open: Emily still has a visit with James on Oct 27)
+    (@EmilyID, @JamesID, @SarahID,
+     CAST('2026-06-15' AS DATE),
+     'Scheduled'),
+
+    -- Michael referred to James by Sarah
+    -- (issued before his first James visit on Jul 7)
+    (@MichaelID, @JamesID, @SarahID,
+     CAST('2026-06-20' AS DATE),
+     'Scheduled'),
+
+    -- Olivia referred to James by Sarah
+    -- (needed for her Sep 8 visit with James)
+    (@OliviaID, @JamesID, @SarahID,
+     CAST('2026-08-20' AS DATE),
+     'Scheduled')
+
+) AS v(
+    PatientID, SpecialistID, PrimaryID,
+    DateIssued, RefStatus
+)
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM dbo.Referral r
+    WHERE r.PatientID = v.PatientID
+      AND r.SpecialistID = v.SpecialistID
+      AND r.PrimaryID = v.PrimaryID
+      AND r.DateIssued = v.DateIssued
+);
+
 --7. SAMPLE APPOINTMENTS
 -- Appointments across July, August, September, and October 2026
 
 INSERT INTO dbo.Appointment
     (OfficeID, DoctorID, PatientID, ReferralID,
      Date_Time, AppointStatus, TotalCost, Channel,
-     CancelReason, CancelledBy)
+     CancelReason, CancelledBy, DeletionFlag)
 SELECT
     v.OfficeID,
     v.DoctorID,
@@ -384,7 +474,8 @@ SELECT
     v.TotalCost,
     v.Channel,
     v.CancelReason,
-    v.CancelledBy
+    v.CancelledBy,
+    0
 FROM (VALUES
 
     -- JULY 2026
@@ -443,7 +534,7 @@ FROM (VALUES
      'Cancelled', 250.00, 'Web Portal',
      'Schedule conflict', 'Patient')
 
-) AS 
+) AS v(
     OfficeID, DoctorID, PatientID, Date_Time,
     AppointStatus, TotalCost, Channel,
     CancelReason, CancelledBy
@@ -454,18 +545,28 @@ WHERE NOT EXISTS (
     WHERE a.DoctorID = v.DoctorID
       AND a.Date_Time = v.Date_Time
 );
+
+-- 7B. CLOSE REFERRALS WHOSE VISITS ARE DONE
+-- Michael and Olivia have no upcoming visits with James.
+-- Changing only RefStatus is skipped by trigger 4.
+UPDATE dbo.Referral
+SET RefStatus = 'Finished'
+WHERE SpecialistID = @JamesID
+  AND PatientID IN (@MichaelID, @OliviaID)
+  AND RefStatus = 'Scheduled';
 -- 8, SAMPLE PAYMENTS
 -- Add payments for completed appointments
 -- PaymentID is generated automatically
 
 INSERT INTO dbo.Payment
     (AppointmentID, InstallmentNumber,
-     PaymentDate, PayStatus)
+     PaymentDate, PayStatus, DeletionFlag)
 SELECT
     a.AppointmentID,
     1,
     CAST(a.Date_Time AS DATE),
-    'Completed'
+    'Completed',
+    0
 FROM dbo.Appointment a
 WHERE a.AppointStatus = 'Completed'
   AND NOT EXISTS (
@@ -479,12 +580,13 @@ WHERE a.AppointStatus = 'Completed'
 
 INSERT INTO dbo.Payment
     (AppointmentID, InstallmentNumber,
-     PaymentDate, PayStatus)
+     PaymentDate, PayStatus, DeletionFlag)
 SELECT
     a.AppointmentID,
     1,
     CAST(a.Date_Time AS DATE),
-    'Pending'
+    'Pending',
+    0
 FROM dbo.Appointment a
 WHERE a.AppointStatus = 'Scheduled'
   AND NOT EXISTS (
@@ -501,7 +603,7 @@ INSERT INTO dbo.MedicalRecord
     (AppointmentID, ClinicalNotes,
      SystolicBP, DiastolicBP, HeartRate,
      Temperature, WeightPounds, HeightInches,
-     TreatmentPlan, FollowUp)
+     TreatmentPlan, FollowUp, DeletionFlag)
 SELECT
     a.AppointmentID,
     CASE
@@ -514,7 +616,8 @@ SELECT
     END,
     120, 80, 72, 98.6, 150.0, 66.0,
     'Continue routine preventive care.',
-    'Schedule follow-up as needed.'
+    'Schedule follow-up as needed.',
+    0
 FROM dbo.Appointment a
 WHERE a.AppointStatus = 'Completed'
   AND a.PatientID IN
@@ -528,14 +631,15 @@ WHERE a.AppointStatus = 'Completed'
 --10.SAMPLE PAYMENT DETAILS
 -- Add payment amounts for completed appointments
 INSERT INTO dbo.PaymentDetail
-    (PaymentID, MethodID, AmountApplied)
+    (PaymentID, MethodID, AmountApplied, DeletionFlag)
 SELECT
     p.PaymentID,
     CASE
         WHEN a.Channel = 'Web Portal' THEN 2
         ELSE 1
     END,
-    a.TotalCost
+    a.TotalCost,
+    0
 FROM dbo.Payment p
 INNER JOIN dbo.Appointment a
     ON p.AppointmentID = a.AppointmentID
@@ -547,52 +651,14 @@ WHERE p.PayStatus = 'Completed'
       WHERE pd.PaymentID = p.PaymentID
   );
 
--- 11. SAMPLE PATIENT-DOCTOR RELATIONSHIPS
-
-INSERT INTO dbo.PatientDoctor
-    (PatientID, DoctorID, RolePlayed, StartDate)
-SELECT
-    v.PatientID,
-    v.DoctorID,
-    v.RolePlayed,
-    v.StartDate
-FROM (VALUES
-    -- Emily: Sarah is primary, James is specialist
-    (@EmilyID, @SarahID, 'Primary',
-     CAST('2026-01-15' AS DATE)),
-
-    (@EmilyID, @JamesID, 'Specialist',
-     CAST('2026-07-01' AS DATE)),
-
-    -- Michael: Sarah is primary, James is specialist
-    (@MichaelID, @SarahID, 'Primary',
-     CAST('2026-02-10' AS DATE)),
-
-    (@MichaelID, @JamesID, 'Specialist',
-     CAST('2026-07-01' AS DATE)),
-
-    -- Olivia: Sarah is primary, James is specialist
-    (@OliviaID, @SarahID, 'Primary',
-     CAST('2026-03-05' AS DATE)),
-
-    (@OliviaID, @JamesID, 'Specialist',
-     CAST('2026-07-01' AS DATE))
-
-) AS v(PatientID, DoctorID, RolePlayed, StartDate)
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM dbo.PatientDoctor pd
-    WHERE pd.PatientID = v.PatientID
-      AND pd.DoctorID = v.DoctorID
-);
-
 -- 12. SAMPLE PATIENT CONDITIONS
 INSERT INTO dbo.PatientCondition
     (PatientID, ConditionName, ConditionType,
-     IsHereditary, Severity, DateDiagnosed)
+     IsHereditary, Severity, DateDiagnosed, DeletionFlag)
 SELECT
     v.PatientID, v.ConditionName, v.ConditionType,
-    v.IsHereditary, v.Severity, v.DateDiagnosed
+    v.IsHereditary, v.Severity, v.DateDiagnosed,
+    0
 FROM (VALUES
     (@EmilyID, 'Asthma', 'Chronic', 0, 'Moderate',
      CAST('2020-04-15' AS DATE)),
@@ -612,10 +678,11 @@ WHERE NOT EXISTS (
 
 INSERT INTO dbo.Allergy
     (PatientID, Allergen, ReactionType,
-     Severity, DateIdentified)
+     Severity, DateIdentified, DeletionFlag)
 SELECT
     v.PatientID, v.Allergen, v.ReactionType,
-    v.Severity, v.DateIdentified
+    v.Severity, v.DateIdentified,
+    0
 FROM (VALUES
     (@EmilyID, 'Peanuts', 'Hives', 'Moderate',
      CAST('2018-05-10' AS DATE)),
@@ -635,10 +702,11 @@ WHERE NOT EXISTS (
 
 INSERT INTO dbo.FamilyCondition
     (PatientID, ConditionName,
-     FamilyRelationship, Notes)
+     FamilyRelationship, Notes, DeletionFlag)
 SELECT
     v.PatientID, v.ConditionName,
-    v.FamilyRelationship, v.Notes
+    v.FamilyRelationship, v.Notes,
+    0
 FROM (VALUES
     (@EmilyID, 'Diabetes', 'Mother',
      CAST('Family history of type 2 diabetes.'
@@ -654,47 +722,11 @@ WHERE NOT EXISTS (
       AND fc.ConditionName = v.ConditionName
       AND fc.FamilyRelationship = v.FamilyRelationship
 );
--- -- 15. SAMPLE REFERRALS
-
-INSERT INTO dbo.Referral
-    (PatientID, SpecialistID, PrimaryID,
-     DateIssued, RefStatus)
-SELECT
-    v.PatientID,
-    v.SpecialistID,
-    v.PrimaryID,
-    v.DateIssued,
-    v.RefStatus
-FROM (VALUES
-
-    -- Emily referred to James by Sarah
-    (@EmilyID, @JamesID, @SarahID,
-     CAST('2026-06-15' AS DATE),
-     'Finished'),
-
-    -- Michael referred to James by Sarah
-    (@MichaelID, @JamesID, @SarahID,
-     CAST('2026-09-15' AS DATE),
-     'Scheduled')
-
-) AS v(
-    PatientID, SpecialistID, PrimaryID,
-    DateIssued, RefStatus
-)
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM dbo.Referral r
-    WHERE r.PatientID = v.PatientID
-      AND r.SpecialistID = v.SpecialistID
-      AND r.PrimaryID = v.PrimaryID
-      AND r.DateIssued = v.DateIssued
-);
-
 -- 16. SAMPLE DIAGNOSES
 -- One diagnosis for each completed appointment record
 
 INSERT INTO dbo.Diagnosis
-    (DiagnosisID, RecordID, DiagnosisDescription, DiagnosisType)
+    (DiagnosisID, RecordID, DiagnosisDescription, DiagnosisType, DeletionFlag)
 SELECT
     1,
     mr.RecordID,
@@ -706,7 +738,8 @@ SELECT
         WHEN a.PatientID = @OliviaID
             THEN 'Preventive wellness examination'
     END,
-    'Primary'
+    'Primary',
+    0
 FROM dbo.MedicalRecord mr
 INNER JOIN dbo.Appointment a
     ON mr.AppointmentID = a.AppointmentID
@@ -724,7 +757,7 @@ WHERE a.AppointStatus = 'Completed'
 
 INSERT INTO dbo.Prescription
     (PrescriptionID, RecordID, MedicationName,
-     Dosage, Frequency, Duration, Instructions)
+     Dosage, Frequency, Duration, Instructions, DeletionFlag)
 SELECT
     1,
     mr.RecordID,
@@ -741,7 +774,8 @@ SELECT
         WHEN a.PatientID = @MichaelID THEN 'Once daily'
     END,
     'As directed',
-    'Sample educational record only'
+    'Sample educational record only',
+    0
 FROM dbo.MedicalRecord mr
 INNER JOIN dbo.Appointment a
     ON mr.AppointmentID = a.AppointmentID
@@ -759,11 +793,12 @@ WHERE a.AppointStatus = 'Completed'
 INSERT INTO dbo.Insurance
     (PatientID, ProviderCompany, PolicyNum,
      GroupNum, PlanType, EffectiveDate,
-     ExpirationDate, IsPrimary)
+     ExpirationDate, IsPrimary, DeletionFlag)
 SELECT
     v.PatientID, v.ProviderCompany, v.PolicyNum,
     v.GroupNum, v.PlanType, v.EffectiveDate,
-    v.ExpirationDate, v.IsPrimary
+    v.ExpirationDate, v.IsPrimary,
+    0
 FROM (VALUES
     (@EmilyID, 'Blue Cross', '1234567890001',
      '123456789012345', 'PPO',
@@ -794,10 +829,11 @@ WHERE NOT EXISTS (
 
 INSERT INTO dbo.EmergencyContact
     (PatientID, FirstName, MiddleName,
-     LastName, Phone, Relationship)
+     LastName, Phone, Relationship, DeletionFlag)
 SELECT
     v.PatientID, v.FirstName, NULL,
-    v.LastName, v.Phone, v.Relationship
+    v.LastName, v.Phone, v.Relationship,
+    0
 FROM (VALUES
     (@EmilyID, 'Robert', 'Garcia',
      '7135552001', 'Father'),
@@ -816,6 +852,65 @@ WHERE NOT EXISTS (
     WHERE ec.PatientID = v.PatientID
       AND ec.FirstName = v.FirstName
       AND ec.LastName = v.LastName
+);
+
+-- 19B. ADMIN MEMBER
+-- Grace Kim: clinic administrator (Employee only, no clinical subtype)
+
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.Member
+    WHERE SSN = '900-10-0008'
+)
+BEGIN
+    INSERT INTO dbo.Member
+        (SSN, FirstName, MiddleName, LastName,
+         StreetAddress, ApartmentNum, City, State,
+         ZipCode, Country, Phone, Sex, DateOfBirth, Email, DeletionFlag)
+    VALUES
+        ('900-10-0008', 'Grace', NULL, 'Kim',
+         '800 Spruce Street', NULL, 'Houston', 'Texas',
+         '77008', 'USA', '7135551008', 'F',
+         '1985-02-14', 'grace.kim@example.com', 0);
+END;
+
+DECLARE @AdminID INT;
+
+SELECT @AdminID = MemberID
+FROM dbo.Member
+WHERE SSN = '900-10-0008';
+
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.Employee
+    WHERE EmployeeID = @AdminID
+)
+BEGIN
+    INSERT INTO dbo.Employee (EmployeeID, HiringDate, DeletionFlag)
+    VALUES (@AdminID, '2020-08-01', 0);
+END;
+
+-- 19C. USER ACCOUNTS
+-- Demo password for every account: Clinic2026!
+-- PasswordHash = bcrypt (cost 11), verified by BCrypt.Net in AuthService.
+
+INSERT INTO dbo.UserAccount
+    (UserID, Username, PasswordHash, LastLogin, Role, IsActive, DeletionFlag)
+SELECT
+    v.UserID, v.Username, v.PasswordHash, NULL, v.Role, 1,
+    0
+FROM (VALUES
+    (@SarahID, 'spatel', '$2a$11$CKkfxhkutzfKxTZXy5ibp.argkXTVZlJ3dH7rpYhZdXMEt3Vz5f3i', 'Doctor'),
+    (@JamesID, 'jwilson', '$2a$11$9CovlETjB5YcciYjy2Y9lOq6CE/PKrNu0GgEmfonjstG5yZmvHsxu', 'Doctor'),
+    (@JessicaID, 'jlee', '$2a$11$Vbodz.USI.mYXu62C8rome4iXk4afUVVxxmowmwCOHmoVMWrHyUcq', 'Nurse'),
+    (@DanielID, 'dmartinez', '$2a$11$dRCQROqEzqOOvG4nT1ClUuerptG6E66xj723s.RMrnExHprlRDB7m', 'Receptionist'),
+    (@EmilyID, 'egarcia', '$2a$11$wnjb9Gw7U.RUU8nOYkjhIeneswzval8Z80SONUYmIt77vffn.UmRe', 'Patient'),
+    (@MichaelID, 'mbrown', '$2a$11$3S3aEWM9kNv8FFgINzxwlOmHI0c6MjhnECi37LSFakJ7G06plC3Jq', 'Patient'),
+    (@OliviaID, 'odavis', '$2a$11$SeiT78I.KCUCIyA.Tekz3.6iGvRYMB36uEwWHIaUOnpk1LHVEojBC', 'Patient'),
+    (@AdminID, 'admin', '$2a$11$bAMpwulL0gHQHs8KjUhXOuQx1H8..srJtpaZvIYgSho1.7h.sJzgO', 'Admin')
+) AS v(UserID, Username, PasswordHash, Role)
+WHERE NOT EXISTS (
+    SELECT 1 FROM dbo.UserAccount ua
+    WHERE ua.Username = v.Username
+       OR ua.UserID = v.UserID
 );
 
 -- 20. VERIFY SAMPLE DATA
