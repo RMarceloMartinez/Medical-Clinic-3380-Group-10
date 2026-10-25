@@ -9,7 +9,7 @@ namespace ClinicApi.Controllers;
 
 [ApiController]
 [Route("api/appointments")]
-[Authorize(Roles ="Admin,Receptionist")]
+[Authorize]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 
 public class AppointmentsController : ControllerBase
@@ -20,7 +20,8 @@ public class AppointmentsController : ControllerBase
     {
         _appointmentService = appointmentService;
     }
-
+    
+    [Authorize(Roles = "Admin,Receptionist")]
     [HttpGet]
     public async Task<ActionResult<List<AppointmentResponse>>> List(
         [FromQuery] int? doctorId,
@@ -55,6 +56,7 @@ public class AppointmentsController : ControllerBase
         return Ok(appointments);
     }
 
+    [Authorize(Roles = "Admin,Receptionist")]
     [HttpGet("{id:int}")]
 
     public async Task<ActionResult<AppointmentResponse>> GetById(
@@ -83,6 +85,7 @@ public class AppointmentsController : ControllerBase
         return Ok(appointment);
     }
 
+    [Authorize(Roles = "Admin,Receptionist")]
     [HttpPost]
     [Consumes("application/json")]
     public async Task<IActionResult> Create(
@@ -126,6 +129,7 @@ public class AppointmentsController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Admin,Receptionist")]
     [HttpPost("{id:int}/cancel")]
     [Consumes("application/json")]
 
@@ -184,6 +188,51 @@ public class AppointmentsController : ControllerBase
             { 
                 message = "The cancellation details are not valid." 
             });
+        }
+    }
+
+    [Authorize(Roles = "Doctor")]
+    [HttpPost("{id:int}/complete")]
+
+    public async Task<IActionResult> Complete(
+        int id,
+        [FromServices] IAntiforgery antiforgery,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            await antiforgery.ValidateRequestAsync(HttpContext);
+        }
+        catch(AntiforgeryValidationException)
+        {
+            return BadRequest(new { message = "Invalid request verification token." });
+        }
+            if (id < 1000000 || id > 9999999)
+        {
+            return BadRequest(new { message = "Appointment ID must be seven digits." });
+        }
+
+        try
+        {
+            bool completed = await _appointmentService.CompleteAsync(id, cancellationToken);
+
+            if (!completed)
+            {
+                return NotFound(new { message = "Appointment not found." });
+            }
+
+            var appointment = await _appointmentService.GetByIdAsync(id, cancellationToken);
+            return Ok(appointment);
+        }
+        catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number >= 50000))
+        {
+            var triggerError = ex.Errors.Cast<SqlError>().First(e => e.Number >= 50000);
+            return BadRequest(new { message = triggerError.Message });
+        }
+        catch (SqlException ex) when (ex.Number == 547)
+        {
+            return BadRequest(new { message = "This appointment cannot be completed." });
         }
     }
 }
