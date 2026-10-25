@@ -206,11 +206,17 @@ public class AppointmentsController : ControllerBase
         }
         catch(AntiforgeryValidationException)
         {
-            return BadRequest(new { message = "Invalid request verification token." });
+            return BadRequest(new 
+            { 
+                message = "Invalid request verification token." 
+            });
         }
             if (id < 1000000 || id > 9999999)
         {
-            return BadRequest(new { message = "Appointment ID must be seven digits." });
+            return BadRequest(new 
+            { 
+                message = "Appointment ID must be seven digits." 
+            });
         }
 
         try
@@ -219,7 +225,10 @@ public class AppointmentsController : ControllerBase
 
             if (!completed)
             {
-                return NotFound(new { message = "Appointment not found." });
+                return NotFound(new 
+                {
+                     message = "Appointment not found." 
+                });
             }
 
             var appointment = await _appointmentService.GetByIdAsync(id, cancellationToken);
@@ -228,11 +237,17 @@ public class AppointmentsController : ControllerBase
         catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number >= 50000))
         {
             var triggerError = ex.Errors.Cast<SqlError>().First(e => e.Number >= 50000);
-            return BadRequest(new { message = triggerError.Message });
+            return BadRequest(new 
+            { 
+                message = triggerError.Message 
+            });
         }
         catch (SqlException ex) when (ex.Number == 547)
         {
-            return BadRequest(new { message = "This appointment cannot be completed." });
+            return BadRequest(new 
+            { 
+                message = "This appointment cannot be completed." 
+            });
         }
     }
     
@@ -251,24 +266,36 @@ public class AppointmentsController : ControllerBase
         }
         catch (AntiforgeryValidationException)
         {
-            return BadRequest(new { message = "Invalid request verification token." });
+            return BadRequest(new 
+            { 
+                message = "Invalid request verification token." 
+            });
         }
 
         if (id < 1000000 || id > 9999999)
         {
-            return BadRequest(new { message = "Appointment ID must be seven digits." });
+            return BadRequest(new 
+            { 
+                message = "Appointment ID must be seven digits." 
+            });
         }
 
         var existing = await _appointmentService.GetByIdAsync(id, cancellationToken);
 
         if (existing is null)
         {
-            return NotFound(new { message = "Appointment not found." });
+            return NotFound(new 
+            { 
+                message = "Appointment not found." 
+            });
         }
 
         if (existing.AppointStatus != "Scheduled")
         {
-            return BadRequest(new { message = "Only scheduled appointments can be changed." });
+            return BadRequest(new 
+            { 
+                message = "Only scheduled appointments can be changed." 
+            });
         }
 
         try
@@ -281,11 +308,68 @@ public class AppointmentsController : ControllerBase
         catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number >= 50000))
         {
             var triggerError = ex.Errors.Cast<SqlError>().First(e => e.Number >= 50000);
-            return BadRequest(new { message = triggerError.Message });
+            return BadRequest(new 
+            { 
+                message = triggerError.Message 
+            });
         }
         catch (SqlException ex) when (ex.Number == 547)
         {
-            return BadRequest(new { message = "The patient, doctor, office, or referral doesn't exist." });
+            return BadRequest(new 
+            { 
+                message = "The patient, doctor, office, or referral doesn't exist." 
+            });
+        }
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(
+        int id,
+        [FromServices] IAntiforgery antiforgery,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await antiforgery.ValidateRequestAsync(HttpContext);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return BadRequest(new 
+            { 
+                message = "Invalid request verification token." 
+            });
+        }
+
+        if (id < 1000000 || id > 9999999)
+        {
+            return BadRequest(new 
+            { 
+                message = "Appointment ID must be seven digits." 
+            });
+        }
+
+        try
+        {
+            bool deleted = await _appointmentService.DeleteAsync(id, cancellationToken);
+
+            if (!deleted)
+            {
+                return NotFound(new 
+                { 
+                    message = "Appointment not found." 
+                });
+            }
+
+            return NoContent();
+        }
+        catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number >= 50000))
+        {
+            var triggerError = ex.Errors.Cast<SqlError>().First(e => e.Number >= 50000);
+            return BadRequest(new 
+            { 
+                message = triggerError.Message 
+            });
         }
     }
 }

@@ -240,6 +240,30 @@ public class AppointmentService
 
         return rowsChanged > 0;
     }
+
+    public async Task<bool> DeleteAsync(
+        int appointmentId,
+        CancellationToken cancellationToken = default
+    )
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+
+        command.CommandText = """
+                            UPDATE dbo.Appointment
+                            SET DeletionFlag = 1
+                            WHERE AppointmentID = @AppointmentID
+                              AND DeletionFlag = 0;
+                            """;
+        command.Parameters.Add("@AppointmentID", SqlDbType.Int).Value = appointmentId;
+
+        int rowChanged = await command.ExecuteNonQueryAsync(cancellationToken);
+
+        return rowChanged > 0;
+    }
+
     private static AppointmentResponse Map(SqlDataReader reader)
     {
         return new AppointmentResponse
