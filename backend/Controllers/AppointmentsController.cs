@@ -20,6 +20,34 @@ public class AppointmentsController : ControllerBase
     {
         _appointmentService = appointmentService;
     }
+    [HttpGet("{id:int}")]
+
+    public async Task<ActionResult<AppointmentResponse>> GetById(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        if (id < 1000000 || id > 9999999)
+        {
+            return BadRequest(new
+            {
+                message = "Appointment ID must be seven digits."
+            });
+        }
+
+        var appointment = await _appointmentService.GetByIdAsync(
+            id, cancellationToken);
+
+        if (appointment is null)
+        {
+            return NotFound(new
+            {
+                message = "Appointment not found."
+            });
+        }
+
+        return Ok(appointment);
+    }
+
     [HttpPost]
     [Consumes("application/json")]
     public async Task<IActionResult> Create(

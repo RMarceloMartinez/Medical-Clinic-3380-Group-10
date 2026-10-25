@@ -67,7 +67,7 @@ public class AppointmentService
         return id;
     }
 
-    public async Task<AppointmentResponse?> GetByAsyncID(
+    public async Task<AppointmentResponse?> GetByIdAsync(
         int appointmentID,
         CancellationToken cancellationToken = default)
     {
@@ -99,8 +99,8 @@ public class AppointmentService
             ReferralID = reader.IsDBNull(reader.GetOrdinal("ReferralID"))
                 ?null
                 :reader.GetInt32(reader.GetOrdinal("ReferralID")),
-            AppointmentDateTime  = reader.GetDateTime(reader.GetOrdinal("AppointmentDateTime ")),
-            AppointStatus  = reader.GetString(reader.GetOrdinal("AppointStatus")),
+            AppointmentDateTime = reader.GetDateTime(reader.GetOrdinal("Date_Time")),
+            AppointStatus  = reader.GetString(  reader.GetOrdinal("AppointStatus")),
             TotalCost  = reader.GetDecimal(reader.GetOrdinal("TotalCost")),
             Channel  = reader.GetString(reader.GetOrdinal("Channel")),
             CancelReason = reader.IsDBNull(reader.GetOrdinal("CancelReason"))
