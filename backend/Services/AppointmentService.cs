@@ -194,6 +194,52 @@ public class AppointmentService
         return rowsChanged > 0;
     }
 
+    public async Task<bool> UpdateAsync(
+        int appointmentdId,
+        CreateAppointmentRequest request,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (request.AppointmentDateTime is null)
+        {
+            throw new ArgumentException("Appointment date and time is required.");
+        }
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+
+        command.CommandText = """
+                            UPDATE dbo.Appointment
+                            SET OfficeID   = @OfficeID,
+                                DoctorID   = @DoctorID,
+                                PatientID  = @PatientID,
+                                ReferralID = @ReferralID,
+                                Date_Time  = @AppointmentDateTime,
+                                TotalCost  = @TotalCost,
+                                Channel    = @Channel
+                            WHERE AppointmentID = @AppointmentID
+                              AND DeletionFlag = 0;
+                            """;
+
+        command.Parameters.Add("@AppointmentID", SqlDbType.Int).Value = appointmentdId;
+        command.Parameters.Add("@OfficeID", SqlDbType.Int).Value = request.OfficeID;
+        command.Parameters.Add("@DoctorID", SqlDbType.Int).Value = request.DoctorID;
+        command.Parameters.Add("@PatientID", SqlDbType.Int).Value = request.PatientID;
+        command.Parameters.Add("@ReferralID", SqlDbType.Int).Value = (object?)request.ReferralID ?? DBNull.Value;
+        command.Parameters.Add("@AppointmentDateTime", SqlDbType.DateTime2).Value = request.AppointmentDateTime.Value;
+
+        var costParameter = command.Parameters.Add("@TotalCost", SqlDbType.Decimal);
+        costParameter.Precision = 10;
+        costParameter.Scale = 2;
+        costParameter.Value = request.TotalCost;
+
+        command.Parameters.Add("@Channel", SqlDbType.VarChar, 10).Value = request.Channel;
+
+        int rowsChanged = await command.ExecuteNonQueryAsync(cancellationToken);
+
+        return rowsChanged > 0;
+    }
     private static AppointmentResponse Map(SqlDataReader reader)
     {
         return new AppointmentResponse

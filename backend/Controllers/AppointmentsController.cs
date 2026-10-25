@@ -235,4 +235,57 @@ public class AppointmentsController : ControllerBase
             return BadRequest(new { message = "This appointment cannot be completed." });
         }
     }
+    
+    [Authorize(Roles = "Admin,Receptionist")]
+    [HttpPut("{id:int}")]
+    [Consumes("application/json")]
+    public async Task<IActionResult> Update(
+        int id,
+        [FromBody] CreateAppointmentRequest request,
+        [FromServices] IAntiforgery antiforgery,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await antiforgery.ValidateRequestAsync(HttpContext);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return BadRequest(new { message = "Invalid request verification token." });
+        }
+
+        if (id < 1000000 || id > 9999999)
+        {
+            return BadRequest(new { message = "Appointment ID must be seven digits." });
+        }
+
+        var existing = await _appointmentService.GetByIdAsync(id, cancellationToken);
+
+        if (existing is null)
+        {
+            return NotFound(new { message = "Appointment not found." });
+        }
+
+        if (existing.AppointStatus != "Scheduled")
+        {
+            return BadRequest(new { message = "Only scheduled appointments can be changed." });
+        }
+
+        try
+        {
+            await _appointmentService.UpdateAsync(id, request, cancellationToken);
+
+            var appointment = await _appointmentService.GetByIdAsync(id, cancellationToken);
+            return Ok(appointment);
+        }
+        catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number >= 50000))
+        {
+            var triggerError = ex.Errors.Cast<SqlError>().First(e => e.Number >= 50000);
+            return BadRequest(new { message = triggerError.Message });
+        }
+        catch (SqlException ex) when (ex.Number == 547)
+        {
+            return BadRequest(new { message = "The patient, doctor, office, or referral doesn't exist." });
+        }
+    }
 }
