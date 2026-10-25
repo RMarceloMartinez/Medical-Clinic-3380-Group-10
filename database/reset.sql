@@ -25,4 +25,11 @@ DROP TABLE IF EXISTS Doctor;
 DROP TABLE IF EXISTS Employee;
 DROP TABLE IF EXISTS Member;
 DROP TABLE IF EXISTS Office;
+DROP TABLE IF EXISTS AppointmentActivityReport;
+DROP TABLE IF EXISTS OfficeRevenueReport;
+DROP TABLE IF EXISTS OutstandingBalanceReport;
+DROP TABLE IF EXISTS ReferralTrackingReport;
+DROP TABLE IF EXISTS PatientHealthSummaryReport;
+DROP TABLE IF EXISTS InsuranceMixReport;
+DROP TABLE IF EXISTS DoctorWorkloadReport;
 GO

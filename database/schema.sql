@@ -444,3 +444,120 @@ CREATE TABLE PaymentDetail(
     CONSTRAINT CK_PaymentDetail_AmountApplied CHECK(AmountApplied >= 0),
     CONSTRAINT CK_PaymentDetail_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
+
+CREATE TABLE AppointmentActivityReport(
+    DoctorID INT NOT NULL,
+    DoctorFirstName VARCHAR(15) NOT NULL,
+    DoctorLastName VARCHAR(31) NOT NULL,
+    OfficeID INT NOT NULL,
+    OfficeStreetAddress VARCHAR(80) NOT NULL,
+    FromDate DATE NOT NULL,
+    ToDate DATE NOT NULL,
+    TotalAppointments INT NOT NULL,
+    Scheduled INT NOT NULL,
+    Completed INT NOT NULL,
+    Cancelled INT NOT NULL,
+    CancelledByPatient INT NOT NULL,
+    CancelledByDoctor INT NOT NULL,
+    CancelledByStaff INT NOT NULL,
+    CancellationRate NUMERIC(5,2) NOT NULL,
+    DeletionFlag BIT NOT NULL,
+
+    CONSTRAINT PK_AppointmentActivityReport PRIMARY KEY(DoctorID, OfficeID),
+    CONSTRAINT CK_AppointmentActivityReport_DeletionFlag CHECK (DeletionFlag IN (0, 1))
+);
+
+CREATE TABLE OfficeRevenueReport(
+    OfficeID INT NOT NULL,
+    OfficeStreetAddress VARCHAR(80) NOT NULL,
+    FromDate DATE NOT NULL,
+    ToDate DATE NOT NULL,
+    CompletedVisits INT NOT NULL,
+    Billed NUMERIC(12,2) NOT NULL,
+    Collected NUMERIC(12,2) NOT NULL,
+    Refunded NUMERIC(12,2) NOT NULL,
+    Outstanding NUMERIC(12,2) NOT NULL,
+    CashCollected NUMERIC(12,2) NOT NULL,
+    CreditCardCollected NUMERIC(12,2) NOT NULL,
+    DebitCardCollected NUMERIC(12,2) NOT NULL,
+    InsuranceCollected NUMERIC(12,2) NOT NULL,
+    CheckCollected NUMERIC(12,2) NOT NULL,
+    DeletionFlag BIT NOT NULL,
+    
+    CONSTRAINT PK_OfficeRevenueReport PRIMARY KEY(OfficeID),
+    CONSTRAINT CK_OfficeRevenueReport_DeletionFlag CHECK (DeletionFlag IN (0, 1))
+
+);
+
+CREATE TABLE OutstandingBalanceReport(
+    PatientID INT NOT NULL,
+    PatientFirstName VARCHAR(15) NOT NULL,
+    PatientLastName VARCHAR(31) NOT NULL,
+    Phone VARCHAR(10) NOT NULL,
+    UnpaidVisits INT NOT NULL,
+    OldestUnpaidVisit DATE NOT NULL,
+    Billed NUMERIC(12,2) NOT NULL,
+    Paid NUMERIC(12,2) NOT NULL,
+    Balance NUMERIC(12,2) NOT NULL,
+    DeletionFlag BIT NOT NULL,
+
+    CONSTRAINT PK_OutstandingBalanceReport PRIMARY KEY(PatientID),
+    CONSTRAINT CK_OutstandingBalanceReport_DeletionFlag CHECK (DeletionFlag IN (0, 1))
+);
+
+CREATE TABLE ReferralTrackingReport(
+    SpecialistID INT NOT NULL,
+    SpecialistFirstName VARCHAR(15) NOT NULL,
+    SpecialistLastName VARCHAR(31) NOT NULL,
+    Specialty VARCHAR(30) NOT NULL,
+    TotalReferrals INT NOT NULL,
+    OpenReferrals INT NOT NULL,
+    FinishedReferrals INT NOT NULL,
+    CancelledReferrals INT NOT NULL,
+    ReferralsWithVisit INT NOT NULL,
+    DeletionFlag BIT NOT NULL,
+    CONSTRAINT PK_ReferralTrackingReport PRIMARY KEY(SpecialistID),
+    CONSTRAINT CK_ReferralTrackingReport_DeletionFlag CHECK (DeletionFlag IN (0, 1))
+);
+
+CREATE TABLE PatientHealthSummaryReport(
+    ReportRowID INT IDENTITY(1,1) NOT NULL,
+    PatientID INT NOT NULL,
+    PatientFirstName VARCHAR(15) NOT NULL,
+    PatientLastName VARCHAR(31) NOT NULL,
+    Category VARCHAR(12) NOT NULL,            -- 'Condition', 'Allergy', 'Diagnosis', 'Prescription'
+    ItemName VARCHAR(100) NOT NULL,
+    Detail VARCHAR(100) NULL,                 -- severity, type or dosage
+    ItemDate DATE NULL,
+    DeletionFlag BIT NOT NULL,
+    
+    CONSTRAINT PK_PatientHealthSummaryReport PRIMARY KEY(ReportRowID),
+    CONSTRAINT CK_PatientHealthSummaryReport_DeletionFlag CHECK (DeletionFlag IN (0, 1))
+);
+
+CREATE TABLE InsuranceMixReport(
+    ProviderCompany VARCHAR(30) NOT NULL,
+    PlanType VARCHAR(20) NOT NULL,
+    Patients INT NOT NULL,
+    CompletedVisits INT NOT NULL,
+    Billed NUMERIC(12,2) NOT NULL,
+    DeletionFlag BIT NOT NULL,
+
+    CONSTRAINT PK_InsuranceMixReport PRIMARY KEY(ProviderCompany, PlanType),
+    CONSTRAINT CK_InsuranceMixReport_DeletionFlag CHECK (DeletionFlag IN (0, 1))
+);
+
+CREATE TABLE DoctorWorkloadReport(
+    DoctorID INT NOT NULL,
+    DoctorFirstName VARCHAR(15) NOT NULL,
+    DoctorLastName VARCHAR(31) NOT NULL,
+    MonthStart DATE NOT NULL,
+    WorkDaysPerWeek INT NOT NULL,
+    Appointments INT NOT NULL,
+    Completed INT NOT NULL,
+    Cancelled INT NOT NULL,
+    DeletionFlag BIT NOT NULL,
+
+    CONSTRAINT PK_DoctorWorkloadReport PRIMARY KEY(DoctorID, MonthStart),
+    CONSTRAINT CK_DoctorWorkloadReport_DeletionFlag CHECK (DeletionFlag IN (0, 1))
+);
