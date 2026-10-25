@@ -67,4 +67,49 @@ public class AppointmentService
         return id;
     }
 
+    public async Task<AppointmentResponse?> GetByAsyncID(
+        int appointmentID,
+        CancellationToken cancellationToken = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+
+        command.CommandText = """
+                            SELECT *
+                            FROM dbo.Appointment
+                            WHERE AppointmentID = @AppointmentID
+                            AND DeletionFlag = 0;
+                            """;
+
+        command.Parameters.Add("@AppointmentID", SqlDbType.Int).Value = appointmentID;
+
+        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        if(!await reader.ReadAsync(cancellationToken)){
+            return null;
+        }
+        return new AppointmentResponse
+        {
+            AppointmentID = reader.GetInt32(reader.GetOrdinal("AppointmentID")),
+            OfficeID = reader.GetInt32(reader.GetOrdinal("OfficeID")),
+            DoctorID = reader.GetInt32(reader.GetOrdinal("DoctorID")),
+            PatientID = reader.GetInt32(reader.GetOrdinal("PatientID")),
+            ReferralID = reader.IsDBNull(reader.GetOrdinal("ReferralID"))
+                ?null
+                :reader.GetInt32(reader.GetOrdinal("ReferralID")),
+            AppointmentDateTime  = reader.GetDateTime(reader.GetOrdinal("AppointmentDateTime ")),
+            AppointStatus  = reader.GetString(reader.GetOrdinal("AppointStatus")),
+            TotalCost  = reader.GetDecimal(reader.GetOrdinal("TotalCost")),
+            Channel  = reader.GetString(reader.GetOrdinal("Channel")),
+            CancelReason = reader.IsDBNull(reader.GetOrdinal("CancelReason"))
+                ? null
+                : reader.GetString(reader.GetOrdinal("CancelReason")),
+            CancelledBy = reader.IsDBNull(reader.GetOrdinal("CancelledBy"))
+                ? null
+                : reader.GetString(reader.GetOrdinal("CancelledBy"))    
+        };
+    }
+
 }
