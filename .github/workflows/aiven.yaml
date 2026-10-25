@@ -1,0 +1,19 @@
+name: Database Migration
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Migrations
+        env:
+          DATABASE_URL: ${{ secrets.AIVEN_DATABASE_URL }}
+        run: |
+          # Example using psql to run a local schema file against Aiven
+          psql "$DATABASE_URL" -f src/db/schema.sql
