@@ -125,4 +125,65 @@ public class AppointmentsController : ControllerBase
             });
         }
     }
+
+    [HttpPost("{id:int}/cancel")]
+    [Consumes("application/json")]
+
+    public async Task<IActionResult> Cancel(
+        int id,
+        [FromBody] CancelAppointmentRequest request,
+        [FromServices] IAntiforgery antiforgery,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            await antiforgery.ValidateRequestAsync(HttpContext);
+        }
+        catch(AntiforgeryValidationException)
+        {
+            return BadRequest(new 
+            { 
+                message = "Invalid request verification token." 
+            });
+        }
+
+        if(id < 1000000 || id > 9999999)
+        {
+            return BadRequest(new 
+            { 
+                message = "Appointment ID must be seven digits." 
+            });
+        }
+
+        try
+        {
+            bool cancelled = await _appointmentService.CancelAsync(id, request,cancellationToken);
+
+            if (!cancelled)
+            {
+                return NotFound(new
+                {
+                    message = "Appointment not found."
+                });
+            }
+            var appointment = await _appointmentService.GetByIdAsync(id, cancellationToken);
+            return Ok(appointment);
+        }
+        catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number >= 50000))
+        {
+            var triggerError = ex.Errors.Cast<SqlError>().First(e => e.Number >= 50000);
+            return BadRequest(new 
+            { 
+                message = triggerError.Message 
+            });
+        }
+        catch(SqlException ex) when (ex.Number == 547)
+        {
+            return BadRequest(new 
+            { 
+                message = "The cancellation details are not valid." 
+            });
+        }
+    }
 }

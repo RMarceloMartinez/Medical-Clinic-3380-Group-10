@@ -139,6 +139,35 @@ public class AppointmentService
         return appointments;
     }
 
+    public async Task<bool> CancelAsync(
+        int appointmentId,
+        CancelAppointmentRequest request,
+        CancellationToken cancellationToken = default
+    )
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+
+        command.CommandText =   """
+                                UPDATE dbo.Appointment
+                                SET AppointStatus = 'Cancelled',
+                                CancelReason  = @CancelReason,
+                                CancelledBy   = @CancelledBy
+                                WHERE AppointmentID = @AppointmentID
+                                AND DeletionFlag = 0;
+                                """;
+
+        command.Parameters.Add("@AppointmentID", SqlDbType.Int).Value = appointmentId;
+        command.Parameters.Add("@CancelReason", SqlDbType.VarChar, 200).Value = request.CancelReason;
+        command.Parameters.Add("@CancelledBy", SqlDbType.VarChar, 7).Value = request.CancelledBy;
+
+        int rowChanged = await command.ExecuteNonQueryAsync(cancellationToken);
+
+        return rowChanged > 0;
+    }
+
     private static AppointmentResponse Map(SqlDataReader reader)
     {
         return new AppointmentResponse
