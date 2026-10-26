@@ -21,7 +21,7 @@ public class AppointmentsController : ControllerBase
         _appointmentService = appointmentService;
     }
     
-    [Authorize(Roles = "Admin,Receptionist")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor")]
     [HttpGet]
     public async Task<ActionResult<List<AppointmentResponse>>> List(
         [FromQuery] int? doctorId,
@@ -56,7 +56,7 @@ public class AppointmentsController : ControllerBase
         return Ok(appointments);
     }
 
-    [Authorize(Roles = "Admin,Receptionist")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor")]
     [HttpGet("{id:int}")]
 
     public async Task<ActionResult<AppointmentResponse>> GetById(
