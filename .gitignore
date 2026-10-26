@@ -12,3 +12,4 @@ dist/
 build/
 .vscode/
 Thumbs.db
+backend/cookies.txt
