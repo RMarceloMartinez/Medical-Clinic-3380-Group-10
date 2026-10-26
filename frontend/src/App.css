@@ -351,3 +351,97 @@ body
 .payment-form td{
   padding: 8px 4px;
 }
+
+/* ===== Appointments page ===== */
+
+.appointments {
+  max-width: 1100px;
+  margin: 20px auto;
+}
+
+.appointments-menu {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.appointments .filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.appointments .filters input,
+.appointments .filters select {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.appointments table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+.appointments th,
+.appointments td {
+  border: 1px solid #ccc;
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.appointments th {
+  background-color: #f0f0f0;
+  color: #222;
+}
+
+.appointments tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.appointments td button {
+  margin-right: 4px;
+  margin-bottom: 4px;
+}
+
+.appointment-form,
+.cancel-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 420px;
+  margin-top: 20px;
+}
+
+.appointment-form input,
+.appointment-form select,
+.cancel-box input,
+.cancel-box select {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.appointment-form label,
+.cancel-box label {
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.success-message {
+  color: #1a7f37;
+  font-weight: 600;
+}
+
+.error-message {
+  color: #c62828;
+  font-weight: 600;
+}
+
+.cancel-note {
+  font-size: 0.85em;
+  color: #888;
+}
