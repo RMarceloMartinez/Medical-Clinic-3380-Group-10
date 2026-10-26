@@ -147,4 +147,44 @@ public class PatientsController : ControllerBase
                 message = "The patient information violates a database rule. Check the submitted values."
             });
     }}
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Deactivate(
+        int id,
+        [FromServices] IAntiforgery antiforgery,
+        CancellationToken cancellationToken)
+    {
+        if (id < 1000000 || id > 9999999)
+        {
+            return BadRequest(new
+            {
+                message = "Patient ID must be seven digits."
+            });
+        }
+
+        try
+        {
+            await antiforgery.ValidateRequestAsync(HttpContext);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return BadRequest(new
+            {
+                message = "Invalid request verification token."
+            });
+        }
+
+        bool deactivated = await _patientService.DeactivateAsync(
+            id, cancellationToken);
+
+        if (!deactivated)
+        {
+            return NotFound(new
+            {
+                message = "Patient not found or already deactivated."
+            });
+        }
+
+        return NoContent();
+    }
 }

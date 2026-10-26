@@ -35,9 +35,11 @@ public class PaymentService
             FROM dbo.Payment AS p
             LEFT JOIN dbo.PaymentDetail AS pd
                 ON pd.PaymentID = p.PaymentID
+                AND pd.DeletionFlag = 0
             LEFT JOIN dbo.PaymentMethod AS pm
                 ON pm.MethodID = pd.MethodID
             WHERE p.PaymentID = @PaymentID
+              AND p.DeletionFlag = 0
             ORDER BY pd.MethodID;
             """;
 
@@ -121,12 +123,12 @@ public class PaymentService
 
                 INSERT INTO dbo.Payment
                     (AppointmentID, InstallmentNumber,
-                     PaymentDate, PayStatus)
+                     PaymentDate, PayStatus, DeletionFlag)
                 OUTPUT INSERTED.PaymentID
                     INTO @NewPayment (PaymentID)
                 VALUES
                     (@AppointmentID, @InstallmentNumber,
-                     @PaymentDate, @PayStatus);
+                     @PaymentDate, @PayStatus, 0);
 
                 SELECT PaymentID FROM @NewPayment;
                 """;
@@ -165,9 +167,9 @@ public class PaymentService
             detailCommand.Transaction = transaction;
             detailCommand.CommandText = """
                 INSERT INTO dbo.PaymentDetail
-                    (PaymentID, MethodID, AmountApplied)
+                    (PaymentID, MethodID, AmountApplied, DeletionFlag)
                 VALUES
-                    (@PaymentID, @MethodID, @AmountApplied);
+                    (@PaymentID, @MethodID, @AmountApplied, 0);
                 """;
 
             detailCommand.Parameters
