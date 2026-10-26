@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import './App.css'
+import { api } from './api'
 
 function App() {
   const[page, setPage] = useState('login')
   const[section, setSection] = useState('home')
   const [Username, setUsername] = useState('')
   const [Password, setPassword] = useState('')
+  const [role, setRole] = useState('')
   const [firstname,setFirstName]=useState('')
   const [middleName,setMiddleName]=useState('')
   const [lastName,setLastName]=useState('')
@@ -28,7 +30,7 @@ function App() {
   const [paymentStatus, setPaymentStatus]=useState('')
   const [payments, setPayments]= useState([]);
 
-  function handleLogin()
+    async function handleLogin()
   {
     if(Username==='')
     {
@@ -40,7 +42,16 @@ function App() {
       alert('Please enter your password')
       return
     }
-    setPage('Dashboard')
+    try
+    {
+      const account = await api.login(Username, Password)
+      setRole(account.role)
+      setPage('Dashboard')
+    }
+    catch (error)
+    {
+      alert(error.message)
+    }
   }
   const handleRecordPayment = ()=>
   {
