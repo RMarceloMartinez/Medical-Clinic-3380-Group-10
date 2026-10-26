@@ -351,3 +351,13 @@ body
 .payment-form td{
   padding: 8px 4px;
 }
+
+.appointments { max-width: 1100px; margin: 20px auto; }
+.appointments table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+.appointments th, .appointments td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+.appointments td button { margin-right: 4px; }
+.appointments .filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.appointment-form, .cancel-box { display: flex; flex-direction: column; gap: 6px; max-width: 420px; margin-top: 20px; }
+.success-message { color: #1a7f37; font-weight: 600; }
+.error-message { color: #c62828; font-weight: 600; }
+.cancel-note { font-size: 0.85em; color: #666; }

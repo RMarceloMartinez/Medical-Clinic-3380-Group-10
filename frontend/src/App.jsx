@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 import { api } from './api'
+import Appointments from './Appointments'
 
 function App() {
   const[page, setPage] = useState('login')
@@ -208,9 +209,8 @@ function App() {
          {section === 'reports' && (
             <h2> Clinic Reports</h2>
           )}
-          {section === 'appointments' && (
-            <h2> Appointment Management</h2>
-          )}
+          {section === 'appointments' && 
+          <Appointments role={role} />}
             <div className='dashboard-nav'>
                <button onClick={() => setSection('home')}>
               Home
