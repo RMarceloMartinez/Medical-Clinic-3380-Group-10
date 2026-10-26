@@ -23,6 +23,8 @@ builder.Services.AddScoped<AppointmentService>();
 
 builder.Services.AddScoped<LookupService>();
 
+builder.Services.AddScoped<ReportService    >();
+
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
