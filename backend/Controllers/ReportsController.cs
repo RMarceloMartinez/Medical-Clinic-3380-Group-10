@@ -30,4 +30,18 @@ public class ReportsController : ControllerBase
         }
         return Ok(await _reportService.GetOfficeRevenueAsync(from, to, cancellationToken));
     }
+    
+    [HttpGet("activity")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<List<AppointmentActivityRow>>> Activity([FromQuery] DateTime from,[FromQuery] DateTime to,
+                                                                     CancellationToken cancellationToken)
+    {
+        if(from > to){
+            return BadRequest(new
+            {
+                message = "From date must be on or before To date."
+            });
+        }
+        return Ok(await _reportService.GetOfficeRevenueAsync(from, to, cancellationToken));
+    }
 }
