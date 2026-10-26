@@ -31,7 +31,9 @@ public class PatientService
             FROM dbo.Patient AS p
             INNER JOIN dbo.Member AS m
                 ON m.MemberID = p.PatientID
-            WHERE p.PatientID = @PatientID;
+            WHERE p.PatientID = @PatientID
+              AND p.DeletionFlag = 0
+              AND m.DeletionFlag = 0;
             """;
 
         command.Parameters.Add("@PatientID", SqlDbType.Int)
@@ -93,7 +95,7 @@ public class PatientService
                 SSN, FirstName, MiddleName, LastName,
                 StreetAddress, ApartmentNum,
                 City, State, ZipCode, Country,
-                Phone, Sex, DateOfBirth, Email
+                Phone, Sex, DateOfBirth, Email, DeletionFlag
             )
             OUTPUT INSERTED.MemberID
             VALUES
@@ -101,7 +103,7 @@ public class PatientService
                 @SSN, @FirstName, @MiddleName, @LastName,
                 @StreetAddress, @ApartmentNum,
                 @City, @State, @ZipCode, @Country,
-                @Phone, @Sex, @DateOfBirth, @Email
+                @Phone, @Sex, @DateOfBirth, @Email, 0
             );
             """;
 
@@ -163,8 +165,8 @@ public class PatientService
         patientCommand.Transaction = transaction;
 
         patientCommand.CommandText = """
-            INSERT INTO dbo.Patient (PatientID)
-            VALUES (@PatientID);
+            INSERT INTO dbo.Patient (PatientID, DeletionFlag)
+            VALUES (@PatientID, 0);
             """;
 
         patientCommand.Parameters.Add("@PatientID", SqlDbType.Int)
@@ -212,7 +214,9 @@ public class PatientService
             FROM dbo.Member AS m
             INNER JOIN dbo.Patient AS p
                 ON p.PatientID = m.MemberID
-            WHERE p.PatientID = @PatientID;
+            WHERE p.PatientID = @PatientID
+                AND p.DeletionFlag = 0
+                AND m.DeletionFlag = 0;
 
             SELECT @@ROWCOUNT;
             """;
@@ -262,6 +266,34 @@ public class PatientService
 
         command.Parameters.Add("@Email", SqlDbType.VarChar, 100)
             .Value = request.Email;
+
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+
+        return result is int rowsUpdated && rowsUpdated == 1;
+    }
+
+    public async Task<bool> DeactivateAsync(
+        int patientId,
+        CancellationToken cancellationToken = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+
+        command.CommandText = """
+            SET NOCOUNT ON;
+
+            UPDATE dbo.Patient
+            SET DeletionFlag = 1
+            WHERE PatientID = @PatientID
+              AND DeletionFlag = 0;
+
+            SELECT @@ROWCOUNT;
+            """;
+
+        command.Parameters.Add("@PatientID", SqlDbType.Int)
+            .Value = patientId;
 
         var result = await command.ExecuteScalarAsync(cancellationToken);
 

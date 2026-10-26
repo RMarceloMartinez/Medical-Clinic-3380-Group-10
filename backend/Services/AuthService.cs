@@ -31,10 +31,24 @@ public class AuthService
 
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT AccountID, UserID, Username, PasswordHash,
-                   Role, IsActive
-            FROM dbo.UserAccount
-            WHERE Username = @Username;
+            SELECT ua.AccountID, ua.UserID, ua.Username,
+                   ua.PasswordHash, ua.Role, ua.IsActive
+            FROM dbo.UserAccount AS ua
+            INNER JOIN dbo.Member AS m
+                ON m.MemberID = ua.UserID
+            WHERE ua.Username = @Username
+              AND ua.IsActive = 1
+              AND ua.DeletionFlag = 0
+              AND m.DeletionFlag = 0
+              AND (
+                  ua.Role <> 'Patient'
+                  OR EXISTS (
+                      SELECT 1
+                      FROM dbo.Patient AS p
+                      WHERE p.PatientID = ua.UserID
+                        AND p.DeletionFlag = 0
+                  )
+              );
             """;
 
         command.Parameters.Add("@Username", SqlDbType.VarChar, 25)
