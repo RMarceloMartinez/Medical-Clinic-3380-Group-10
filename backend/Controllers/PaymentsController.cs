@@ -79,6 +79,18 @@ public class PaymentsController : ControllerBase
                 message = "Appointment was not found."
             });
         }
+
+        catch (SqlException ex) when (
+            ex.Errors.Cast<SqlError>().Any(
+                error => error.Number == 50007))
+        {
+            return Conflict(new
+            {
+                message =
+                    "A payment cannot be recorded for a cancelled appointment."
+            });
+        }
+
         catch (SqlException ex) when (
             ex.Errors.Cast<SqlError>().Any(
                 error => error.Number == 50003))
