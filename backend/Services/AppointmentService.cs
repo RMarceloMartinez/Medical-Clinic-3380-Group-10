@@ -78,10 +78,16 @@ public class AppointmentService
         using var command = connection.CreateCommand();
 
         command.CommandText = """
-                            SELECT *
-                            FROM dbo.Appointment
-                            WHERE AppointmentID = @AppointmentID
-                            AND DeletionFlag = 0;
+                            SELECT a.*,
+                                   p.FirstName + ' ' + p.LastName AS PatientName,
+                                   d.FirstName + ' ' + d.LastName AS DoctorName,
+                                   o.StreetAddress + ', ' + o.City AS OfficeAddress
+                            FROM dbo.Appointment AS a
+                            JOIN dbo.Member AS p ON p.MemberID = a.PatientID
+                            JOIN dbo.Member AS d ON d.MemberID = a.DoctorID
+                            JOIN dbo.Office AS o ON o.OfficeID = a.OfficeID
+                            WHERE a.AppointmentID = @AppointmentID
+                            AND a.DeletionFlag = 0;
                             """;
 
         command.Parameters.Add("@AppointmentID", SqlDbType.Int).Value = appointmentID;
@@ -109,18 +115,24 @@ public class AppointmentService
 
         using var command = connection.CreateCommand();
 
-        command.CommandText =   """
-                                SELECT *
-                                FROM dbo.Appointment
-                                WHERE DeletionFlag = 0
-                                AND (@DoctorID  IS NULL OR DoctorID  = @DoctorID)
-                                AND (@PatientID IS NULL OR PatientID = @PatientID)
-                                AND (@OfficeID  IS NULL OR OfficeID = @OfficeID)
-                                AND (@Status    IS NULL OR AppointStatus = @Status)
-                                AND (@From      IS NULL OR Date_Time >= @From)
-                                AND (@To        IS NULL OR Date_Time <  DATEADD(DAY, 1, @To))
-                                ORDER BY Date_Time;
-                                """;
+        command.CommandText = """
+                            SELECT a.*,
+                                   p.FirstName + ' ' + p.LastName AS PatientName,
+                                   d.FirstName + ' ' + d.LastName AS DoctorName,
+                                   o.StreetAddress + ', ' + o.City AS OfficeAddress
+                            FROM dbo.Appointment AS a
+                            JOIN dbo.Member AS p ON p.MemberID = a.PatientID
+                            JOIN dbo.Member AS d ON d.MemberID = a.DoctorID
+                            JOIN dbo.Office AS o ON o.OfficeID = a.OfficeID
+                            WHERE a.DeletionFlag = 0
+                            AND (@DoctorID  IS NULL OR a.DoctorID      = @DoctorID)
+                            AND (@PatientID IS NULL OR a.PatientID     = @PatientID)
+                            AND (@OfficeID  IS NULL OR a.OfficeID      = @OfficeID)
+                            AND (@Status    IS NULL OR a.AppointStatus = @Status)
+                            AND (@From      IS NULL OR a.Date_Time    >= @From)
+                            AND (@To        IS NULL OR a.Date_Time    <  DATEADD(DAY, 1, @To))
+                            ORDER BY a.Date_Time;
+                            """;
         
         command.Parameters.Add("@DoctorID", SqlDbType.Int).Value = (object?)doctorId ?? DBNull.Value;
         command.Parameters.Add("@PatientID", SqlDbType.Int).Value = (object?)patientId ?? DBNull.Value;
@@ -284,7 +296,10 @@ public class AppointmentService
                 : reader.GetString(reader.GetOrdinal("CancelReason")),
             CancelledBy = reader.IsDBNull(reader.GetOrdinal("CancelledBy"))
                 ? null
-                : reader.GetString(reader.GetOrdinal("CancelledBy"))    
+                : reader.GetString(reader.GetOrdinal("CancelledBy")),
+            PatientName = reader.GetString(reader.GetOrdinal("PatientName")),
+            DoctorName = reader.GetString(reader.GetOrdinal("DoctorName")),
+            OfficeAddress = reader.GetString(reader.GetOrdinal("OfficeAddress"))  
         };
     }
 

@@ -28,6 +28,7 @@ function toRequestBody(form) {
 }
 
 export default function Appointments({ role }) {
+  const [view, setView] = useState('list')
   const [appointments, setAppointments] = useState([])
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -37,6 +38,7 @@ export default function Appointments({ role }) {
   const [cancelId, setCancelId] = useState(null)
   const [cancelReason, setCancelReason] = useState('')
   const [cancelledBy, setCancelledBy] = useState('Patient')
+  const [lookups, setLookups] = useState({ doctors: [], patients: [], offices: [] })
 
   const canManage = role === 'Admin' || role === 'Receptionist'
   const isDoctor = role === 'Doctor'
@@ -64,6 +66,19 @@ export default function Appointments({ role }) {
     }
   }
 
+    async function loadLookups() {
+    try {
+      const [doctors, patients, offices] = await Promise.all([
+        api.get('/lookups/doctors'),
+        api.get('/lookups/patients'),
+        api.get('/lookups/offices'),
+      ])
+      setLookups({ doctors, patients, offices })
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
   async function run(action, successText) {
     setMessage('')
     setError('')
@@ -78,12 +93,32 @@ export default function Appointments({ role }) {
     }
   }
 
+  function openBookForm() {
+    setMessage('')
+    setError('')
+    setCancelId(null)
+    setEditingId(null)
+    setForm(emptyForm)
+    setView('form')
+  }
+
+  function backToList() {
+    setError('')
+    setEditingId(null)
+    setForm(emptyForm)
+    setView('list')
+  }
+
   async function handleSave() {
     const body = toRequestBody(form)
     const ok = editingId
       ? await run(() => api.put(`/appointments/${editingId}`, body), `Appointment ${editingId} updated.`)
       : await run(() => api.post('/appointments', body), 'Appointment booked.')
-    if (ok) stopEditing()
+    if (ok) {
+      setEditingId(null)
+      setForm(emptyForm)
+      setView('list')
+    }
   }
 
   function startEdit(a) {
@@ -100,17 +135,12 @@ export default function Appointments({ role }) {
       totalCost: String(a.totalCost),
       channel: a.channel,
     })
-  }
-
-  function stopEditing() {
-    setEditingId(null)
-    setForm(emptyForm)
+    setView('form')
   }
 
   function startCancel(id) {
     setMessage('')
     setError('')
-    stopEditing()
     setCancelId(id)
     setCancelReason('')
     setCancelledBy('Patient')
@@ -132,113 +162,138 @@ export default function Appointments({ role }) {
     run(() => api.delete(`/appointments/${id}`), `Appointment ${id} deleted.`)
   }
 
-  useEffect(() => {
+    useEffect(() => {
     loadAppointments()
+    loadLookups()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
     <div className="appointments">
       <h2>Appointment Management</h2>
-      <p>Logged in as: {role}</p>
+
+      <div className="appointments-menu">
+        <button type="button" onClick={backToList}>View appointments</button>
+        {canManage && (
+          <button type="button" onClick={openBookForm}>Book appointment</button>
+        )}
+      </div>
+
       {error && <p className="error-message">{error}</p>}
       {message && <p className="success-message">{message}</p>}
 
-      <div className="filters">
-        <input placeholder="Doctor ID" value={filters.doctorId}
-          onChange={(e) => updateFilter('doctorId', e.target.value)} />
-        <input placeholder="Patient ID" value={filters.patientId}
-          onChange={(e) => updateFilter('patientId', e.target.value)} />
-        <input type="date" value={filters.from}
-          onChange={(e) => updateFilter('from', e.target.value)} />
-        <input type="date" value={filters.to}
-          onChange={(e) => updateFilter('to', e.target.value)} />
-        <select value={filters.status} onChange={(e) => updateFilter('status', e.target.value)}>
-          <option value="">All statuses</option>
-          <option value="Scheduled">Scheduled</option>
-          <option value="Completed">Completed</option>
-          <option value="Cancelled">Cancelled</option>
-        </select>
-        <button type="button" onClick={loadAppointments}>Search</button>
-      </div>
+      {view === 'list' && (
+        <>
+          <div className="filters">
+            <input placeholder="Doctor ID" value={filters.doctorId}
+              onChange={(e) => updateFilter('doctorId', e.target.value)} />
+            <input placeholder="Patient ID" value={filters.patientId}
+              onChange={(e) => updateFilter('patientId', e.target.value)} />
+            <input type="date" value={filters.from}
+              onChange={(e) => updateFilter('from', e.target.value)} />
+            <input type="date" value={filters.to}
+              onChange={(e) => updateFilter('to', e.target.value)} />
+            <select value={filters.status} onChange={(e) => updateFilter('status', e.target.value)}>
+              <option value="">All statuses</option>
+              <option value="Scheduled">Scheduled</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+            <button type="button" onClick={loadAppointments}>Search</button>
+          </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Date / time</th>
-            <th>Patient</th>
-            <th>Doctor</th>
-            <th>Office</th>
-            <th>Cost</th>
-            <th>Channel</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {appointments.map((a) => (
-            <tr key={a.appointmentID}>
-              <td>{a.appointmentID}</td>
-              <td>{formatDateTime(a.appointmentDateTime)}</td>
-              <td>{a.patientID}</td>
-              <td>{a.doctorID}</td>
-              <td>{a.officeID}</td>
-              <td>${Number(a.totalCost).toFixed(2)}</td>
-              <td>{a.channel}</td>
-              <td>
-                {a.appointStatus}
-                {a.cancelReason && <div className="cancel-note">{a.cancelledBy}: {a.cancelReason}</div>}
-              </td>
-              <td>
-                {a.appointStatus === 'Scheduled' && canManage && (
-                  <>
-                    <button type="button" onClick={() => startEdit(a)}>Edit</button>
-                    <button type="button" onClick={() => startCancel(a.appointmentID)}>Cancel</button>
-                  </>
-                )}
-                {a.appointStatus === 'Scheduled' && isDoctor && (
-                  <button type="button" onClick={() => handleComplete(a.appointmentID)}>Complete</button>
-                )}
-                {isAdmin && (
-                  <button type="button" onClick={() => handleDelete(a.appointmentID)}>Delete</button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {appointments.length === 0 && !error && <p>No appointments found.</p>}
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Date / time</th>
+                <th>Patient</th>
+                <th>Doctor</th>
+                <th>Office</th>
+                <th>Cost</th>
+                <th>Channel</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {appointments.map((a) => (
+                <tr key={a.appointmentID}>
+                  <td>{a.appointmentID}</td>
+                  <td>{formatDateTime(a.appointmentDateTime)}</td>
+                  <td>{a.patientName}</td>
+                  <td>{a.doctorName}</td>
+                  <td>{a.officeAddress}</td>
+                  <td>${Number(a.totalCost).toFixed(2)}</td>
+                  <td>{a.channel}</td>
+                  <td>
+                    {a.appointStatus}
+                    {a.cancelReason && <div className="cancel-note">{a.cancelledBy}: {a.cancelReason}</div>}
+                  </td>
+                  <td>
+                    {a.appointStatus === 'Scheduled' && canManage && (
+                      <>
+                        <button type="button" onClick={() => startEdit(a)}>Edit</button>
+                        <button type="button" onClick={() => startCancel(a.appointmentID)}>Cancel</button>
+                      </>
+                    )}
+                    {a.appointStatus === 'Scheduled' && isDoctor && (
+                      <button type="button" onClick={() => handleComplete(a.appointmentID)}>Complete</button>
+                    )}
+                    {isAdmin && (
+                      <button type="button" onClick={() => handleDelete(a.appointmentID)}>Delete</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {appointments.length === 0 && !error && <p>No appointments found.</p>}
 
-      {cancelId && (
-        <div className="cancel-box">
-          <h3>Cancel appointment {cancelId}</h3>
-          <label>Reason</label>
-          <input maxLength={200} value={cancelReason}
-            onChange={(e) => setCancelReason(e.target.value)} />
-          <label>Cancelled by</label>
-          <select value={cancelledBy} onChange={(e) => setCancelledBy(e.target.value)}>
-            <option value="Patient">Patient</option>
-            <option value="Doctor">Doctor</option>
-            <option value="Staff">Staff</option>
-          </select>
-          <button type="button" onClick={handleCancel}>Confirm cancellation</button>
-          <button type="button" className="back-button" onClick={() => setCancelId(null)}>
-            Keep appointment
-          </button>
-        </div>
+          {cancelId && (
+            <div className="cancel-box">
+              <h3>Cancel appointment {cancelId}</h3>
+              <label>Reason</label>
+              <input maxLength={200} value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)} />
+              <label>Cancelled by</label>
+              <select value={cancelledBy} onChange={(e) => setCancelledBy(e.target.value)}>
+                <option value="Patient">Patient</option>
+                <option value="Doctor">Doctor</option>
+                <option value="Staff">Staff</option>
+              </select>
+              <button type="button" onClick={handleCancel}>Confirm cancellation</button>
+              <button type="button" className="back-button" onClick={() => setCancelId(null)}>
+                Keep appointment
+              </button>
+            </div>
+          )}
+        </>
       )}
 
-      {canManage && (
+      {view === 'form' && canManage && (
         <div className="appointment-form">
-          <h3>{editingId ? `Edit appointment ${editingId}` : 'Book an appointment'}</h3>
-          <label>Patient ID</label>
-          <input value={form.patientID} onChange={(e) => updateForm('patientID', e.target.value)} />
-          <label>Doctor ID</label>
-          <input value={form.doctorID} onChange={(e) => updateForm('doctorID', e.target.value)} />
-          <label>Office ID</label>
-          <input value={form.officeID} onChange={(e) => updateForm('officeID', e.target.value)} />
-          <label>Referral ID (specialist visits only)</label>
+           <label>Patient</label>
+          <select value={form.patientID} onChange={(e) => updateForm('patientID', e.target.value)}>
+            <option value="">Select a patient</option>
+            {lookups.patients.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <label>Doctor</label>
+          <select value={form.doctorID} onChange={(e) => updateForm('doctorID', e.target.value)}>
+            <option value="">Select a doctor</option>
+            {lookups.doctors.map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </select>
+          <label>Office</label>
+          <select value={form.officeID} onChange={(e) => updateForm('officeID', e.target.value)}>
+            <option value="">Select an office</option>
+            {lookups.offices.map((o) => (
+              <option key={o.id} value={o.id}>{o.name}</option>
+            ))}
+          </select>
           <input value={form.referralID} onChange={(e) => updateForm('referralID', e.target.value)} />
           <label>Date and time</label>
           <input type="datetime-local" value={form.appointmentDateTime}
@@ -254,9 +309,9 @@ export default function Appointments({ role }) {
           <button type="button" onClick={handleSave}>
             {editingId ? 'Save changes' : 'Book appointment'}
           </button>
-          {editingId && (
-            <button type="button" className="back-button" onClick={stopEditing}>Stop editing</button>
-          )}
+          <button type="button" className="back-button" onClick={backToList}>
+            Back to appointments
+          </button>
         </div>
       )}
     </div>
