@@ -19,29 +19,57 @@ public class ReportsController : ControllerBase
 
     [HttpGet("revenue")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<List<OfficeRevenueRow>>> Offices([FromQuery] DateTime from,[FromQuery] DateTime to,
-                                                                     CancellationToken cancellationToken)
+    public async Task<ActionResult<List<OfficeRevenueRow>>> Offices(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to,
+        CancellationToken cancellationToken)
     {
-        if(from > to){
+        if (from > to)
+        {
             return BadRequest(new
             {
                 message = "From date must be on or before To date."
             });
         }
-        return Ok(await _reportService.GetOfficeRevenueAsync(from, to, cancellationToken));
+
+        return Ok(await _reportService.GetOfficeRevenueAsync(
+            from, to, cancellationToken));
     }
 
     [HttpGet("activity")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<List<AppointmentActivityRow>>> Activity([FromQuery] DateTime from,[FromQuery] DateTime to,
-                                                                     CancellationToken cancellationToken)
+    public async Task<ActionResult<List<AppointmentActivityRow>>> Activity(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to,
+        CancellationToken cancellationToken)
     {
-        if(from > to){
+        if (from > to)
+        {
             return BadRequest(new
             {
                 message = "From date must be on or before To date."
             });
         }
-        return Ok(await _reportService.GetAppointmentActivityAsync(from, to, cancellationToken));
+
+        return Ok(await _reportService.GetAppointmentActivityAsync(
+            from, to, cancellationToken));
+    }
+
+    [HttpGet("health-summary")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<List<PatientHealthSummaryRow>>> HealthSummary(
+        [FromQuery] int patientId,
+        CancellationToken cancellationToken)
+    {
+        if (patientId < 1000000 || patientId > 9999999)
+        {
+            return BadRequest(new
+            {
+                message = "Patient ID must be seven digits."
+            });
+        }
+
+        return Ok(await _reportService.GetPatientHealthSummaryAsync(
+            patientId, cancellationToken));
     }
 }

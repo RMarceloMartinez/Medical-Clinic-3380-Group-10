@@ -110,4 +110,55 @@ public class ReportService
 
         return items;
     }
+    public async Task<List<PatientHealthSummaryRow>> GetPatientHealthSummaryAsync(
+        int patientId,
+        CancellationToken cancellationToken = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+
+        command.CommandText = """
+            SELECT v.PatientID,
+                   m.FirstName AS PatientFirstName,
+                   m.LastName AS PatientLastName,
+                   v.Category, v.ItemName, v.Detail, v.ItemDate
+            FROM dbo.vw_PatientHealthItems AS v
+            INNER JOIN dbo.Member AS m ON m.MemberID = v.PatientID
+            INNER JOIN dbo.Patient AS p ON p.PatientID = v.PatientID
+            WHERE v.PatientID = @PatientID
+              AND m.DeletionFlag = 0
+              AND p.DeletionFlag = 0
+            ORDER BY v.Category, v.ItemDate DESC, v.ItemName;
+            """;
+
+        command.Parameters.Add("@PatientID", SqlDbType.Int).Value = patientId;
+
+        var items = new List<PatientHealthSummaryRow>();
+        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            items.Add(new PatientHealthSummaryRow
+            {
+                PatientID = reader.GetInt32(reader.GetOrdinal("PatientID")),
+                PatientFirstName = reader.GetString(
+                    reader.GetOrdinal("PatientFirstName")),
+                PatientLastName = reader.GetString(
+                    reader.GetOrdinal("PatientLastName")),
+                Category = reader.GetString(reader.GetOrdinal("Category")),
+                ItemName = reader.GetString(reader.GetOrdinal("ItemName")),
+                Detail = reader.IsDBNull(reader.GetOrdinal("Detail"))
+                    ? null
+                    : reader.GetString(reader.GetOrdinal("Detail")),
+                ItemDate = reader.IsDBNull(reader.GetOrdinal("ItemDate"))
+                    ? null
+                    : reader.GetDateTime(reader.GetOrdinal("ItemDate"))
+            });
+        }
+
+        return items;
+    }
+
 }
