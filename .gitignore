@@ -13,3 +13,5 @@ build/
 .vscode/
 Thumbs.db
 backend/cookies.txt
+publish/
+app.zip

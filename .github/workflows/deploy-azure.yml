@@ -1,0 +1,56 @@
+# Builds the React site + API and deploys them to Azure
+# every time something is pushed or merged into main.
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:        # also adds a "Run workflow" button in the Actions tab
+
+permissions:
+  id-token: write           # lets GitHub prove to Azure who it is (OIDC, no password)
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build the React site (frontend/dist)
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish the API (publish/)
+        run: dotnet publish backend -c Release -o publish
+
+      - name: Put the site in wwwroot
+        run: |
+          mkdir -p publish/wwwroot
+          cp -r frontend/dist/. publish/wwwroot/
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to the web app
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: clinic3380-rm
+          package: publish

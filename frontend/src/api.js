@@ -1,3 +1,10 @@
+// App.jsx sets this, so any page that gets a 401 (session ended) goes back to login
+let onUnauthorized = null
+
+export function setUnauthorizedHandler(handler) {
+    onUnauthorized = handler
+}
+
 async function getCsrfToken() {
     const res = await fetch("/api/auth/csrf", { credentials : 'include' })
     if(!res.ok) return null
@@ -42,6 +49,11 @@ async function request(path, { method = 'GET', body } = {}) {
     const data = await res.json().catch(() => null)
 
     if (!res.ok) {
+        // A 401 on a normal page means the login expired. Login/me/register
+        // answer 401 on purpose (wrong password, not logged in), so skip those.
+        if (res.status === 401 && onUnauthorized && !path.startsWith('/auth/')) {
+            onUnauthorized()
+        }
         const error = new Error(errorMessage(data, res.status))
         error.status = res.status
         throw error
@@ -59,5 +71,6 @@ export const api = {
     login: (username, password) =>
         request('/auth/login', { method: 'POST', body: { username, password } }),
     logout: () => request('/auth/logout', { method: 'POST' }),
+    register: (body) => request('/auth/register', { method: 'POST', body }),
     me: () => request('/auth/me'),
 }
