@@ -25,11 +25,14 @@ function App() {
   const [dateOfBirth,setDateOfBirth]=useState('')
   const [email,setEmail]=useState('')
   const [formErrors,setFormErrors]=useState({})
-  const [paymentPatientId,setPatientId]=useState('')
+  const [paymentAppointmentId, setPaymentAppointmentId] = useState('')
   const [paymentAmount,setPaymentAmount]=useState('')
   const [paymentDate, setPaymentDate]=useState('')
   const [paymentMethod, setPaymentMethod]=useState('')
   const [paymentStatus, setPaymentStatus]=useState('')
+  const [paymentInstallment, setPaymentInstallment] = useState('1')
+  const [paymentError, setPaymentError] = useState('')
+  const [paymentSaving, setPaymentSaving] = useState(false)
   const [payments, setPayments]= useState([]);
   const [patients, setPatients] = useState([]);
   const [editPatientId, setEditPatientId] = useState('');
@@ -186,44 +189,101 @@ async function handleSearchPatient() {
       alert(error.message)
     }
   }
-  const handleRecordPayment = ()=>
-  {
-    if(
-        !paymentPatientId ||
-        !paymentAmount  ||
-        !paymentDate ||
-        !paymentMethod ||
-        !paymentStatus 
-      )
-      {
-        alert("Please fill in all payment fields")
-        return;
-      }
-      if(Number(paymentAmount)<=0)
-      {
-        alert("Payment amount must be grater then 0")
-        return;
-      }
-      const payment = {
-        patientID: paymentPatientId,
-        amount: Number(paymentAmount),
-        date: paymentDate,
-        method: paymentMethod,
-        status: paymentStatus,
+  const handleRecordPayment = async () => {
+    if (paymentSaving) return;
+    setPaymentError('');
+
+    const appointmentId = paymentAppointmentId.trim();
+    const amount = Number(paymentAmount);
+    const installment = Number(paymentInstallment);
+    const methodId = Number(paymentMethod);
+
+    if (!/^[1-9]\d{6}$/.test(appointmentId)) {
+      setPaymentError('Appointment ID must be seven digits.');
+      return;
+    }
+
+    if (
+      !/^\d+(\.\d{1,2})?$/.test(paymentAmount) ||
+      !Number.isFinite(amount) ||
+      amount < 0.01 ||
+      amount > 99999999.99
+    ) {
+      setPaymentError(
+        'Enter an amount from $0.01 to $99,999,999.99 with at most two decimal places.'
+      );
+      return;
+    }
+
+    if (
+      !Number.isInteger(installment) ||
+      installment < 1 ||
+      installment > 2147483647
+    ) {
+      setPaymentError('Enter a valid positive installment number.');
+      return;
+    }
+
+    if (
+      !paymentDate ||
+      ![1, 2, 3, 4, 5].includes(methodId) ||
+      !['Pending', 'Completed'].includes(paymentStatus)
+    ) {
+      setPaymentError('Select a payment date, method, and status.');
+      return;
+    }
+
+    const request = {
+      AppointmentID: Number(appointmentId),
+      InstallmentNumber: installment,
+      PaymentDate: paymentDate,
+      PayStatus: paymentStatus,
+      Details: [
+        {
+          MethodID: methodId,
+          AmountApplied: amount,
+        },
+      ],
+    };
+
+    const methodNames = {
+      1: 'Cash',
+      2: 'Credit Card',
+      3: 'Debit Card',
+      4: 'Insurance',
+      5: 'Check',
+    };
+
+    setPaymentSaving(true);
+
+    try {
+      const result = await api.post('/payments', request);
+
+      const savedPayment = {
+        paymentID: result.paymentID,
+        appointmentID: request.AppointmentID,
+        amount,
+        date: request.PaymentDate,
+        method: methodNames[methodId],
+        status: request.PayStatus,
       };
-      setPayments((previousPayments)=> [
-        ...previousPayments,
-        payment,
-      ]);
-      console.log("Payment information:" , payment);
-      alert("Payment information calidated check the console");
-      setPatientId('');
+
+      setPayments((previous) => [...previous, savedPayment]);
+
+      setPaymentAppointmentId('');
       setPaymentAmount('');
       setPaymentDate('');
       setPaymentMethod('');
       setPaymentStatus('');
-      
-  }
+      setPaymentInstallment('1');
+
+      alert(`Payment recorded! ID: ${result.paymentID}`);
+    } catch (error) {
+      setPaymentError(error.message || 'Could not record payment.');
+    } finally {
+      setPaymentSaving(false);
+    }
+  };
    async function handleAddPatient()
   {
     const errors = {}
@@ -431,13 +491,15 @@ try {
             {section === 'payments' && (
             <div className='payment-form'>
               <h2>Record Payment</h2>
-              <label>Patient ID</label>
-              <input 
-                type='text'
-                placeholder='Enter Patient ID'
-                value={paymentPatientId}
-                onChange={(e)=>setPatientId(e.target.value)}
-                />
+              <label>Appointment ID</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={7}
+                placeholder="Enter 7-digit Appointment ID"
+                value={paymentAppointmentId}
+                onChange={(e) => setPaymentAppointmentId(e.target.value)}
+              />
               <label>Payment Amount ($)</label>
                 <input
                 type='number'
@@ -453,36 +515,52 @@ try {
                 onChange={(e)=>setPaymentDate(e.target.value)}
               />
 
-              <label> Payment methods</label>
-                <select 
-                   value={paymentMethod}
-                onChange={(e)=>setPaymentMethod(e.target.value)}
-                >
-                  <option value="" disabled>
-                    Select Payment Method
-                  </option>
-                  <option value="cash">Cash</option>
-                  <option value="credit">Credit</option>
-                  <option value="debit">Debit</option>
-                  <option value="insurance">Insurance</option>
-                </select>
+              <label>Payment Method</label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
+                <option value="" disabled>Select Payment Method</option>
+                <option value="1">Cash</option>
+                <option value="2">Credit Card</option>
+                <option value="3">Debit Card</option>
+                <option value="4">Insurance</option>
+                <option value="5">Check</option>
+              </select>
 
-                <label>Payment Status</label>
-                  <select 
-                     value={paymentStatus}
-                onChange={(e)=>setPaymentStatus(e.target.value)}
-                  >
-                    <option value="" disabled>
-                      Select Status
-                    </option>
-                    <option value="pending">Pending</option>
-                    <option value="paid">Paid</option>
-                    <option value="failed">Failed</option>
-                  </select>
+              <label>Payment Status</label>
+              <select
+                value={paymentStatus}
+                onChange={(e) => setPaymentStatus(e.target.value)}
+              >
+                <option value="" disabled>Select Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Completed">Completed</option>
+              </select>
 
-                  <button type='button' onClick={handleRecordPayment}>
-                    Record Payment
-                  </button>
+              <label>Installment Number</label>
+              <input
+                type="number"
+                min="1"
+                max="2147483647"
+                step="1"
+                value={paymentInstallment}
+                onChange={(e) => setPaymentInstallment(e.target.value)}
+              />
+
+              {paymentError && (
+                <p role="alert" style={{ color: '#b00020' }}>
+                  {paymentError}
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={handleRecordPayment}
+                disabled={paymentSaving}
+              >
+                {paymentSaving ? 'Saving...' : 'Record Payment'}
+              </button>
 
                   <button
                     type="button"
@@ -496,7 +574,7 @@ try {
                     <table>
                       <thead>
                         <tr>
-                          <th>Patient ID</th>
+                          <th>Appointment ID</th>
                           <th>Amount</th>
                           <th>Date</th>
                           <th>Method</th>
@@ -507,7 +585,7 @@ try {
                       <tbody>
                         {payments.map((payment,index)=>(
                           <tr key={index}>
-                            <td>{payment.patientID}</td>
+                            <td>{payment.appointmentID}</td>
                             <td>${payment.amount.toFixed(2)}</td>
                             <td>{payment.date}</td>
                             <td>{payment.method}</td>
