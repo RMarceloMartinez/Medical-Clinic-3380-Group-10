@@ -27,7 +27,6 @@ public class QueriesController : ControllerBase
         return Ok(await _queryService.SearchPatientsAsync(name, dateOfBirth, cancellationToken));
     }
 
-        // Q2: GET /api/queries/balance?patientId=1000002
     [HttpGet("balance")]
     [Authorize(Roles = "Admin,Receptionist")]
     public async Task<ActionResult<PatientBalanceRow>> PatientBalance([FromQuery] int patientId,
@@ -52,5 +51,30 @@ public class QueriesController : ControllerBase
         }
 
         return Ok(balance);
+    }
+
+    [HttpGet("doctor-week")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor")]
+    public async Task<ActionResult<List<DoctorWeekAppointmentRow>>> DoctorWeek([FromQuery] int doctorId,
+                                                                              [FromQuery] DateOnly? weekStart,
+                                                                              CancellationToken cancellationToken)
+    {
+        if (doctorId < 1000000 || doctorId > 9999999)
+        {
+            return BadRequest(new
+            {
+                message = "Doctor ID must be seven digits."
+            });
+        }
+
+        if (weekStart is null)
+        {
+            return BadRequest(new
+            {
+                message = "Pick the first day of the week."
+            });
+        }
+
+        return Ok(await _queryService.GetDoctorWeekAppointmentsAsync(doctorId, weekStart.Value, cancellationToken));
     }
 }
