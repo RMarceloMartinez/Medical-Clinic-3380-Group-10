@@ -28,9 +28,9 @@ function App() {
   const [formErrors,setFormErrors]=useState({})
   const [paymentAppointmentId, setPaymentAppointmentId] = useState('')
   const [paymentAmount,setPaymentAmount]=useState('')
-  const [paymentDate, setPaymentDate]=useState('')
+  const [paymentDate, setPaymentDate]=useState(new Date().toLocaleDateString('en-CA'))
   const [paymentMethod, setPaymentMethod]=useState('')
-  const [paymentStatus, setPaymentStatus]=useState('')
+  const [paymentStatus, setPaymentStatus]=useState('Completed')
   const [paymentInstallment, setPaymentInstallment] = useState('1')
   const [paymentError, setPaymentError] = useState('')
   const [paymentSaving, setPaymentSaving] = useState(false)
@@ -300,11 +300,10 @@ async function handleSearchPatient() {
 
       setPaymentAppointmentId('');
       setPaymentAmount('');
-      setPaymentDate('');
-      setPaymentMethod('');
+      setPaymentDate(new Date().toLocaleDateString('en-CA'));      setPaymentMethod('');
       setPaymentStatus('');
-      setPaymentInstallment('1');
-
+      setPaymentStatus('Completed');
+      
       alert(`Payment recorded! ID: ${result.paymentID}`);
     } catch (error) {
       setPaymentError(error.message || 'Could not record payment.');
@@ -466,10 +465,7 @@ catch (error) {
             <h2> Patient Management</h2>
             
           )}
-          {section === 'payments' && (
-            <h2> Payment Reports</h2>
 
-         )}  
           {section === 'reports' && <Reports role={role} />}
           {section === 'queries' && <Queries role={role} />}
           {section === 'appointments' && 
