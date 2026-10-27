@@ -312,6 +312,17 @@ async function handleSearchPatient() {
       setPaymentSaving(false);
     }
   };
+  
+  function clearPatientForm()
+  {
+    setFirstName(''); setMiddleName(''); setLastName('')
+    setStreetAddress(''); setApartmentNumber(''); setCity('')
+    setState(''); setZipCode(''); setCountry('')
+    setPhone(''); setSSN(''); setSex(''); setDateOfBirth(''); setEmail('')
+    setFormErrors({})
+    setSelectedPatient(null); setEditPatientId('')
+  }
+
    async function handleAddPatient()
   {
     const errors = {}
@@ -406,7 +417,10 @@ try {
   } else {
     alert('Patient saved successfully!');
   }
-} catch (error) {
+  clearPatientForm();
+  setSection('patients');
+} 
+catch (error) {
   alert(`Could not save patient: ${error.message}`);
 }
 
@@ -430,6 +444,7 @@ try {
           placeholder='Password'
           value={Password}
           onChange={(event)=> setPassword(event.target.value)}
+          onKeyDown={(event) => { if (event.key === 'Enter') handleLogin() }}
         />
         <button 
           type='button'
@@ -634,11 +649,11 @@ try {
             {section === 'patients' &&
              (
               <div className='Patient Management'>
-            <button onClick={() => setSection('addPatient')}>
+              <button onClick={() => { clearPatientForm(); setSection('addPatient') }}>
               Add Patient
               </button>
 
-              <button onClick={() => setSection('editPatient')}>
+              <button onClick={() => { clearPatientForm(); setSection('editPatient') }}>
               Edit Patient
               </button>
 
