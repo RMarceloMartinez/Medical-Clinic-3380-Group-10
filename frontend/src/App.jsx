@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import { api } from './api'
 import Appointments from './Appointments'
+import Reports from './Reports'
 
 function App() {
   const [page, setPage] = useState('login')
@@ -366,9 +367,7 @@ try {
             <h2> Payment Reports</h2>
 
          )}  
-         {section === 'reports' && (
-            <h2> Clinic Reports</h2>
-          )}
+          {section === 'reports' && <Reports role={role} />}
           {section === 'appointments' && 
           <Appointments role={role} />}
             <div className="dashboard-nav">
