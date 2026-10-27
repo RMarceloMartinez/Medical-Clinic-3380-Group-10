@@ -36,8 +36,7 @@ builder.Services
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
-        options.SlidingExpiration = false;
-
+        options.SlidingExpiration = true;
         options.Events.OnRedirectToLogin = context =>
         {
             context.Response.StatusCode = 401;

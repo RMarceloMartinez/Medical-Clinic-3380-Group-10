@@ -65,47 +65,39 @@ GO
 
 -- Query 2: patient's balance
 
-WITH VisitBalance AS (
-        SELECT a.AppointmentID,
-               CAST(a.Date_Time AS DATE) AS VisitDate,
-               a.TotalCost,
-               ISNULL(SUM(pd.AmountApplied), 0) AS Paid
-        FROM Appointment AS a
-        LEFT JOIN Payment AS p
-            ON p.AppointmentID = a.AppointmentID
-            AND p.PayStatus = 'Completed'
-            AND p.DeletionFlag = 0
-        LEFT JOIN PaymentDetail AS pd
-            ON pd.PaymentID = p.PaymentID
-            AND pd.DeletionFlag = 0
-        WHERE a.PatientID = @PatientID
-        AND a.AppointStatus = 'Completed'
-        AND a.DeletionFlag = 0
-        GROUP BY a.AppointmentID, CAST(a.Date_Time AS DATE), a.TotalCost
-    )
-    SELECT m.MemberID AS PatientID,
-           m.FirstName + ' ' + m.LastName AS PatientName,
-           m.Phone,
-           COUNT(CASE WHEN vb.TotalCost > vb.Paid THEN 1 END) AS UnpaidVisits,
-           MIN(CASE WHEN vb.TotalCost > vb.Paid THEN vb.VisitDate END) AS OldestUnpaidVisit,
-           ISNULL(SUM(vb.TotalCost), 0) AS Billed,
-           ISNULL(SUM(vb.Paid), 0) AS Paid,
-           -- Overpaid visits count as 0 so they don't offset what is owed on other visits
-           ISNULL(SUM(CASE WHEN vb.TotalCost > vb.Paid
-                           THEN vb.TotalCost - vb.Paid
-                           ELSE 0 END), 0) AS Balance
-    FROM Member AS m
-    JOIN Patient AS pt ON pt.PatientID = m.MemberID
-    LEFT JOIN VisitBalance AS vb ON 1 = 1   -- VisitBalance already holds only this patient's visits
-    WHERE m.MemberID = @PatientID
-    AND m.DeletionFlag = 0
-    AND pt.DeletionFlag = 0
-    GROUP BY m.MemberID, m.FirstName, m.LastName, m.Phone;
+CREATE OR ALTER PROCEDURE usp_PatientBalance
+    @PatientID INT
 
+AS BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Billed NUMERIC(10,2), @Paid NUMERIC(10,2);
+
+    --Billed completed visits only
+    SELECT @Billed = ISNULL(SUM (a.TotalCost), 0)
+    FROM Appointment AS a
+    WHERE a.PatientID = @PatientID
+    AND a.AppointStatus = 'Completed'
+    AND a.DeletionFlag = 0;
+
+-- Paid: payment lines on those visits, refunds excluded
+SELECT @Paid = ISNULL(SUM(pd.AmountApplied), 0)
+FROM PaymentDetail  AS pd
+JOIN Payment AS p ON p.PaymentID = pd.PaymentID
+JOIN Appointment AS a ON a.AppointmentID = p.AppointmentID
+WHERE a.PatientID = @PatientID
+AND a.AppointStatus = 'Completed'
+AND p.PayStatus = 'Completed'
+AND a.DeletionFlag = 0
+AND p.DeletionFlag = 0;
+
+SELECT @Billed AS Billed, @Paid AS Paid, @Billed - @Paid AS Balance;
 END;
 GO
 
-EXEC usp_PatientOutstandingBalance_FromReport @PatientID = 1000000;
+EXEC usp_PatientBalance @PatientID = 1000002;   -- Emily Garcia: 600.00 / 600.00 / 0.00
+EXEC usp_PatientBalance @PatientID = 1000004;   -- Olivia Davis: 375.00 / 375.00 / 0.00
+
 GO
 
 -- Query 3: search patients by name and/or date of birth

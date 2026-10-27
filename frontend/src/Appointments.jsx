@@ -185,13 +185,21 @@ export default function Appointments({ role }) {
       {view === 'list' && (
         <>
           <div className="filters">
-            <input placeholder="Doctor ID" value={filters.doctorId}
-              onChange={(e) => updateFilter('doctorId', e.target.value)} />
-            <input placeholder="Patient ID" value={filters.patientId}
-              onChange={(e) => updateFilter('patientId', e.target.value)} />
-            <input type="date" value={filters.from}
+            <select value={filters.doctorId} onChange={(e) => updateFilter('doctorId', e.target.value)}>
+              <option value="">All doctors</option>
+              {lookups.doctors.map((d) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+            <select value={filters.patientId} onChange={(e) => updateFilter('patientId', e.target.value)}>
+              <option value="">All patients</option>
+              {lookups.patients.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            From <input type="date" value={filters.from}
               onChange={(e) => updateFilter('from', e.target.value)} />
-            <input type="date" value={filters.to}
+            To <input type="date" value={filters.to}
               onChange={(e) => updateFilter('to', e.target.value)} />
             <select value={filters.status} onChange={(e) => updateFilter('status', e.target.value)}>
               <option value="">All statuses</option>
@@ -252,7 +260,10 @@ export default function Appointments({ role }) {
 
           {cancelId && (
             <div className="cancel-box">
-              <h3>Cancel appointment {cancelId}</h3>
+              <h3>Cancel appointment: {(() => {
+                const a = appointments.find((x) => x.appointmentID === cancelId)
+                return a ? `${a.patientName}, ${formatDateTime(a.appointmentDateTime)}` : cancelId
+              })()}</h3>
               <label>Reason</label>
               <input maxLength={200} value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)} />
@@ -294,7 +305,6 @@ export default function Appointments({ role }) {
               <option key={o.id} value={o.id}>{o.name}</option>
             ))}
           </select>
-          <input value={form.referralID} onChange={(e) => updateForm('referralID', e.target.value)} />
           <label>Date and time</label>
           <input type="datetime-local" value={form.appointmentDateTime}
             onChange={(e) => updateForm('appointmentDateTime', e.target.value)} />

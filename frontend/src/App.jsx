@@ -28,12 +28,13 @@ function App() {
   const [formErrors,setFormErrors]=useState({})
   const [paymentAppointmentId, setPaymentAppointmentId] = useState('')
   const [paymentAmount,setPaymentAmount]=useState('')
-  const [paymentDate, setPaymentDate]=useState('')
+  const [paymentDate, setPaymentDate]=useState(new Date().toLocaleDateString('en-CA'))
   const [paymentMethod, setPaymentMethod]=useState('')
-  const [paymentStatus, setPaymentStatus]=useState('')
+  const [paymentStatus, setPaymentStatus]=useState('Completed')
   const [paymentInstallment, setPaymentInstallment] = useState('1')
   const [paymentError, setPaymentError] = useState('')
   const [paymentSaving, setPaymentSaving] = useState(false)
+  const [paymentAppointments, setPaymentAppointments] = useState([])
   const [payments, setPayments]= useState([]);
   const [patients, setPatients] = useState([]);
   const [editPatientId, setEditPatientId] = useState('');
@@ -68,7 +69,7 @@ async function handleRemovePatient() {
 
 async function handleSearchRemovePatient() {
   if (!removePatientId.trim()) {
-    alert('Please enter a Patient ID');
+    alert('Please pick a patient');
     return;
   }
 
@@ -116,7 +117,7 @@ async function handleUpdatePatient() {
 
 async function handleSearchPatient() {
   if (!editPatientId.trim()) {
-    alert('Please enter a Patient ID');
+    alert('Please pick a patient');
     return;
   }
 
@@ -159,14 +160,39 @@ async function handleSearchPatient() {
         alert(`Could not load patients: ${error.message}`);
       }
     }
+        async function loadPaymentAppointments()
+    {
+      try {
+        const result = await api.get('/appointments')
+        // newest first, so recent visits are at the top of the dropdown
+        result.sort((x, y) => new Date(y.appointmentDateTime) - new Date(x.appointmentDateTime))
+        setPaymentAppointments(result)
+      } catch (error) {
+        setPaymentError(`Could not load appointments: ${error.message}`)
+      }
+    }
+
+    function appointmentLabel(a)
+    {
+      if (!a) return ''
+      const when = new Date(a.appointmentDateTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+      return `${a.patientName} with ${a.doctorName} — ${when} (${a.appointStatus})`
+    }
     useEffect(()=>
     {
-      if(section ==='patients')
+      if (section === 'patients' || section === 'editPatient' || section === 'removePatient')
       {
         loadPatients();
       }
-
+      if (section === 'payments')
+      {
+        loadPaymentAppointments();
+      }
     },[section])
+        function patientLabel(p)
+    {
+      return `${p.firstName} ${p.lastName} (born ${p.dateOfBirth})`
+    }
     async function handleLogin()
   {
     if(Username==='')
@@ -200,7 +226,7 @@ async function handleSearchPatient() {
     const methodId = Number(paymentMethod);
 
     if (!/^[1-9]\d{6}$/.test(appointmentId)) {
-      setPaymentError('Appointment ID must be seven digits.');
+      setPaymentError('Pick an appointment.');
       return;
     }
 
@@ -262,8 +288,9 @@ async function handleSearchPatient() {
 
       const savedPayment = {
         paymentID: result.paymentID,
-        appointmentID: request.AppointmentID,
-        amount,
+        appointment: appointmentLabel(
+          paymentAppointments.find((a) => a.appointmentID === request.AppointmentID)
+        ),        amount,
         date: request.PaymentDate,
         method: methodNames[methodId],
         status: request.PayStatus,
@@ -273,11 +300,10 @@ async function handleSearchPatient() {
 
       setPaymentAppointmentId('');
       setPaymentAmount('');
-      setPaymentDate('');
-      setPaymentMethod('');
+      setPaymentDate(new Date().toLocaleDateString('en-CA'));      setPaymentMethod('');
       setPaymentStatus('');
-      setPaymentInstallment('1');
-
+      setPaymentStatus('Completed');
+      
       alert(`Payment recorded! ID: ${result.paymentID}`);
     } catch (error) {
       setPaymentError(error.message || 'Could not record payment.');
@@ -285,6 +311,17 @@ async function handleSearchPatient() {
       setPaymentSaving(false);
     }
   };
+  
+  function clearPatientForm()
+  {
+    setFirstName(''); setMiddleName(''); setLastName('')
+    setStreetAddress(''); setApartmentNumber(''); setCity('')
+    setState(''); setZipCode(''); setCountry('')
+    setPhone(''); setSSN(''); setSex(''); setDateOfBirth(''); setEmail('')
+    setFormErrors({})
+    setSelectedPatient(null); setEditPatientId('')
+  }
+
    async function handleAddPatient()
   {
     const errors = {}
@@ -379,7 +416,10 @@ try {
   } else {
     alert('Patient saved successfully!');
   }
-} catch (error) {
+  clearPatientForm();
+  setSection('patients');
+} 
+catch (error) {
   alert(`Could not save patient: ${error.message}`);
 }
 
@@ -403,6 +443,7 @@ try {
           placeholder='Password'
           value={Password}
           onChange={(event)=> setPassword(event.target.value)}
+          onKeyDown={(event) => { if (event.key === 'Enter') handleLogin() }}
         />
         <button 
           type='button'
@@ -424,10 +465,7 @@ try {
             <h2> Patient Management</h2>
             
           )}
-          {section === 'payments' && (
-            <h2> Payment Reports</h2>
 
-         )}  
           {section === 'reports' && <Reports role={role} />}
           {section === 'queries' && <Queries role={role} />}
           {section === 'appointments' && 
@@ -453,8 +491,8 @@ try {
   )}
 
   
-  {(role === 'Admin' || role === 'Doctor' || role === 'Nurse') && (
-    <button onClick={() => setSection('reports')}>
+  {role === 'Admin' && (
+            <button onClick={() => setSection('reports')}>
       Reports
     </button>
   )}
@@ -467,12 +505,7 @@ try {
   )}
 
   
-  {(
-    role === 'Admin' ||
-    role === 'Doctor' ||
-    role === 'Nurse' ||
-    role === 'Patient'
-  ) && (
+  {(role === 'Admin' || role === 'Receptionist' || role === 'Doctor') && (
     <button onClick={() => setSection('appointments')}>
       Appointments
     </button>
@@ -500,15 +533,18 @@ try {
             {section === 'payments' && (
             <div className='payment-form'>
               <h2>Record Payment</h2>
-              <label>Appointment ID</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={7}
-                placeholder="Enter 7-digit Appointment ID"
+              <label>Appointment</label>
+              <select
                 value={paymentAppointmentId}
                 onChange={(e) => setPaymentAppointmentId(e.target.value)}
-              />
+              >
+                <option value="">Select an appointment</option>
+                {paymentAppointments.map((a) => (
+                  <option key={a.appointmentID} value={a.appointmentID}>
+                    {appointmentLabel(a)}
+                  </option>
+                ))}
+              </select>
               <label>Payment Amount ($)</label>
                 <input
                 type='number'
@@ -583,7 +619,7 @@ try {
                     <table>
                       <thead>
                         <tr>
-                          <th>Appointment ID</th>
+                          <th>Appointment</th>
                           <th>Amount</th>
                           <th>Date</th>
                           <th>Method</th>
@@ -594,7 +630,7 @@ try {
                       <tbody>
                         {payments.map((payment,index)=>(
                           <tr key={index}>
-                            <td>{payment.appointmentID}</td>
+                            <td>{payment.appointment}</td>
                             <td>${payment.amount.toFixed(2)}</td>
                             <td>{payment.date}</td>
                             <td>{payment.method}</td>
@@ -609,11 +645,11 @@ try {
             {section === 'patients' &&
              (
               <div className='Patient Management'>
-            <button onClick={() => setSection('addPatient')}>
+              <button onClick={() => { clearPatientForm(); setSection('addPatient') }}>
               Add Patient
               </button>
 
-              <button onClick={() => setSection('editPatient')}>
+              <button onClick={() => { clearPatientForm(); setSection('editPatient') }}>
               Edit Patient
               </button>
 
@@ -836,13 +872,16 @@ try {
             (
               <div className='edit-Patient'>
                 <h2>Edit Patient</h2>
-                <label>Patient ID</label>
-                <input  
-                  type='text'
-                  placeholder='Enter Patient ID'
+                                <label>Patient</label>
+                <select
                   value={editPatientId}
-                  onChange={(event)=> setEditPatientId(event.target.value)}
-                  />
+                  onChange={(event) => setEditPatientId(event.target.value)}
+                >
+                  <option value="">Select a patient</option>
+                  {patients.map((p) => (
+                    <option key={p.patientID} value={p.patientID}>{patientLabel(p)}</option>
+                  ))}
+                </select>
                 <button type ="button" onClick={handleSearchPatient}>
                   Search Patient
                 </button>
@@ -935,16 +974,19 @@ try {
                 <h2>Remove Patient</h2>
 
                 
-                <label>Patient ID</label>
-                <input
-                  type="text"
-                  placeholder="Enter Patient ID"
+                                <label>Patient</label>
+                <select
                   value={removePatientId}
                   onChange={(event) => {
                     setRemovePatientId(event.target.value);
                     setPatientToRemove(null);
                   }}
-                />
+                >
+                  <option value="">Select a patient</option>
+                  {patients.map((p) => (
+                    <option key={p.patientID} value={p.patientID}>{patientLabel(p)}</option>
+                  ))}
+                </select>
 
                 <button
                   type="button"
