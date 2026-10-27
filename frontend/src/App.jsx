@@ -34,6 +34,7 @@ function App() {
   const [paymentInstallment, setPaymentInstallment] = useState('1')
   const [paymentError, setPaymentError] = useState('')
   const [paymentSaving, setPaymentSaving] = useState(false)
+  const [paymentAppointments, setPaymentAppointments] = useState([])
   const [payments, setPayments]= useState([]);
   const [patients, setPatients] = useState([]);
   const [editPatientId, setEditPatientId] = useState('');
@@ -159,11 +160,33 @@ async function handleSearchPatient() {
         alert(`Could not load patients: ${error.message}`);
       }
     }
+        async function loadPaymentAppointments()
+    {
+      try {
+        const result = await api.get('/appointments')
+        // newest first, so recent visits are at the top of the dropdown
+        result.sort((x, y) => new Date(y.appointmentDateTime) - new Date(x.appointmentDateTime))
+        setPaymentAppointments(result)
+      } catch (error) {
+        setPaymentError(`Could not load appointments: ${error.message}`)
+      }
+    }
+
+    function appointmentLabel(a)
+    {
+      if (!a) return ''
+      const when = new Date(a.appointmentDateTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+      return `${a.patientName} with ${a.doctorName} — ${when} (${a.appointStatus})`
+    }
     useEffect(()=>
     {
-      if(section ==='patients')
+            if(section ==='patients')
       {
         loadPatients();
+      }
+      if (section === 'payments')
+      {
+        loadPaymentAppointments();
       }
 
     },[section])
@@ -200,7 +223,7 @@ async function handleSearchPatient() {
     const methodId = Number(paymentMethod);
 
     if (!/^[1-9]\d{6}$/.test(appointmentId)) {
-      setPaymentError('Appointment ID must be seven digits.');
+      setPaymentError('Pick an appointment.');
       return;
     }
 
@@ -262,8 +285,9 @@ async function handleSearchPatient() {
 
       const savedPayment = {
         paymentID: result.paymentID,
-        appointmentID: request.AppointmentID,
-        amount,
+        appointment: appointmentLabel(
+          paymentAppointments.find((a) => a.appointmentID === request.AppointmentID)
+        ),        amount,
         date: request.PaymentDate,
         method: methodNames[methodId],
         status: request.PayStatus,
@@ -495,15 +519,18 @@ try {
             {section === 'payments' && (
             <div className='payment-form'>
               <h2>Record Payment</h2>
-              <label>Appointment ID</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={7}
-                placeholder="Enter 7-digit Appointment ID"
+              <label>Appointment</label>
+              <select
                 value={paymentAppointmentId}
                 onChange={(e) => setPaymentAppointmentId(e.target.value)}
-              />
+              >
+                <option value="">Select an appointment</option>
+                {paymentAppointments.map((a) => (
+                  <option key={a.appointmentID} value={a.appointmentID}>
+                    {appointmentLabel(a)}
+                  </option>
+                ))}
+              </select>
               <label>Payment Amount ($)</label>
                 <input
                 type='number'
@@ -578,7 +605,7 @@ try {
                     <table>
                       <thead>
                         <tr>
-                          <th>Appointment ID</th>
+                          <th>Appointment</th>
                           <th>Amount</th>
                           <th>Date</th>
                           <th>Method</th>
@@ -589,7 +616,7 @@ try {
                       <tbody>
                         {payments.map((payment,index)=>(
                           <tr key={index}>
-                            <td>{payment.appointmentID}</td>
+                            <td>{payment.appointment}</td>
                             <td>${payment.amount.toFixed(2)}</td>
                             <td>{payment.date}</td>
                             <td>{payment.method}</td>
