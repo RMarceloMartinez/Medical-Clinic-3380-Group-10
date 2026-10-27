@@ -14,6 +14,81 @@ public class AppointmentService
         _connectionFactory = connectionFactory;
     }
 
+        // Doctor + office pairs a patient may book: their primary doctor,
+    // plus specialists they have an open referral to (same rule as trigger 50006)
+    public async Task<List<BookableDoctorRow>> GetBookableDoctorsAsync(
+        int patientId,
+        CancellationToken cancellationToken = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+
+        command.CommandText = """
+            WITH Bookable AS (
+                SELECT pd.DoctorID, CAST(NULL AS INT) AS ReferralID
+                FROM dbo.PatientDoctor AS pd
+                WHERE pd.PatientID = @PatientID
+                  AND pd.RolePlayed = 'Primary'
+                  AND pd.DeletionFlag = 0
+
+                UNION ALL
+
+                SELECT r.SpecialistID, MAX(r.ReferralID)
+                FROM dbo.Referral AS r
+                WHERE r.PatientID = @PatientID
+                  AND r.RefStatus = 'Scheduled'
+                  AND r.DeletionFlag = 0
+                GROUP BY r.SpecialistID
+            )
+            SELECT b.DoctorID,
+                   ds.OfficeID,
+                   m.FirstName + ' ' + m.LastName AS DoctorName,
+                   d.Specialty,
+                   o.StreetAddress + ', ' + o.City AS OfficeAddress,
+                   STRING_AGG(ds.DayOfWeek, ', ')
+                       WITHIN GROUP (ORDER BY (CHARINDEX(ds.DayOfWeek, 'MonTueWedThuFriSatSun') + 2) / 3)
+                       AS WorkDays,
+                   CONVERT(VARCHAR(5), o.OpeningTime, 108) + '-'
+                       + CONVERT(VARCHAR(5), o.ClosingTime, 108) AS OfficeHours,
+                   b.ReferralID,
+                   CASE WHEN b.ReferralID IS NULL THEN 150.00 ELSE 250.00 END AS VisitFee
+            FROM Bookable AS b
+            JOIN dbo.Doctor AS d ON d.DoctorID = b.DoctorID AND d.DeletionFlag = 0
+            JOIN dbo.Member AS m ON m.MemberID = b.DoctorID AND m.DeletionFlag = 0
+            JOIN dbo.DoctorSchedule AS ds ON ds.DoctorID = b.DoctorID AND ds.DeletionFlag = 0
+            JOIN dbo.Office AS o ON o.OfficeID = ds.OfficeID AND o.DeletionFlag = 0
+            GROUP BY b.DoctorID, ds.OfficeID, m.FirstName, m.LastName, d.Specialty,
+                     o.StreetAddress, o.City, o.OpeningTime, o.ClosingTime, b.ReferralID
+            ORDER BY b.ReferralID, m.LastName;
+            """;
+
+        command.Parameters.Add("@PatientID", SqlDbType.Int).Value = patientId;
+
+        var rows = new List<BookableDoctorRow>();
+        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            rows.Add(new BookableDoctorRow
+            {
+                DoctorID = reader.GetInt32(reader.GetOrdinal("DoctorID")),
+                OfficeID = reader.GetInt32(reader.GetOrdinal("OfficeID")),
+                DoctorName = reader.GetString(reader.GetOrdinal("DoctorName")),
+                Specialty = reader.GetString(reader.GetOrdinal("Specialty")),
+                OfficeAddress = reader.GetString(reader.GetOrdinal("OfficeAddress")),
+                WorkDays = reader.GetString(reader.GetOrdinal("WorkDays")),
+                OfficeHours = reader.GetString(reader.GetOrdinal("OfficeHours")),
+                ReferralID = reader.IsDBNull(reader.GetOrdinal("ReferralID"))
+                    ? null
+                    : reader.GetInt32(reader.GetOrdinal("ReferralID")),
+                VisitFee = reader.GetDecimal(reader.GetOrdinal("VisitFee"))
+            });
+        }
+
+        return rows;
+    }
     public async Task<int> CreateAsync(
         CreateAppointmentRequest request,
         CancellationToken cancellationToken = default
