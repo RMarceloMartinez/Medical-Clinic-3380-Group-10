@@ -453,8 +453,8 @@ try {
   )}
 
   
-  {(role === 'Admin' || role === 'Doctor' || role === 'Nurse') && (
-    <button onClick={() => setSection('reports')}>
+  {role === 'Admin' && (
+            <button onClick={() => setSection('reports')}>
       Reports
     </button>
   )}
@@ -467,12 +467,7 @@ try {
   )}
 
   
-  {(
-    role === 'Admin' ||
-    role === 'Doctor' ||
-    role === 'Nurse' ||
-    role === 'Patient'
-  ) && (
+  {(role === 'Admin' || role === 'Receptionist' || role === 'Doctor') && (
     <button onClick={() => setSection('appointments')}>
       Appointments
     </button>
