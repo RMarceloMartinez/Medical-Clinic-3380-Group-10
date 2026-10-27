@@ -46,4 +46,32 @@ public class QueryService
 
         return items;
     }
+    public async Task<PatientBalanceRow?> GetPatientBalanceAsync(int patientId,
+                                                CancellationToken cancellationToken = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+
+        command.CommandText = """
+                              EXEC dbo.usp_PatientBalance @PatientID = @PatientID;
+                              """;
+
+        command.Parameters.Add("@PatientID", SqlDbType.Int).Value = patientId;
+
+        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        if (!await reader.ReadAsync(cancellationToken))   // one row expected; none = null
+        {
+            return null;
+        }
+
+        return new PatientBalanceRow
+        {
+            Billed = reader.GetDecimal(reader.GetOrdinal("Billed")),
+            Paid = reader.GetDecimal(reader.GetOrdinal("Paid")),
+            Balance = reader.GetDecimal(reader.GetOrdinal("Balance"))
+        };
+    }
 }
