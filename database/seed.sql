@@ -427,7 +427,7 @@ SELECT
 FROM (VALUES
 
     -- Emily referred to James by Sarah
-    -- (stays open: Emily still has a visit with James on Oct 27)
+    -- (stays open: Emily still has a visit with James on Dec 3)
     (@EmilyID, @JamesID, @SarahID,
      CAST('2026-06-15' AS DATE),
      'Scheduled'),
@@ -458,7 +458,7 @@ WHERE NOT EXISTS (
 );
 
 --7. SAMPLE APPOINTMENTS
--- Appointments across July, August, September, and October 2026
+-- Appointments across July to October 2026, plus two upcoming in December
 
 INSERT INTO dbo.Appointment
     (OfficeID, DoctorID, PatientID, ReferralID,
@@ -516,14 +516,6 @@ FROM (VALUES
      CAST('2026-10-06T09:30:00' AS datetime2),
      'Completed', 250.00, 'Phone', NULL, NULL),
 
-    (@Office1ID, @SarahID, @OliviaID,
-     CAST('2026-10-23T09:00:00' AS datetime2),
-     'Scheduled', 125.00, 'Web Portal', NULL, NULL),
-
-    (@Office2ID, @JamesID, @EmilyID,
-     CAST('2026-10-27T11:00:00' AS datetime2),
-     'Scheduled', 300.00, 'Phone', NULL, NULL),
-
     (@Office1ID, @SarahID, @MichaelID,
      CAST('2026-10-12T09:00:00' AS datetime2),
      'Cancelled', 175.00, 'Phone',
@@ -532,7 +524,17 @@ FROM (VALUES
     (@Office2ID, @JamesID, @OliviaID,
      CAST('2026-10-13T14:00:00' AS datetime2),
      'Cancelled', 250.00, 'Web Portal',
-     'Schedule conflict', 'Patient')
+     'Schedule conflict', 'Patient'),
+
+    -- DECEMBER 2026 (upcoming: must stay in the future for edit demos)
+    -- Sarah works Mon/Wed/Fri, James Tue/Thu (trigger 1)
+    (@Office1ID, @SarahID, @OliviaID,
+     CAST('2026-12-02T09:00:00' AS datetime2),
+     'Scheduled', 125.00, 'Web Portal', NULL, NULL),
+
+    (@Office2ID, @JamesID, @EmilyID,
+     CAST('2026-12-03T11:00:00' AS datetime2),
+     'Scheduled', 300.00, 'Phone', NULL, NULL)
 
 ) AS v(
     OfficeID, DoctorID, PatientID, Date_Time,
