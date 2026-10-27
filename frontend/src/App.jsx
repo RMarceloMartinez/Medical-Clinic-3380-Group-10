@@ -3,6 +3,7 @@ import './App.css'
 import { api } from './api'
 import Appointments from './Appointments'
 import Reports from './Reports'
+import Queries from './Queries'
 
 function App() {
   const [page, setPage] = useState('login')
@@ -368,6 +369,7 @@ try {
 
          )}  
           {section === 'reports' && <Reports role={role} />}
+          {section === 'queries' && <Queries role={role} />}
           {section === 'appointments' && 
           <Appointments role={role} />}
             <div className="dashboard-nav">
@@ -394,6 +396,13 @@ try {
   {(role === 'Admin' || role === 'Doctor' || role === 'Nurse') && (
     <button onClick={() => setSection('reports')}>
       Reports
+    </button>
+  )}
+
+  
+  {(role === 'Admin' || role === 'Receptionist' || role === 'Doctor') && (
+    <button onClick={() => setSection('queries')}>
+      Queries
     </button>
   )}
 
