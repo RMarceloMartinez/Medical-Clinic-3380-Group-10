@@ -24,6 +24,19 @@ public class LookupService
             """, cancellationToken);
     }
 
+    public Task<List<LookupItem>> GetPrimaryDoctorsAsync(CancellationToken cancellationToken = default)
+    {
+        return QueryAsync("""
+            SELECT d.DoctorID AS Id,
+                   m.FirstName + ' ' + m.LastName + ' (' + d.Specialty + ')' AS Name
+            FROM dbo.Doctor AS d
+            JOIN dbo.Member AS m ON m.MemberID = d.DoctorID
+            WHERE d.Specialty IN ('Family Medicine', 'Internal Medicine', 'Pediatrics')
+              AND d.DeletionFlag = 0
+              AND m.DeletionFlag = 0
+            ORDER BY m.LastName, m.FirstName;
+            """, cancellationToken);
+    }
     public Task<List<LookupItem>> GetPatientsAsync(CancellationToken cancellationToken = default)
     {
         return QueryAsync("""
