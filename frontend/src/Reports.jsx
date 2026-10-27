@@ -7,21 +7,50 @@ export default function Reports({ role }) {
   const [to, setTo] = useState('')
   const [rows, setRows] = useState([])
   const [error, setError] = useState('')
+  const [patientId, setPatientId] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [hasRun, setHasRun] = useState(false)
 
     async function runReport() {
-    setError('')
+      setError('')
+      setRows([])
+      setHasRun(false)
 
-    if (from === '' || to === '') {
-      setError('Pick both dates.')
-      return
+      let url
+
+      if (report === 'health-summary') {
+        const id = patientId.trim()
+
+      if (!/^[1-9]\d{6}$/.test(id)) {
+        setError('Enter a seven-digit Patient ID.')
+        return
+      }
+
+      url = `/reports/health-summary?patientId=${id}`
+    } else {
+      if (!from || !to) {
+        setError('Pick both dates.')
+        return
+      }
+
+      if (from > to) {
+        setError('From date must be on or before To date.')
+        return
+      }
+
+      url = `/reports/${report}?from=${from}&to=${to}`
     }
 
+    setLoading(true)
+
     try {
-      const data = await api.get(`/reports/${report}?from=${from}&to=${to}`)
+      const data = await api.get(url)
       setRows(data)
+      setHasRun(true)
     } catch (e) {
       setError(e.message)
-      setRows([])
+    } finally {
+      setLoading(false)
     }
   }
   
@@ -30,16 +59,114 @@ export default function Reports({ role }) {
     <div className="reports">
         <h2>Clinic Reports</h2>
         <div className="report-picker">
-        <button onClick={() => { setReport('revenue'); setRows([]) }}>Revenue</button>
-        <button onClick={() => { setReport('activity'); setRows([]) }}>Appointment activity</button>
-        </div>
-        <div className="filters">
-        From <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-        To <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        <button onClick={runReport}>Run report</button>
-        </div>
+          {[
+            ['revenue', 'Revenue'],
+            ['activity', 'Appointment activity'],
+            ['health-summary', 'Patient Health Summary']
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              disabled={loading}
+              onClick={() => {
+                setReport(value)
+                setRows([])
+                setError('')
+                setHasRun(false)
+              }}
+            >
+              {label}
+            </button>
+        ))}
+      </div>
+
+      <div className="filters">
+        {report === 'health-summary' ? (
+          <label>
+            Patient ID
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={7}
+              value={patientId}
+              disabled={loading}
+              onChange={(e) => {
+                setPatientId(e.target.value)
+                setRows([])
+                setHasRun(false)
+              }}
+            />
+          </label>
+        ) : (
+          <>
+            <label>
+              From
+              <input
+                type="date"
+                value={from}
+                disabled={loading}
+                onChange={(e) => {
+                  setFrom(e.target.value)
+                  setRows([])
+                  setHasRun(false)
+                }}
+              />
+            </label>
+            <label>
+              To
+              <input
+                type="date"
+                value={to}
+                disabled={loading}
+                onChange={(e) => {
+                  setTo(e.target.value)
+                  setRows([])
+                  setHasRun(false)
+                }}
+              />
+            </label>
+          </>
+        )}
+
+        <button onClick={runReport} disabled={loading}>
+          {loading ? 'Loading…' : 'Run report'}
+        </button>
+      </div>
 
         {error && <p className="error-message">{error}</p>}
+
+        {hasRun && rows.length === 0 && (
+          <p>No matching records found.</p>
+        )}
+
+        {report === 'health-summary' && rows.length > 0 && (
+          <div>
+            <h3>
+              {rows[0].patientFirstName} {rows[0].patientLastName}
+              {' — ID: '}{rows[0].patientID}
+          </h3>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Item</th>
+                <th>Details</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr key={index}>
+                  <td>{row.category}</td>
+                  <td>{row.itemName}</td>
+                  <td>{row.detail || '—'}</td>
+                  <td>{row.itemDate ? row.itemDate.slice(0, 10) : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
               {report === 'revenue' && rows.length > 0 && (
         <table>
