@@ -72,6 +72,64 @@ public class PatientService
         };
     }
 
+    
+public async Task<List<PatientResponse>> GetAllAsync(
+    CancellationToken cancellationToken = default)
+{
+    var patients = new List<PatientResponse>();
+
+    using var connection = _connectionFactory.CreateConnection();
+    await connection.OpenAsync(cancellationToken);
+
+    using var command = connection.CreateCommand();
+
+    command.CommandText = """
+        SELECT p.PatientID,
+               m.FirstName, m.MiddleName, m.LastName,
+               m.StreetAddress, m.ApartmentNum,
+               m.City, m.State, m.ZipCode, m.Country,
+               m.Phone, m.Sex, m.DateOfBirth, m.Email
+        FROM dbo.Patient AS p
+        INNER JOIN dbo.Member AS m
+            ON m.MemberID = p.PatientID
+        WHERE p.DeletionFlag = 0
+          AND m.DeletionFlag = 0
+        ORDER BY m.LastName, m.FirstName;
+        """;
+
+    using var reader =
+        await command.ExecuteReaderAsync(cancellationToken);
+
+    while (await reader.ReadAsync(cancellationToken))
+    {
+        patients.Add(new PatientResponse
+        {
+            PatientID = reader.GetInt32(reader.GetOrdinal("PatientID")),
+            FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
+            MiddleName = reader.IsDBNull(reader.GetOrdinal("MiddleName"))
+                ? null
+                : reader.GetString(reader.GetOrdinal("MiddleName")),
+            LastName = reader.GetString(reader.GetOrdinal("LastName")),
+            StreetAddress = reader.GetString(reader.GetOrdinal("StreetAddress")),
+            ApartmentNum = reader.IsDBNull(reader.GetOrdinal("ApartmentNum"))
+                ? null
+                : reader.GetString(reader.GetOrdinal("ApartmentNum")),
+            City = reader.GetString(reader.GetOrdinal("City")),
+            State = reader.GetString(reader.GetOrdinal("State")),
+            ZipCode = reader.GetString(reader.GetOrdinal("ZipCode")),
+            Country = reader.GetString(reader.GetOrdinal("Country")),
+            Phone = reader.GetString(reader.GetOrdinal("Phone")),
+            Sex = reader.GetString(reader.GetOrdinal("Sex")),
+            DateOfBirth = DateOnly.FromDateTime(
+                reader.GetDateTime(reader.GetOrdinal("DateOfBirth"))),
+            Email = reader.GetString(reader.GetOrdinal("Email"))
+        });
+    }
+
+    return patients;
+}
+
+
     public async Task<int> CreateAsync(
         CreatePatientRequest request,
         CancellationToken cancellationToken = default)

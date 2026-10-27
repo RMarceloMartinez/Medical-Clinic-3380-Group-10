@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import { api } from './api'
 import Appointments from './Appointments'
 
 function App() {
-  const[page, setPage] = useState('login')
-  const[section, setSection] = useState('home')
+  const [page, setPage] = useState('login')
+  const [section, setSection] = useState('home')
   const [Username, setUsername] = useState('')
   const [Password, setPassword] = useState('')
   const [role, setRole] = useState('')
@@ -20,7 +20,7 @@ function App() {
   const [country,setCountry]=useState('')
   const [phone,setPhone]=useState('')
   const [ssn,setSSN]=useState('')
-  const[sex,setSex]=useState('')
+  const [sex,setSex]=useState('')
   const [dateOfBirth,setDateOfBirth]=useState('')
   const [email,setEmail]=useState('')
   const [formErrors,setFormErrors]=useState({})
@@ -30,7 +30,138 @@ function App() {
   const [paymentMethod, setPaymentMethod]=useState('')
   const [paymentStatus, setPaymentStatus]=useState('')
   const [payments, setPayments]= useState([]);
+  const [patients, setPatients] = useState([]);
+  const [editPatientId, setEditPatientId] = useState('');
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [removePatientId, setRemovePatientId] = useState('');
+  const [patientToRemove, setPatientToRemove] = useState(null);
+  
+  
+async function handleRemovePatient() {
+  if (!patientToRemove) {
+    alert('Search for a patient first.');
+    return;
+  }
 
+  const confirmed = window.confirm(
+    `Are you sure you want to remove ${patientToRemove.firstName} ${patientToRemove.lastName}?`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    await api.delete(`/patients/${removePatientId}`);
+
+    alert('Patient removed successfully!');
+    setPatientToRemove(null);
+    setRemovePatientId('');
+    await loadPatients();
+  } catch (error) {
+    alert(`Could not remove patient: ${error.message}`);
+  }
+}
+
+async function handleSearchRemovePatient() {
+  if (!removePatientId.trim()) {
+    alert('Please enter a Patient ID');
+    return;
+  }
+
+  try {
+    const patient = await api.get(`/patients/${removePatientId}`);
+    setPatientToRemove(patient);
+  } catch (error) {
+    setPatientToRemove(null);
+    alert(`Could not find patient: ${error.message}`);
+  }
+}
+
+async function handleUpdatePatient() {
+  if (!selectedPatient) {
+    alert('Search for a patient before saving changes.');
+    return;
+  }
+
+  const updatedPatient = {
+    SSN: ssn,
+    FirstName: firstname,
+    MiddleName: middleName || null,
+    LastName: lastName,
+    StreetAddress: streetAddress,
+    ApartmentNum: apartmentNumber || null,
+    City: city,
+    State: state,
+    ZipCode: zipCode,
+    Country: country,
+    Phone: phone,
+    Sex: sex,
+    DateOfBirth: dateOfBirth,
+    Email: email
+  };
+
+  try {
+    await api.put(`/patients/${editPatientId}`, updatedPatient);
+
+    alert('Patient updated successfully!');
+    await loadPatients();
+  } catch (error) {
+    alert(`Could not update patient: ${error.message}`);
+  }
+}
+
+async function handleSearchPatient() {
+  if (!editPatientId.trim()) {
+    alert('Please enter a Patient ID');
+    return;
+  }
+
+  try {
+    const patient = await api.get(`/patients/${editPatientId}`);
+
+    setSelectedPatient(patient);
+
+    setFirstName(patient.firstName ?? '');
+    setMiddleName(patient.middleName ?? '');
+    setLastName(patient.lastName ?? '');
+    setPhone(patient.phone ?? '');
+    setEmail(patient.email ?? '');
+    setStreetAddress(patient.streetAddress ?? '');
+    setApartmentNumber(patient.apartmentNum ?? '');
+    setCity(patient.city ?? '');
+    setState(patient.state ?? '');
+    setZipCode(patient.zipCode ?? '');
+    setCountry(patient.country ?? '');
+    setSex(patient.sex ?? '');
+    setSSN(patient.ssn ?? '');
+    setDateOfBirth(
+      patient.dateOfBirth ? patient.dateOfBirth.slice(0, 10) : ''
+    );
+
+    alert('Patient found! Information loaded.');
+  } catch (error) {
+    setSelectedPatient(null);
+    alert(`Could not find patient: ${error.message}`);
+  }
+}
+
+    async function loadPatients()
+    {
+      try{
+        const result = await api.get('/patients')
+        setPatients(result);
+      }catch(error)
+      {
+        alert(`Could not load patients: ${error.message}`);
+      }
+    }
+    useEffect(()=>
+    {
+      if(section ==='patients')
+      {
+        loadPatients();
+      }
+
+    },[section])
     async function handleLogin()
   {
     if(Username==='')
@@ -92,7 +223,7 @@ function App() {
       setPaymentStatus('');
       
   }
-  function handleAddPatient()
+   async function handleAddPatient()
   {
     const errors = {}
     if(firstname==='')
@@ -105,7 +236,7 @@ function App() {
      errors.lastName= 'Please enter the last name'
       
     }
-    if(email ==='' && !email.includes('@'))
+    if(email ==='' || !email.includes('@'))
     {
       errors.email= 'Please enter a valid email'
       
@@ -160,7 +291,36 @@ function App() {
     {
       return
     }
-    alert('Patient information is filled in!')
+    
+  const patient = {
+  SSN: ssn,
+  FirstName: firstname,
+  MiddleName: middleName || null,
+  LastName: lastName,
+  StreetAddress: streetAddress,
+  ApartmentNum: apartmentNumber || null,
+  City: city,
+  State: state,
+  ZipCode: zipCode,
+  Country: country,
+  Phone: phone,
+  Sex: sex,
+  DateOfBirth: dateOfBirth,
+  Email: email
+};
+
+try {
+  const result = await api.post('/patients', patient);
+
+  if (result?.patientID) {
+    alert(`Patient created! ID: ${result.patientID}`);
+  } else {
+    alert('Patient saved successfully!');
+  }
+} catch (error) {
+  alert(`Could not save patient: ${error.message}`);
+}
+
   }
 
   return (
@@ -211,26 +371,64 @@ function App() {
           )}
           {section === 'appointments' && 
           <Appointments role={role} />}
-            <div className='dashboard-nav'>
-               <button onClick={() => setSection('home')}>
-              Home
-            </button>
-              <button onClick={()=> setSection('patients')}>
-              Patients
-            </button>
-            <button onClick={()=> setSection('payments')}>
-              Payments
-            </button>
-            <button onClick={()=> setSection('reports')}>
-              Reports
-            </button>
-            <button onClick={()=> setSection('appointments')}>
-              Appointments
-            </button>
-            <button onClick={()=> setPage('login')}>
-              Log out
-            </button>
-            </div>
+            <div className="dashboard-nav">
+ 
+  <button onClick={() => setSection('home')}>
+    Home
+  </button>
+
+ 
+  {(role === 'Admin' || role === 'Receptionist') && (
+    <button onClick={() => setSection('patients')}>
+      Patients
+    </button>
+  )}
+
+ 
+  {(role === 'Admin' || role === 'Receptionist') && (
+    <button onClick={() => setSection('payments')}>
+      Payments
+    </button>
+  )}
+
+  
+  {(role === 'Admin' || role === 'Doctor' || role === 'Nurse') && (
+    <button onClick={() => setSection('reports')}>
+      Reports
+    </button>
+  )}
+
+  
+  {(
+    role === 'Admin' ||
+    role === 'Doctor' ||
+    role === 'Nurse' ||
+    role === 'Patient'
+  ) && (
+    <button onClick={() => setSection('appointments')}>
+      Appointments
+    </button>
+  )}
+
+  
+  <button
+    onClick={async () => {
+      try {
+        await api.logout();
+      } catch (error) {
+        console.error('Logout request failed:', error);
+      }
+
+      setRole('');
+      setUsername('');
+      setPassword('');
+      setSection('home');
+      setPage('login');
+    }}
+  >
+    Log out
+  </button>
+</div>
             {section === 'payments' && (
             <div className='payment-form'>
               <h2>Record Payment</h2>
@@ -336,6 +534,39 @@ function App() {
               <button onClick={() => setSection('removePatient')}>
               Remove Patient
               </button>
+              
+<h3>Patient List</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Patient ID</th>
+      <th>First Name</th>
+      <th>Last Name</th>
+      <th>Phone</th>
+      <th>Email</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {patients.length === 0 ? (
+      <tr>
+        <td colSpan="5">No patients found.</td>
+      </tr>
+    ) : (
+      patients.map((patient) => (
+        <tr key={patient.patientID}>
+          <td>{patient.patientID}</td>
+          <td>{patient.firstName}</td>
+          <td>{patient.lastName}</td>
+          <td>{patient.phone}</td>
+          <td>{patient.email}</td>
+        </tr>
+      ))
+    )}
+  </tbody>
+</table>
+
               </div>
             )}
             {section === 'addPatient' && 
@@ -523,38 +754,84 @@ function App() {
                 <input  
                   type='text'
                   placeholder='Enter Patient ID'
+                  value={editPatientId}
+                  onChange={(event)=> setEditPatientId(event.target.value)}
                   />
-                <button type ="button">
+                <button type ="button" onClick={handleSearchPatient}>
                   Search Patient
                 </button>
                 <h3> Patient Information</h3>
                 <label>First Name</label>
-                <input type ="text" placeholder="enter first name"/>
+               <input
+                  type="text"
+                  placeholder="Enter First Name"
+                  value={firstname}
+                  onChange={(event) => setFirstName(event.target.value)}
+                />
 
                 <label>Middle Name</label>
-                <input type ="text" placeholder="enter Middle name"/>
+                <input
+                  type="text"
+                  placeholder="Enter Middle Name"
+                  value={middleName}
+                  onChange={(event) => setMiddleName(event.target.value)}
+                />
 
                 <label>Last Name</label>
-                <input type ="text" placeholder="enter Last name"/>
+                <input
+                  type="text"
+                  placeholder="Enter Last Name"
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
+                />
 
                 <label>Phone Number</label>
-                <input type ="text" placeholder="enter Phone number"/>
+                <input 
+                  type ="text" 
+                  placeholder="enter Phone number"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                />
 
                 <label>Email</label>
-                <input type ="text" placeholder="enter Email"/>
-
+                <input 
+                  type ="text" 
+                  placeholder="enter Email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  />
                 <label>Street Address</label>
-                <input type ="text" placeholder="enter Address"/>
+                <input 
+                  type ="text" 
+                  placeholder="enter Address"
+                  value={streetAddress}
+                  onChange={(event) => setStreetAddress(event.target.value)}
+                />
 
                 <label>City</label>
-                <input type ="text" placeholder="enter City"/>
+                <input 
+                  type ="text" 
+                  placeholder="enter City"
+                  value={city}
+                  onChange={(event) => setCity(event.target.value)}
+                />
 
                 <label>State</label>
-                <input type ="text" placeholder="enter State"/>
+                <input 
+                  type ="text" 
+                  placeholder="enter State"
+                  value={state}
+                  onChange={(event) => setState(event.target.value)}
+                />
 
                 <label>Zipcode</label>
-                <input type ="text" placeholder="enter Zipcode"/>
-                <button type ="button">
+                <input 
+                  type ="text" 
+                  placeholder="enter Zipcode"
+                  value={zipCode}
+                  onChange={(event) => setZipCode(event.target.value)}
+                />
+                <button type ="button" onClick={handleUpdatePatient}>
                   Save
                 </button>
 
@@ -571,29 +848,58 @@ function App() {
               <div className='remove-patient'>
                 <h2>Remove Patient</h2>
 
+                
                 <label>Patient ID</label>
-                <input 
-                type='text'
-                placeholder='Enter Patient ID'
+                <input
+                  type="text"
+                  placeholder="Enter Patient ID"
+                  value={removePatientId}
+                  onChange={(event) => {
+                    setRemovePatientId(event.target.value);
+                    setPatientToRemove(null);
+                  }}
                 />
 
-                <button type='button'>
+                <button
+                  type="button"
+                  onClick={handleSearchRemovePatient}
+                >
                   Search Patient
                 </button>
 
-                <button type='button'>
+              {patientToRemove  && (
+                <div>
+                  <h3>Patient Found</h3>
+                <p>
+                  ID: {patientToRemove.patientID}
+                </p>
+                <p>
+                  Name: {patientToRemove.firstName} {patientToRemove.lastName}
+                </p>
+                <p>
+                  Phone: {patientToRemove.phone}
+                </p>
+                <p>
+                  Email: {patientToRemove.email}
+                </p>
+                </div>
+              )}
+
+
+                <button
+                  type="button"
+                  disabled={!patientToRemove}
+                  onClick={handleRemovePatient}
+                >
                   Remove Patient
-                </button>
-                <button type ="button">
-                  Save
-                </button>
+                  </button>
                 <button
                   className='back-button'
                   onClick={() => setSection('patients')}
                   >
                     Back to Patients
                   </button>
-                  </div>
+                </div>
             ) }
           </div>
         )

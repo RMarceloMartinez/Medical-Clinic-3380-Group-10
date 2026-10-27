@@ -19,6 +19,14 @@ public class PatientsController : ControllerBase
     {
         _patientService = patientService;
     }
+    
+    [HttpGet]
+    public async Task<ActionResult<List<PatientResponse>>> GetAll(
+        CancellationToken cancellationToken)
+    {
+        var patients = await _patientService.GetAllAsync(cancellationToken);
+      return Ok(patients);
+    }
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<PatientResponse>> GetById(
