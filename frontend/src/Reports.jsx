@@ -190,8 +190,8 @@ export default function Reports({ role }) {
               <tr key={r.officeID}>
                 <td>{r.officeStreetAddress}</td>
                 <td>{r.completedVisits}</td>
-                <td>${r.billed.toFixed(2)}</td>
-                <td>${r.collected.toFixed(2)}</td>
+                <td>${Number(r.billed ?? 0).toFixed(2)}</td>
+                <td>${Number(r.collected ?? 0).toFixed(2)}</td>
                 <td>${r.refunded.toFixed(2)}</td>
                 <td>${r.outstanding.toFixed(2)}</td>
                 <td>${r.cashCollected.toFixed(2)}</td>
