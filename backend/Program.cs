@@ -25,6 +25,8 @@ builder.Services.AddScoped<LookupService>();
 
 builder.Services.AddScoped<ReportService    >();
 
+builder.Services.AddScoped<QueryService>();
+
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
