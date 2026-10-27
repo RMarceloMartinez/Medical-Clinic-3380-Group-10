@@ -119,18 +119,13 @@ public class ReportService
 
         using var command = connection.CreateCommand();
 
-        command.CommandText = """
-            SELECT v.PatientID,
-                   m.FirstName AS PatientFirstName,
-                   m.LastName AS PatientLastName,
-                   v.Category, v.ItemName, v.Detail, v.ItemDate
-            FROM dbo.vw_PatientHealthItems AS v
-            INNER JOIN dbo.Member AS m ON m.MemberID = v.PatientID
-            INNER JOIN dbo.Patient AS p ON p.PatientID = v.PatientID
-            WHERE v.PatientID = @PatientID
-              AND m.DeletionFlag = 0
-              AND p.DeletionFlag = 0
-            ORDER BY v.Category, v.ItemDate DESC, v.ItemName;
+                command.CommandText = """
+            EXEC dbo.usp_RefreshPatientHealthSummaryReport @PatientID = @PatientID;
+            SELECT PatientID, PatientFirstName, PatientLastName,
+                   Category, ItemName, Detail, ItemDate
+            FROM dbo.PatientHealthSummaryReport
+            WHERE DeletionFlag = 0
+            ORDER BY Category, ItemDate DESC, ItemName;
             """;
 
         command.Parameters.Add("@PatientID", SqlDbType.Int).Value = patientId;
