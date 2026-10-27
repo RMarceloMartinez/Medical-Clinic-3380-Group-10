@@ -24,6 +24,13 @@ public class LookupsController : ControllerBase
         return Ok(await _lookupService.GetDoctorsAsync(cancellationToken));
     }
 
+    [AllowAnonymous]                                   // the sign-up page calls this before login
+    [HttpGet("primary-doctors")]
+    public async Task<ActionResult<List<LookupItem>>> PrimaryDoctors(CancellationToken cancellationToken)
+    {
+        return Ok(await _lookupService.GetPrimaryDoctorsAsync(cancellationToken));
+    }
+
     [HttpGet("patients")]
     public async Task<ActionResult<List<LookupItem>>> Patients(CancellationToken cancellationToken)
     {
