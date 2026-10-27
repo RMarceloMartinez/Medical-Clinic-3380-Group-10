@@ -445,3 +445,342 @@ body
   font-size: 0.85em;
   color: #888;
 }
+
+/* ===== Layout, sign-up and patient portal (Oct 27) ===== */
+
+.dashboard h1,
+.dashboard h2,
+.dashboard h3 {
+  color: white;
+}
+
+.loading-text {
+  color: white;
+}
+
+/* --- Login card extras --- */
+.login-notice,
+.login-error {
+  margin-top: 12px;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.login-notice {
+  background: #fff4cc;
+  color: #5c4400;
+}
+.login-error {
+  background: #ffe1e1;
+  color: #8a0000;
+}
+.login-signup {
+  margin-top: 16px;
+  color: white;
+}
+.login-card .link-button,
+.signup-card .link-button {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: white;
+  text-decoration: underline;
+  font-weight: bold;
+  cursor: pointer;
+}
+.login-card .link-button:hover,
+.signup-card .link-button:hover {
+  background: none;
+  color: #dbe7ff;
+}
+
+/* --- Sign-up page --- */
+.signup-card {
+  width: 720px;
+  max-width: calc(100% - 32px);
+  margin: 32px 16px;
+  padding: 32px;
+  background: #4882da;
+  color: white;
+  border-radius: 12px;
+  text-align: left;
+  box-sizing: border-box;
+}
+.signup-card h1 {
+  font-size: 32px;
+  margin: 0 0 8px;
+  color: white;
+  letter-spacing: 0;
+}
+.signup-card h3 {
+  margin: 24px 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+  color: white;
+}
+.signup-intro {
+  color: #eef3ff;
+}
+.signup-card .primary-button {
+  width: 100%;
+  margin-top: 20px;
+}
+.signup-card .link-button {
+  display: block;
+  margin: 16px auto 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+}
+@media (max-width: 640px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.form-field {
+  display: flex;
+  flex-direction: column;
+}
+.form-field label,
+.panel label {
+  margin-top: 10px;
+  margin-bottom: 4px;
+  font-weight: bold;
+}
+.form-field input,
+.form-field select,
+.panel input,
+.panel select {
+  padding: 10px;
+  border: 1px solid #253d5f;
+  border-radius: 6px;
+  background: white;
+  color: #111;
+  font-size: 15px;
+}
+.field-hint {
+  margin-top: 6px;
+  font-size: 14px;
+  color: #eef3ff;
+}
+
+/* --- Header + menu shared by staff and patients --- */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  text-align: left;
+}
+.app-title {
+  font-size: 32px;
+  margin: 0;
+  letter-spacing: 0;
+}
+.app-user {
+  margin-top: 4px;
+  color: #c9d8f2;
+}
+.logout-button {
+  padding: 10px 18px;
+  border: 1px solid white;
+  border-radius: 8px;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+}
+.logout-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+.dashboard-nav button.active {
+  background-color: white;
+  color: #0e2744;
+  font-weight: bold;
+}
+.page {
+  text-align: left;
+}
+
+/* --- Home pages --- */
+.home h2 {
+  text-align: center;
+}
+.home > p {
+  text-align: center;
+}
+.home-empty {
+  max-width: 520px;
+  margin: 24px auto;
+  padding: 16px;
+  background: #4882da;
+  border-radius: 12px;
+}
+.home-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 20px auto;
+  max-width: 900px;
+}
+.home-card,
+.info-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  border-radius: 12px;
+  background: #4882da;
+  color: white;
+  text-align: left;
+  border: 2px solid transparent;
+  font: inherit;
+}
+.home-card {
+  cursor: pointer;
+}
+.home-card:hover {
+  border-color: white;
+}
+.info-card {
+  background: #253d5f;
+}
+.home-card-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+.home-card-text {
+  font-size: 15px;
+  color: #eef3ff;
+}
+.big-number {
+  font-size: 32px;
+  font-weight: bold;
+  color: white;
+}
+
+/* --- Page building blocks --- */
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.page-actions button,
+.panel button,
+.primary-button {
+  padding: 10px 16px;
+  border: 1px solid #0d1727;
+  border-radius: 6px;
+  background: #253d5f;
+  color: white;
+  cursor: pointer;
+}
+.page-actions button:hover,
+.panel button:hover {
+  background: #101927;
+}
+.page-actions button.active {
+  background: white;
+  color: #0e2744;
+  font-weight: bold;
+}
+.primary-button {
+  background: #1a7f37;
+  font-weight: bold;
+}
+.primary-button:hover {
+  background: #145f2a;
+}
+.danger-button {
+  background: #b3261e !important;
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.panel {
+  max-width: 560px;
+  margin: 20px auto;
+  padding: 24px;
+  background: #4882da;
+  color: white;
+  border-radius: 12px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+.panel h2 {
+  margin-top: 0;
+}
+.panel p {
+  margin: 6px 0;
+}
+
+.data-table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+  background: white;
+  color: #111;
+}
+.data-table th,
+.data-table td {
+  border: 1px solid #ccc;
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.data-table th {
+  background: #253d5f;
+  color: white;
+}
+.data-table tr:nth-child(even) td {
+  background: #f2f5fa;
+}
+.balance-table th {
+  width: 60%;
+}
+.balance-total th,
+.balance-total td {
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.patients-page,
+.payments-page,
+.my-appointments,
+.book-page {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.patients-page > h2,
+.payments-page > h2,
+.my-appointments > h2,
+.book-page > h2 {
+  text-align: center;
+}
+.patient-summary {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+}
+
+.dashboard .success-message {
+  color: #8ff0a4;
+}
+.dashboard .error-message,
+.signup-card .error-message {
+  color: #ffd2d2;
+  background: rgba(176, 0, 32, 0.35);
+  padding: 8px;
+  border-radius: 6px;
+}

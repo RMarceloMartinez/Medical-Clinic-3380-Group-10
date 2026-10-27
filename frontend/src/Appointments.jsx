@@ -104,6 +104,7 @@ export default function Appointments({ role }) {
 
   function backToList() {
     setError('')
+    setCancelId(null)
     setEditingId(null)
     setForm(emptyForm)
     setView('list')
@@ -182,7 +183,7 @@ export default function Appointments({ role }) {
       {error && <p className="error-message">{error}</p>}
       {message && <p className="success-message">{message}</p>}
 
-      {view === 'list' && (
+      {view === 'list' && !cancelId && (
         <>
           <div className="filters">
             <select value={filters.doctorId} onChange={(e) => updateFilter('doctorId', e.target.value)}>
@@ -258,28 +259,30 @@ export default function Appointments({ role }) {
           </table>
           {appointments.length === 0 && !error && <p>No appointments found.</p>}
 
-          {cancelId && (
-            <div className="cancel-box">
-              <h3>Cancel appointment: {(() => {
-                const a = appointments.find((x) => x.appointmentID === cancelId)
-                return a ? `${a.patientName}, ${formatDateTime(a.appointmentDateTime)}` : cancelId
-              })()}</h3>
-              <label>Reason</label>
-              <input maxLength={200} value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)} />
-              <label>Cancelled by</label>
-              <select value={cancelledBy} onChange={(e) => setCancelledBy(e.target.value)}>
-                <option value="Patient">Patient</option>
-                <option value="Doctor">Doctor</option>
-                <option value="Staff">Staff</option>
-              </select>
-              <button type="button" onClick={handleCancel}>Confirm cancellation</button>
-              <button type="button" className="back-button" onClick={() => setCancelId(null)}>
-                Keep appointment
-              </button>
-            </div>
-          )}
         </>
+      )}
+
+      {/* Cancelling is its own screen: the list is hidden meanwhile */}
+      {view === 'list' && cancelId && (
+        <div className="cancel-box">
+          <h3>Cancel appointment: {(() => {
+            const a = appointments.find((x) => x.appointmentID === cancelId)
+            return a ? `${a.patientName}, ${formatDateTime(a.appointmentDateTime)}` : cancelId
+          })()}</h3>
+          <label>Reason</label>
+          <input maxLength={200} value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)} />
+          <label>Cancelled by</label>
+          <select value={cancelledBy} onChange={(e) => setCancelledBy(e.target.value)}>
+            <option value="Patient">Patient</option>
+            <option value="Doctor">Doctor</option>
+            <option value="Staff">Staff</option>
+          </select>
+          <button type="button" onClick={handleCancel}>Confirm cancellation</button>
+          <button type="button" className="back-button" onClick={() => setCancelId(null)}>
+            Keep appointment
+          </button>
+        </div>
       )}
 
       {view === 'form' && canManage && (
