@@ -69,7 +69,7 @@ async function handleRemovePatient() {
 
 async function handleSearchRemovePatient() {
   if (!removePatientId.trim()) {
-    alert('Please enter a Patient ID');
+    alert('Please pick a patient');
     return;
   }
 
@@ -117,7 +117,7 @@ async function handleUpdatePatient() {
 
 async function handleSearchPatient() {
   if (!editPatientId.trim()) {
-    alert('Please enter a Patient ID');
+    alert('Please pick a patient');
     return;
   }
 
@@ -180,7 +180,7 @@ async function handleSearchPatient() {
     }
     useEffect(()=>
     {
-            if(section ==='patients')
+      if (section === 'patients' || section === 'editPatient' || section === 'removePatient')
       {
         loadPatients();
       }
@@ -188,8 +188,11 @@ async function handleSearchPatient() {
       {
         loadPaymentAppointments();
       }
-
     },[section])
+        function patientLabel(p)
+    {
+      return `${p.firstName} ${p.lastName} (born ${p.dateOfBirth})`
+    }
     async function handleLogin()
   {
     if(Username==='')
@@ -858,13 +861,16 @@ try {
             (
               <div className='edit-Patient'>
                 <h2>Edit Patient</h2>
-                <label>Patient ID</label>
-                <input  
-                  type='text'
-                  placeholder='Enter Patient ID'
+                                <label>Patient</label>
+                <select
                   value={editPatientId}
-                  onChange={(event)=> setEditPatientId(event.target.value)}
-                  />
+                  onChange={(event) => setEditPatientId(event.target.value)}
+                >
+                  <option value="">Select a patient</option>
+                  {patients.map((p) => (
+                    <option key={p.patientID} value={p.patientID}>{patientLabel(p)}</option>
+                  ))}
+                </select>
                 <button type ="button" onClick={handleSearchPatient}>
                   Search Patient
                 </button>
@@ -957,16 +963,19 @@ try {
                 <h2>Remove Patient</h2>
 
                 
-                <label>Patient ID</label>
-                <input
-                  type="text"
-                  placeholder="Enter Patient ID"
+                                <label>Patient</label>
+                <select
                   value={removePatientId}
                   onChange={(event) => {
                     setRemovePatientId(event.target.value);
                     setPatientToRemove(null);
                   }}
-                />
+                >
+                  <option value="">Select a patient</option>
+                  {patients.map((p) => (
+                    <option key={p.patientID} value={p.patientID}>{patientLabel(p)}</option>
+                  ))}
+                </select>
 
                 <button
                   type="button"
