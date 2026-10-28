@@ -784,3 +784,87 @@ button:disabled {
   padding: 8px;
   border-radius: 6px;
 }
+
+/* ===== Staff appointments page (Oct 27, evening) ===== */
+
+.appointments-page {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.appointments-page > h2 {
+  text-align: center;
+}
+
+/* Filters: one card, fields side by side, wraps on small screens */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 16px;
+  margin: 12px 0;
+  background: #253d5f;
+  border-radius: 12px;
+}
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 160px;
+  min-width: 140px;
+}
+.filter-field label {
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #dbe7ff;
+}
+.filter-field input,
+.filter-field select {
+  padding: 8px;
+  border: 1px solid #0d1727;
+  border-radius: 6px;
+  background: white;
+  color: #111;
+  font-size: 15px;
+}
+.filter-buttons {
+  display: flex;
+  gap: 8px;
+}
+.filter-buttons button {
+  padding: 9px 16px;
+  border: 1px solid #0d1727;
+  border-radius: 6px;
+  background: #4882da;
+  color: white;
+  cursor: pointer;
+}
+.filter-buttons .primary-button {
+  background: #1a7f37;
+}
+
+.list-summary {
+  margin: 4px 0 8px;
+  color: #c9d8f2;
+  font-size: 14px;
+}
+
+/* Table cells: main line + small grey line under it */
+.cell-main {
+  font-weight: 600;
+}
+.cell-sub {
+  margin-top: 2px;
+  font-size: 13px;
+  color: #5b6475;
+}
+
+/* Status pill */
+.status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: bold;
+  white-space: nowrap;
+}
