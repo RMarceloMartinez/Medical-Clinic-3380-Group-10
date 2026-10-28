@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from './api'
+import { api } from '../../api/client'
 import './Queries.css'
 
 // Q1 patient search, Q2 patient balance, Q3 doctor's week.

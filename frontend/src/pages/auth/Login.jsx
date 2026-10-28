@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { api } from './api'
+import { api } from '../../api/client'
 
 // Login card (moved out of App.jsx) + the "Create an account" link for new patients
 export default function Login({ onLoggedIn, onSignUp, notice }) {

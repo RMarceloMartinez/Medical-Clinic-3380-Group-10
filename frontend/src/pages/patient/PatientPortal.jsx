@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { api } from './api'
-import Layout from './Layout'
+import { api } from '../../api/client'
+import Layout from '../../components/Layout'
 import MyAppointments from './MyAppointments'
 import BookAppointment from './BookAppointment'
 import MyBalance from './MyBalance'

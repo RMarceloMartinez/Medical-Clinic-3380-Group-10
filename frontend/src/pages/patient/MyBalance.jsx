@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from './api'
+import { api } from '../../api/client'
 
 // The logged-in patient's balance (query Q2 run with their own ID)
 export default function MyBalance() {

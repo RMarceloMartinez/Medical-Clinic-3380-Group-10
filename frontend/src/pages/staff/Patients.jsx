@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from './api'
+import { api } from '../../api/client'
 
 // Patient management (moved out of App.jsx). One screen at a time:
 //   list -> add | edit | remove -> back to list

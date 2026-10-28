@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from './api'
+import { api } from '../../api/client'
 import './Reports.css'
 
 // Admin reports: R1 office revenue, R2 appointment activity, R3 patient health summary.

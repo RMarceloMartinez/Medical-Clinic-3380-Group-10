@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import Layout from './Layout'
+import Layout from '../../components/Layout'
 import Appointments from './Appointments'
 import Patients from './Patients'
 import Payments from './Payments'
