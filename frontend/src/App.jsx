@@ -1,388 +1,54 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
-import { api } from './api'
-import Appointments from './Appointments'
-import Reports from './Reports'
-import Queries from './Queries'
+import { api, setUnauthorizedHandler } from './api'
+import Login from './Login'
+import SignUp from './SignUp'
+import PatientPortal from './PatientPortal'
+import StaffDashboard from './StaffDashboard'
 
-function App() {
-  const [page, setPage] = useState('login')
-  const [section, setSection] = useState('home')
-  const [Username, setUsername] = useState('')
-  const [Password, setPassword] = useState('')
-  const [role, setRole] = useState('')
-  const [firstname,setFirstName]=useState('')
-  const [middleName,setMiddleName]=useState('')
-  const [lastName,setLastName]=useState('')
-  const [streetAddress,setStreetAddress]=useState('')
-  const [apartmentNumber,setApartmentNumber]=useState('')
-  const [city,setCity]=useState('')
-  const [state,setState]=useState('')
-  const [zipCode,setZipCode]=useState('')
-  const [country,setCountry]=useState('')
-  const [phone,setPhone]=useState('')
-  const [ssn,setSSN]=useState('')
-  const [sex,setSex]=useState('')
-  const [dateOfBirth,setDateOfBirth]=useState('')
-  const [email,setEmail]=useState('')
-  const [formErrors,setFormErrors]=useState({})
-  const [paymentAppointmentId, setPaymentAppointmentId] = useState('')
-  const [paymentAmount,setPaymentAmount]=useState('')
-  const [paymentDate, setPaymentDate]=useState('')
-  const [paymentMethod, setPaymentMethod]=useState('')
-  const [paymentStatus, setPaymentStatus]=useState('')
-  const [paymentInstallment, setPaymentInstallment] = useState('1')
-  const [paymentError, setPaymentError] = useState('')
-  const [paymentSaving, setPaymentSaving] = useState(false)
-  const [payments, setPayments]= useState([]);
-  const [patients, setPatients] = useState([]);
-  const [editPatientId, setEditPatientId] = useState('');
-  const [selectedPatient, setSelectedPatient] = useState(null);
-  const [removePatientId, setRemovePatientId] = useState('');
-  const [patientToRemove, setPatientToRemove] = useState(null);
-  
-  
-async function handleRemovePatient() {
-  if (!patientToRemove) {
-    alert('Search for a patient first.');
-    return;
+// The app's front door. It only decides WHICH part of the app to show:
+//   not logged in -> Login or SignUp
+//   Patient       -> PatientPortal (their own pages only)
+//   staff roles   -> StaffDashboard (menu depends on the role)
+export default function App() {
+  const [account, setAccount] = useState(null)        // { username, role, ... } or null
+  const [screen, setScreen] = useState('login')       // 'login' | 'signup' (only while logged out)
+  const [checking, setChecking] = useState(true)      // true while we ask the API "am I logged in?"
+  const [notice, setNotice] = useState('')            // message shown on the login card
+
+  useEffect(() => {
+    // Any 401 from a page = the login expired -> back to the login screen
+    setUnauthorizedHandler(() => {
+      setAccount(null)
+      setScreen('login')
+      setNotice('Your session ended. Please log in again.')
+    })
+
+    // After a page reload the cookie is still there, so ask who is logged in
+    api.me()
+      .then((me) => setAccount(me))
+      .catch(() => setAccount(null))
+      .finally(() => setChecking(false))
+  }, [])
+
+  function handleLoggedIn(loggedInAccount) {
+    setNotice('')
+    setAccount(loggedInAccount)
   }
 
-  const confirmed = window.confirm(
-    `Are you sure you want to remove ${patientToRemove.firstName} ${patientToRemove.lastName}?`
-  );
-
-  if (!confirmed) return;
-
-  try {
-    await api.delete(`/patients/${removePatientId}`);
-
-    alert('Patient removed successfully!');
-    setPatientToRemove(null);
-    setRemovePatientId('');
-    await loadPatients();
-  } catch (error) {
-    alert(`Could not remove patient: ${error.message}`);
-  }
-}
-
-async function handleSearchRemovePatient() {
-  if (!removePatientId.trim()) {
-    alert('Please enter a Patient ID');
-    return;
-  }
-
-  try {
-    const patient = await api.get(`/patients/${removePatientId}`);
-    setPatientToRemove(patient);
-  } catch (error) {
-    setPatientToRemove(null);
-    alert(`Could not find patient: ${error.message}`);
-  }
-}
-
-async function handleUpdatePatient() {
-  if (!selectedPatient) {
-    alert('Search for a patient before saving changes.');
-    return;
-  }
-
-  const updatedPatient = {
-    SSN: ssn,
-    FirstName: firstname,
-    MiddleName: middleName || null,
-    LastName: lastName,
-    StreetAddress: streetAddress,
-    ApartmentNum: apartmentNumber || null,
-    City: city,
-    State: state,
-    ZipCode: zipCode,
-    Country: country,
-    Phone: phone,
-    Sex: sex,
-    DateOfBirth: dateOfBirth,
-    Email: email
-  };
-
-  try {
-    await api.put(`/patients/${editPatientId}`, updatedPatient);
-
-    alert('Patient updated successfully!');
-    await loadPatients();
-  } catch (error) {
-    alert(`Could not update patient: ${error.message}`);
-  }
-}
-
-async function handleSearchPatient() {
-  if (!editPatientId.trim()) {
-    alert('Please enter a Patient ID');
-    return;
-  }
-
-  try {
-    const patient = await api.get(`/patients/${editPatientId}`);
-
-    setSelectedPatient(patient);
-
-    setFirstName(patient.firstName ?? '');
-    setMiddleName(patient.middleName ?? '');
-    setLastName(patient.lastName ?? '');
-    setPhone(patient.phone ?? '');
-    setEmail(patient.email ?? '');
-    setStreetAddress(patient.streetAddress ?? '');
-    setApartmentNumber(patient.apartmentNum ?? '');
-    setCity(patient.city ?? '');
-    setState(patient.state ?? '');
-    setZipCode(patient.zipCode ?? '');
-    setCountry(patient.country ?? '');
-    setSex(patient.sex ?? '');
-    setSSN(patient.ssn ?? '');
-    setDateOfBirth(
-      patient.dateOfBirth ? patient.dateOfBirth.slice(0, 10) : ''
-    );
-
-    alert('Patient found! Information loaded.');
-  } catch (error) {
-    setSelectedPatient(null);
-    alert(`Could not find patient: ${error.message}`);
-  }
-}
-
-    async function loadPatients()
-    {
-      try{
-        const result = await api.get('/patients')
-        setPatients(result);
-      }catch(error)
-      {
-        alert(`Could not load patients: ${error.message}`);
-      }
-    }
-    useEffect(()=>
-    {
-      if(section ==='patients')
-      {
-        loadPatients();
-      }
-
-    },[section])
-    async function handleLogin()
-  {
-    if(Username==='')
-    {
-      alert('Please enter your username')
-      return
-    }
-    if(Password==='')
-    {
-      alert('Please enter your password')
-      return
-    }
-    try
-    {
-      const account = await api.login(Username, Password)
-      setRole(account.role)
-      setPage('Dashboard')
-    }
-    catch (error)
-    {
-      alert(error.message)
-    }
-  }
-  const handleRecordPayment = async () => {
-    if (paymentSaving) return;
-    setPaymentError('');
-
-    const appointmentId = paymentAppointmentId.trim();
-    const amount = Number(paymentAmount);
-    const installment = Number(paymentInstallment);
-    const methodId = Number(paymentMethod);
-
-    if (!/^[1-9]\d{6}$/.test(appointmentId)) {
-      setPaymentError('Appointment ID must be seven digits.');
-      return;
-    }
-
-    if (
-      !/^\d+(\.\d{1,2})?$/.test(paymentAmount) ||
-      !Number.isFinite(amount) ||
-      amount < 0.01 ||
-      amount > 99999999.99
-    ) {
-      setPaymentError(
-        'Enter an amount from $0.01 to $99,999,999.99 with at most two decimal places.'
-      );
-      return;
-    }
-
-    if (
-      !Number.isInteger(installment) ||
-      installment < 1 ||
-      installment > 2147483647
-    ) {
-      setPaymentError('Enter a valid positive installment number.');
-      return;
-    }
-
-    if (
-      !paymentDate ||
-      ![1, 2, 3, 4, 5].includes(methodId) ||
-      !['Pending', 'Completed'].includes(paymentStatus)
-    ) {
-      setPaymentError('Select a payment date, method, and status.');
-      return;
-    }
-
-    const request = {
-      AppointmentID: Number(appointmentId),
-      InstallmentNumber: installment,
-      PaymentDate: paymentDate,
-      PayStatus: paymentStatus,
-      Details: [
-        {
-          MethodID: methodId,
-          AmountApplied: amount,
-        },
-      ],
-    };
-
-    const methodNames = {
-      1: 'Cash',
-      2: 'Credit Card',
-      3: 'Debit Card',
-      4: 'Insurance',
-      5: 'Check',
-    };
-
-    setPaymentSaving(true);
-
+  async function handleLogout() {
     try {
-      const result = await api.post('/payments', request);
-
-      const savedPayment = {
-        paymentID: result.paymentID,
-        appointmentID: request.AppointmentID,
-        amount,
-        date: request.PaymentDate,
-        method: methodNames[methodId],
-        status: request.PayStatus,
-      };
-
-      setPayments((previous) => [...previous, savedPayment]);
-
-      setPaymentAppointmentId('');
-      setPaymentAmount('');
-      setPaymentDate('');
-      setPaymentMethod('');
-      setPaymentStatus('');
-      setPaymentInstallment('1');
-
-      alert(`Payment recorded! ID: ${result.paymentID}`);
+      await api.logout()
     } catch (error) {
-      setPaymentError(error.message || 'Could not record payment.');
-    } finally {
-      setPaymentSaving(false);
+      console.error('Logout request failed:', error)
     }
-  };
-   async function handleAddPatient()
-  {
-    const errors = {}
-    if(firstname==='')
-    {
-      errors.firstname= 'Please enter the First name'
-    
-    }
-    if(lastName==='')
-    {
-     errors.lastName= 'Please enter the last name'
-      
-    }
-    if(email ==='' || !email.includes('@'))
-    {
-      errors.email= 'Please enter a valid email'
-      
-    }
-    if(phone==='')
-    {
-     errors.phone= 'Please enter the phone number'
-      
-    }
-    if(dateOfBirth==='')
-    {
-      errors.dateOfBirth= 'Please enter the date of birth'
-      
-    }
-    if(city==='')
-    {
-     errors.city= 'Please enter the city'
-      
-    }
-    if(state==='')
-    {
-     errors.state= 'Please enter the state'
-      
-    }
-    if(zipCode==='')
-    {
-     errors.zipCode= 'Please enter the zipcode'
-      
-    }
-    if(country==='')
-    {
-     errors.country= 'Please enter the country'
-      
-    }
-    if(ssn==='')
-    {
-     errors.ssn= 'Please enter the ssn'
-      
-    }
-    if(sex==='')
-    {
-     errors.sex= 'Please enter the sex'
-      
-    }
-    if(streetAddress==='')
-    {
-     errors.streetAddress= 'Please enter the Street address'
-      
-    }
-    setFormErrors(errors)
-    if(Object.keys(errors).length >0)
-    {
-      return
-    }
-    
-  const patient = {
-  SSN: ssn,
-  FirstName: firstname,
-  MiddleName: middleName || null,
-  LastName: lastName,
-  StreetAddress: streetAddress,
-  ApartmentNum: apartmentNumber || null,
-  City: city,
-  State: state,
-  ZipCode: zipCode,
-  Country: country,
-  Phone: phone,
-  Sex: sex,
-  DateOfBirth: dateOfBirth,
-  Email: email
-};
-
-try {
-  const result = await api.post('/patients', patient);
-
-  if (result?.patientID) {
-    alert(`Patient created! ID: ${result.patientID}`);
-  } else {
-    alert('Patient saved successfully!');
+    setAccount(null)
+    setScreen('login')
+    setNotice('')
   }
-} catch (error) {
-  alert(`Could not save patient: ${error.message}`);
-}
 
+  if (checking) {
+    return <div className="Login-screen"><p className="loading-text">Loading…</p></div>
   }
 
   return (
@@ -978,26 +644,3 @@ try {
                 </p>
                 </div>
               )}
-
-
-                <button
-                  type="button"
-                  disabled={!patientToRemove}
-                  onClick={handleRemovePatient}
-                >
-                  Remove Patient
-                  </button>
-                <button
-                  className='back-button'
-                  onClick={() => setSection('patients')}
-                  >
-                    Back to Patients
-                  </button>
-                </div>
-            ) }
-          </div>
-        )
-  )
-}
-
-export default App

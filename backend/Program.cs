@@ -36,8 +36,7 @@ builder.Services
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
-        options.SlidingExpiration = false;
-
+        options.SlidingExpiration = true;
         options.Events.OnRedirectToLogin = context =>
         {
             context.Response.StatusCode = 401;
@@ -71,6 +70,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+   // Serve the built React site (files in wwwroot) from the same address as the API.
+   // Same address = the login and CSRF cookies work without CORS.
+   // On your laptop there is no wwwroot, so nothing changes: keep using npm run dev.
+app.UseDefaultFiles();   // "/" -> index.html
+app.UseStaticFiles();    // the JS/CSS files Vite builds
 
 
 app.UseAuthentication();

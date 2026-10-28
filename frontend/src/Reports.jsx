@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from './api'
 
 export default function Reports({ role }) {
@@ -9,8 +9,19 @@ export default function Reports({ role }) {
   const [error, setError] = useState('')
   const [patientId, setPatientId] = useState('')
   const [loading, setLoading] = useState(false)
+  const [patients, setPatients] = useState([])
   const [hasRun, setHasRun] = useState(false)
 
+    useEffect(() => {
+    async function loadPatients() {
+      try {
+        setPatients(await api.get('/lookups/patients'))
+      } catch (e) {
+        setError(`Could not load patients: ${e.message}`)
+      }
+    }
+    loadPatients()
+  }, [])
     async function runReport() {
       setError('')
       setRows([])
@@ -22,7 +33,7 @@ export default function Reports({ role }) {
         const id = patientId.trim()
 
       if (!/^[1-9]\d{6}$/.test(id)) {
-        setError('Enter a seven-digit Patient ID.')
+        setError('Pick a patient.')
         return
       }
 
@@ -81,12 +92,9 @@ export default function Reports({ role }) {
 
       <div className="filters">
         {report === 'health-summary' ? (
-          <label>
-            Patient ID
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={7}
+                    <label>
+            Patient
+            <select
               value={patientId}
               disabled={loading}
               onChange={(e) => {
@@ -94,7 +102,12 @@ export default function Reports({ role }) {
                 setRows([])
                 setHasRun(false)
               }}
-            />
+            >
+              <option value="">Select a patient</option>
+              {patients.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
           </label>
         ) : (
           <>
