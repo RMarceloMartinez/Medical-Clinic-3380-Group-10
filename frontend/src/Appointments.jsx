@@ -203,7 +203,14 @@ export default function Appointments({ role }) {
     <div className="appointments-page">
       <h2>Appointments</h2>
 
-
+      <div className="page-actions">
+        <button type="button" className={view !== 'form' ? 'active' : ''} onClick={showList}>
+          All appointments
+        </button>
+        {canManage && (
+          <button type="button" className={view === 'form' && !editingId ? 'active' : ''} onClick={openBookForm}>
+            Book appointment
+          </button>
         )}
       </div>
 
@@ -213,7 +220,46 @@ export default function Appointments({ role }) {
       {/* ---------- List ---------- */}
       {view === 'list' && (
         <>
-
+          <div className="filter-bar">
+            <div className="filter-field">
+              <label htmlFor="f-doctor">Doctor</label>
+              <select id="f-doctor" value={filters.doctorId} onChange={(e) => updateFilter('doctorId', e.target.value)}>
+                <option value="">All doctors</option>
+                {lookups.doctors.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="filter-field">
+              <label htmlFor="f-patient">Patient</label>
+              <select id="f-patient" value={filters.patientId} onChange={(e) => updateFilter('patientId', e.target.value)}>
+                <option value="">All patients</option>
+                {lookups.patients.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="filter-field">
+              <label htmlFor="f-status">Status</label>
+              <select id="f-status" value={filters.status} onChange={(e) => updateFilter('status', e.target.value)}>
+                <option value="">All statuses</option>
+                <option value="Scheduled">Scheduled</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+            <div className="filter-field">
+              <label htmlFor="f-from">From</label>
+              <input id="f-from" type="date" value={filters.from} onChange={(e) => updateFilter('from', e.target.value)} />
+            </div>
+            <div className="filter-field">
+              <label htmlFor="f-to">To</label>
+              <input id="f-to" type="date" value={filters.to} onChange={(e) => updateFilter('to', e.target.value)} />
+            </div>
+            <div className="filter-buttons">
+              <button type="button" className="primary-button" onClick={() => loadAppointments()}>Search</button>
+              <button type="button" onClick={clearFilters}>Clear</button>
+            </div>
           </div>
 
           {loaded && (
@@ -279,7 +325,90 @@ export default function Appointments({ role }) {
 
       {/* ---------- Book / edit ---------- */}
       {view === 'form' && canManage && (
+        <div className="panel panel-wide">
+          <h2>{editingId ? 'Edit appointment' : 'Book an appointment'}</h2>
 
+          <div className="form-grid">
+            <div className="form-field">
+              <label htmlFor="patient">Patient</label>
+              <select id="patient" value={form.patientID} onChange={(e) => updateForm('patientID', e.target.value)}>
+                <option value="">Select a patient</option>
+                {lookups.patients.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field">
+              <label htmlFor="doctor">Doctor</label>
+              <select id="doctor" value={form.doctorID} onChange={(e) => updateForm('doctorID', e.target.value)}>
+                <option value="">Select a doctor</option>
+                {lookups.doctors.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field">
+              <label htmlFor="office">Office</label>
+              <select id="office" value={form.officeID} onChange={(e) => updateForm('officeID', e.target.value)}>
+                <option value="">Select an office</option>
+                {lookups.offices.map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field">
+              <label htmlFor="when">Date and time</label>
+              <input id="when" type="datetime-local" value={form.appointmentDateTime}
+                onChange={(e) => updateForm('appointmentDateTime', e.target.value)} />
+            </div>
+            <div className="form-field">
+              <label htmlFor="cost">Total cost ($)</label>
+              <input id="cost" type="number" min="0" step="0.01" value={form.totalCost}
+                onChange={(e) => updateForm('totalCost', e.target.value)} />
+            </div>
+            <div className="form-field">
+              <label htmlFor="channel">Booked by</label>
+              <select id="channel" value={form.channel} onChange={(e) => updateForm('channel', e.target.value)}>
+                <option value="Phone">Phone</option>
+                <option value="Web Portal">Web Portal</option>
+              </select>
+            </div>
+          </div>
+
+          <p className="field-hint">
+            The doctor must work at that office on that weekday, within office hours. A specialist needs an open
+            referral from the patient's primary doctor.
+          </p>
+
+          {error && <p className="error-message">{error}</p>}
+
+          <div className="page-actions">
+            <button type="button" className="primary-button" onClick={handleSave}>
+              {editingId ? 'Save changes' : 'Book appointment'}
+            </button>
+            <button type="button" onClick={showList}>Back to appointments</button>
+          </div>
+        </div>
+      )}
+
+      {/* ---------- Cancel ---------- */}
+      {view === 'cancel' && toCancel && (
+        <div className="panel">
+          <h2>Cancel appointment</h2>
+          <p>
+            <strong>{toCancel.patientName}</strong> with {toCancel.doctorName}<br />
+            {formatDateTime(toCancel.appointmentDateTime)}<br />
+            {toCancel.officeAddress}
+          </p>
+
+          <label htmlFor="reason">Reason</label>
+          <input id="reason" maxLength={200} value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
+
+          <label htmlFor="by">Cancelled by</label>
+          <select id="by" value={cancelledBy} onChange={(e) => setCancelledBy(e.target.value)}>
+            <option value="Patient">Patient</option>
+            <option value="Doctor">Doctor</option>
+            <option value="Staff">Staff</option>
           </select>
 
           {error && <p className="error-message">{error}</p>}
