@@ -1,0 +1,90 @@
+/* Queries page. Everything is scoped under .queries-page so it can't change other pages.
+   Shared pieces (filter-bar, data-table, page-actions, primary-button, cell-main/cell-sub,
+   status-badge, list-summary) come from App.css, same as the Reports page. */
+
+.queries-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.queries-page h2 {
+  text-align: center;
+  color: white;
+}
+
+.queries-page .query-tabs {
+  justify-content: center;
+}
+
+.query-hint {
+  margin: 16px 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #253d5f;
+  color: #dbe7ff;
+  text-align: center;
+}
+
+.query-section-title {
+  margin: 20px 0 8px;
+  font-size: 20px;
+  color: white;
+}
+
+/* ---- Balance numbers ---- */
+.query-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 12px 0 8px;
+}
+
+.query-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #4882da;
+  color: white;
+}
+
+.query-stat.owes {
+  background: #b3261e;
+}
+
+.query-stat.paid-up {
+  background: #1a7f37;
+}
+
+.query-stat-label {
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #eef3ff;
+}
+
+.query-stat-value {
+  font-size: 28px;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Tables: white card that scrolls sideways on small screens ---- */
+.query-table-card {
+  overflow-x: auto;
+  border-radius: 10px;
+  background: white;
+}
+
+.queries-page .query-table {
+  margin-top: 0;
+}
+
+.queries-page .query-table th,
+.queries-page .query-table td {
+  white-space: nowrap;
+  vertical-align: middle;
+}
