@@ -1,232 +1,129 @@
-.reports {
-  --ink: #1f2933;
-  --muted: #64748b;
-  --line: #d9e0e7;
-  --surface: #ffffff;
-  --page: #f3f6f8;
-  --accent: #0f6b8c;
-  --accent-soft: #e2f1f6;
-  --danger: #b42318;
+/* Reports page. Everything is scoped under .reports-page so it can't change other pages.
+   Shared pieces (filter-bar, data-table, page-actions, primary-button, cell-main/cell-sub)
+   come from App.css, so Reports looks like the rest of the app. */
 
+.reports-page {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 24px 16px 48px;
-  color: var(--ink);
+  text-align: left;
 }
 
-.reports-title {
+.reports-page h2 {
   text-align: center;
-  margin: 0 0 20px;
+  color: white;
 }
 
-/* ---- Report picker (centered) ---- */
-.report-picker {
-  display: flex;
+.reports-page .report-tabs {
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
 }
 
-.picker-btn {
-  padding: 9px 18px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-  cursor: pointer;
+.report-hint,
+.report-empty {
+  margin: 16px 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #253d5f;
+  color: #dbe7ff;
+  text-align: center;
 }
 
-.picker-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-}
-
-.picker-btn.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
-.picker-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.picker-btn:focus-visible,
-.run-btn:focus-visible {
-  outline: 3px solid var(--accent-soft);
-  outline-offset: 2px;
-}
-
-/* ---- Boxes ---- */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 18px 20px;
-  margin-bottom: 16px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+/* ---- Summary numbers above each report ---- */
+.report-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
+  margin: 16px 0 8px;
 }
 
-.card-title {
-  margin: 0 0 12px;
-  font-size: 1.05rem;
-}
-
-.card-header .card-title {
-  margin: 0;
-}
-
-.muted {
-  color: var(--muted);
-  margin: 0;
-}
-
-.subhead {
-  margin: 20px 0 10px;
-  font-size: 0.95rem;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-/* ---- Filters ---- */
-.filters {
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.filters label {
+.report-stat,
+.report-patient {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 0.9rem;
-  color: var(--muted);
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #4882da;
+  color: white;
 }
 
-.filters input,
-.filters select {
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  font: inherit;
-  color: var(--ink);
-  min-width: 180px;
+.report-stat-label {
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #e3ecff;
 }
 
-.run-btn {
-  padding: 9px 22px;
-  border: none;
-  border-radius: 6px;
-  background: var(--accent);
-  color: #fff;
-  font: inherit;
-  cursor: pointer;
+.report-stat-value {
+  font-size: 26px;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
 }
 
-.run-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.report-patient {
+  margin: 16px 0 8px;
 }
 
-/* ---- Messages ---- */
-.error-message {
-  background: #fef3f2;
-  border: 1px solid #fecdca;
-  color: var(--danger);
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin: 0 0 16px;
-  text-align: center;
+.report-patient-name {
+  font-size: 22px;
+  font-weight: bold;
 }
 
-.empty-card {
-  text-align: center;
-  color: var(--muted);
-}
-
-.empty-card p {
-  margin: 0;
-}
-
-/* ---- Patient header ---- */
-.patient-card h3 {
-  margin: 0 0 4px;
-}
-
-/* ---- Revenue stats ---- */
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-}
-
-.stat {
-  background: var(--page);
-  border-radius: 8px;
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.stat-label {
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-
-.stat-value {
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.stat.small .stat-value {
-  font-size: 1.05rem;
+.report-patient-id {
+  font-size: 14px;
+  color: #e3ecff;
 }
 
 /* ---- Tables ---- */
-.table-wrap {
+.report-section-title {
+  margin: 20px 0 8px;
+  font-size: 17px;
+  color: white;
+}
+
+.report-count {
+  font-weight: normal;
+  color: #c9d8f2;
+}
+
+/* White card that scrolls sideways on small screens instead of spilling off the page */
+.report-table-card {
   overflow-x: auto;
+  border-radius: 10px;
+  background: white;
 }
 
-.reports table {
-  width: 100%;
-  border-collapse: collapse;
+.reports-page .report-table {
+  margin-top: 0;
 }
 
-.reports th,
-.reports td {
-  padding: 9px 12px;
-  text-align: left;
-  border-bottom: 1px solid var(--line);
+.reports-page .report-table th,
+.reports-page .report-table td {
   white-space: nowrap;
 }
 
-.reports th {
-  background: var(--page);
-  font-weight: 600;
-  font-size: 0.9rem;
+.reports-page .report-table td.wrap {
+  white-space: normal;
+  min-width: 220px;
 }
 
-.reports tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.reports tbody tr:hover {
-  background: #f8fafb;
-}
-
-.reports .num {
+.reports-page .num {
   text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.reports-page .owed {
+  color: #b3261e;
+  font-weight: bold;
+}
+
+.reports-page .cancel-split {
+  font-size: 14px;
+  color: #444;
+}
+
+.reports-page .report-table tfoot td {
+  font-weight: bold;
+  background: #e4ebf7;
+  border-top: 2px solid #253d5f;
 }
