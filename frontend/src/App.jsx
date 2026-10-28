@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import './App.css'
-import { api, setUnauthorizedHandler } from './api'
-import Login from './Login'
-import SignUp from './SignUp'
-import PatientPortal from './PatientPortal'
-import StaffDashboard from './StaffDashboard'
+import './styles/App.css'
+import { api, setUnauthorizedHandler } from './api/client'
+import Login from './pages/auth/Login'
+import SignUp from './pages/auth/SignUp'
+import PatientPortal from './pages/patient/PatientPortal'
+import StaffDashboard from './pages/staff/StaffDashboard'
 
 // The app's front door. It only decides WHICH part of the app to show:
 //   not logged in -> Login or SignUp

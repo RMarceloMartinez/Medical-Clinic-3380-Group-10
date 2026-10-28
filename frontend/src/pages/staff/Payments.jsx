@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from './api'
+import { api } from '../../api/client'
 
 // Payments (moved out of App.jsx). Two screens:
 //   'record' = the payment form, 'recent' = payments recorded in this session

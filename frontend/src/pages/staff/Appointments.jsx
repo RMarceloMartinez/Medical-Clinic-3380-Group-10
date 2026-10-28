@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from './api'
+import { api } from '../../api/client'
 
 // Staff appointments page. One screen at a time:
 //   'list'   = filters + table (+ Edit / Cancel / Complete / Delete per row)

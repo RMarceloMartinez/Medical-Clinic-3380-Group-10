@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from './api'
+import { api } from '../../api/client'
 
 function formatDateTime(value) {
   return new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
