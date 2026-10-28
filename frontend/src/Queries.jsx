@@ -103,7 +103,7 @@ export default function Queries({ role }) {
 
       <div className="report-picker">
         {choices.map(([value, label]) => (
-          <button key={value} disabled={loading} onClick={() => pickQuery(value)}>
+          <button key={value} aria-pressed={query === value} disabled={loading} onClick={() => pickQuery(value)}>
             {label}
           </button>
         ))}

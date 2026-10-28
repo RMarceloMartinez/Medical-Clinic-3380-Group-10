@@ -173,9 +173,9 @@ export default function Appointments({ role }) {
       <h2>Appointment Management</h2>
 
       <div className="appointments-menu">
-        <button type="button" onClick={backToList}>View appointments</button>
+        <button type="button" aria-pressed={view === 'list'} onClick={backToList}>View appointments</button>
         {canManage && (
-          <button type="button" onClick={openBookForm}>Book appointment</button>
+          <button type="button" aria-pressed={view === 'form'} onClick={openBookForm}>Book appointment</button>
         )}
       </div>
 
@@ -185,15 +185,15 @@ export default function Appointments({ role }) {
       {view === 'list' && (
         <>
           <div className="filters">
-            <input placeholder="Doctor ID" value={filters.doctorId}
+            <input aria-label="Doctor ID" placeholder="Doctor ID" value={filters.doctorId}
               onChange={(e) => updateFilter('doctorId', e.target.value)} />
-            <input placeholder="Patient ID" value={filters.patientId}
+            <input aria-label="Patient ID" placeholder="Patient ID" value={filters.patientId}
               onChange={(e) => updateFilter('patientId', e.target.value)} />
-            <input type="date" value={filters.from}
+            <input aria-label="From date" type="date" value={filters.from}
               onChange={(e) => updateFilter('from', e.target.value)} />
-            <input type="date" value={filters.to}
+            <input aria-label="To date" type="date" value={filters.to}
               onChange={(e) => updateFilter('to', e.target.value)} />
-            <select value={filters.status} onChange={(e) => updateFilter('status', e.target.value)}>
+            <select aria-label="Appointment status" value={filters.status} onChange={(e) => updateFilter('status', e.target.value)}>
               <option value="">All statuses</option>
               <option value="Scheduled">Scheduled</option>
               <option value="Completed">Completed</option>
@@ -294,7 +294,8 @@ export default function Appointments({ role }) {
               <option key={o.id} value={o.id}>{o.name}</option>
             ))}
           </select>
-          <input value={form.referralID} onChange={(e) => updateForm('referralID', e.target.value)} />
+          <label htmlFor="referral-id">Referral ID (optional)</label>
+          <input id="referral-id" value={form.referralID} onChange={(e) => updateForm('referralID', e.target.value)} />
           <label>Date and time</label>
           <input type="datetime-local" value={form.appointmentDateTime}
             onChange={(e) => updateForm('appointmentDateTime', e.target.value)} />

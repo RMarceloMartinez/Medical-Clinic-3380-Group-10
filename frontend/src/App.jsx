@@ -389,17 +389,18 @@ try {
     page == 'login' ?
     (
     <div className = "Login-screen"> {/* this is the name of the whole page */}
-      <div className="login-card"> {/*this is the smaller box that contains the title and password*/}
-        <h1>Medical Clinic</h1>       
+      <div className="login-intro"><span className="brand-mark" aria-hidden="true">+</span><p className="eyebrow">Medical Clinic</p><h1>Care starts with<br />a connected clinic.</h1><p>Your workspace for patient care, appointments, and clinic operations.</p></div><div className="login-panel"><div className="login-card"> {/*this is the smaller box that contains the title and password*/}
+        <p className="eyebrow">Clinic portal</p><h1>Welcome back</h1><p>Sign in with your clinic account to continue.</p><label htmlFor="username">Username</label>       
         
         <input 
           type="text" 
-          placeholder='Username'
+          id="username" autoComplete="username" placeholder="Enter your username"
           value={Username}
           onChange={(event)=> setUsername(event.target.value)}
         />
+        <label htmlFor="password">Password</label>
         <input 
-          type='password' 
+          id="password" autoComplete="current-password" type="password" 
           placeholder='Password'
           value={Password}
           onChange={(event)=> setPassword(event.target.value)}
@@ -410,58 +411,38 @@ try {
           Log In
         </button>
       </div>
-    </div>
+    </div></div>
         ) : (
-          <div className='dashboard'>
-            <h1>Medical Clinic Dashboard</h1>
-            
-            <p>Welcome to the dashboard</p>
-           
-            {section === 'home' && (
-           <p>Select a section to get started</p>
-         )}
-          {section === 'patients' && (
-            <h2> Patient Management</h2>
-            
-          )}
-          {section === 'payments' && (
-            <h2> Payment Reports</h2>
-
-         )}  
-          {section === 'reports' && <Reports role={role} />}
-          {section === 'queries' && <Queries role={role} />}
-          {section === 'appointments' && 
-          <Appointments role={role} />}
-            <div className="dashboard-nav">
+          <div className='dashboard'><nav className="dashboard-nav" aria-label="Main navigation"><div className="nav-brand">+ Medical Clinic<span>Care management portal</span></div>
  
-  <button onClick={() => setSection('home')}>
+  <button aria-current={section === 'home' ? 'page' : undefined} onClick={() => setSection('home')}>
     Home
   </button>
 
  
   {(role === 'Admin' || role === 'Receptionist') && (
-    <button onClick={() => setSection('patients')}>
+    <button aria-current={['patients', 'addPatient', 'editPatient', 'removePatient'].includes(section) ? 'page' : undefined} onClick={() => setSection('patients')}>
       Patients
     </button>
   )}
 
  
   {(role === 'Admin' || role === 'Receptionist') && (
-    <button onClick={() => setSection('payments')}>
+    <button aria-current={section === 'payments' ? 'page' : undefined} onClick={() => setSection('payments')}>
       Payments
     </button>
   )}
 
   
   {(role === 'Admin' || role === 'Doctor' || role === 'Nurse') && (
-    <button onClick={() => setSection('reports')}>
+    <button aria-current={section === 'reports' ? 'page' : undefined} onClick={() => setSection('reports')}>
       Reports
     </button>
   )}
 
   
   {(role === 'Admin' || role === 'Receptionist' || role === 'Doctor') && (
-    <button onClick={() => setSection('queries')}>
+    <button aria-current={section === 'queries' ? 'page' : undefined} onClick={() => setSection('queries')}>
       Queries
     </button>
   )}
@@ -473,7 +454,7 @@ try {
     role === 'Nurse' ||
     role === 'Patient'
   ) && (
-    <button onClick={() => setSection('appointments')}>
+    <button aria-current={section === 'appointments' ? 'page' : undefined} onClick={() => setSection('appointments')}>
       Appointments
     </button>
   )}
@@ -496,7 +477,33 @@ try {
   >
     Log out
   </button>
-</div>
+</nav>
+            <header className="workspace-header"><div><p className="eyebrow">Medical Clinic / Workspace</p><h1>{({home: 'Clinic overview', patients: 'Patients', payments: 'Payments', appointments: 'Appointments', reports: 'Reports', queries: 'Queries', addPatient: 'Add patient', editPatient: 'Edit patient', removePatient: 'Remove patient'})[section]}</h1></div><span className="role-badge">{role}</span></header>
+            
+            
+           
+            {section === 'home' && (
+           <><div className="home-intro"><p className="eyebrow">Your clinic workspace</p><h2>Welcome, {Username}</h2><p>Choose a section to get started. Available tools are based on your clinic role.</p></div><div className="shortcut-grid">{[
+['patients', 'Patients', 'Find and manage patient records.', ['Admin', 'Receptionist']],
+['payments', 'Payments', 'Record payments for appointments.', ['Admin', 'Receptionist']],
+['appointments', 'Appointments', 'View appointments and visit details.', ['Admin', 'Doctor', 'Nurse', 'Patient']],
+['reports', 'Reports', 'Run clinic activity and patient reports.', ['Admin', 'Doctor', 'Nurse']],
+['queries', 'Queries', 'Search records and review clinic information.', ['Admin', 'Receptionist', 'Doctor']],
+].filter(([, , , roles]) => roles.includes(role)).map(([value, title, description]) => <button className="shortcut" key={value} onClick={() => setSection(value)}><strong>{title}</strong><span>{description}</span></button>)}</div></>
+         )}
+          {section === 'patients' && (
+            <h2> Patient Management</h2>
+            
+          )}
+          {section === 'payments' && (
+            <h2> Payment Reports</h2>
+
+         )}  
+          {section === 'reports' && <Reports role={role} />}
+          {section === 'queries' && <Queries role={role} />}
+          {section === 'appointments' && 
+          <Appointments role={role} />}
+            
             {section === 'payments' && (
             <div className='payment-form'>
               <h2>Record Payment</h2>
@@ -592,6 +599,7 @@ try {
                       </thead>
 
                       <tbody>
+                        {payments.length === 0 && <tr><td colSpan="5" className="empty-state">No payments recorded in this session.</td></tr>}
                         {payments.map((payment,index)=>(
                           <tr key={index}>
                             <td>{payment.appointmentID}</td>

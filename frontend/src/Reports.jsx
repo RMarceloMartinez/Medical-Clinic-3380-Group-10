@@ -65,7 +65,7 @@ export default function Reports({ role }) {
             ['health-summary', 'Patient Health Summary']
           ].map(([value, label]) => (
             <button
-              key={value}
+              key={value} aria-pressed={report === value}
               disabled={loading}
               onClick={() => {
                 setReport(value)
