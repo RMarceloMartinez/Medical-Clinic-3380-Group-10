@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from './api'
+import './Reports.css'
 
 export default function Reports({ role }) {
   const [report, setReport] = useState('revenue')

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from './api'
+import './Queries.css'
 
 // Q1 doctor's week, Q2 patient balance, Q3 patient search
 export default function Queries({ role }) {
