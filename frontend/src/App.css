@@ -868,3 +868,58 @@ button:disabled {
   font-weight: bold;
   white-space: nowrap;
 }
+.status-badge.scheduled {
+  background: #dbe7ff;
+  color: #1d4ed8;
+}
+.status-badge.completed {
+  background: #d7f5df;
+  color: #1a7f37;
+}
+.status-badge.cancelled {
+  background: #f1f1f1;
+  color: #6b6b6b;
+}
+
+/* Small buttons in the last column */
+.row-actions {
+  white-space: nowrap;
+}
+.row-actions button {
+  margin: 2px 4px 2px 0;
+  padding: 5px 10px;
+  border: 1px solid #253d5f;
+  border-radius: 6px;
+  background: white;
+  color: #253d5f;
+  font-size: 13px;
+  cursor: pointer;
+}
+.row-actions button:hover {
+  background: #253d5f;
+  color: white;
+}
+.row-actions .danger-link {
+  border-color: #b3261e;
+  color: #b3261e;
+}
+.row-actions .danger-link:hover {
+  background: #b3261e;
+  color: white;
+}
+
+/* A wider panel for the two-column booking form */
+.panel-wide {
+  max-width: 760px;
+}
+.panel .form-grid {
+  margin-bottom: 8px;
+}
+/* Green main button inside panels too (.panel button would otherwise win) */
+.panel .primary-button {
+  background: #1a7f37;
+  font-weight: bold;
+}
+.panel .primary-button:hover {
+  background: #145f2a;
+}

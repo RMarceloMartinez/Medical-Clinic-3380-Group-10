@@ -2,9 +2,27 @@ import { useEffect, useState } from 'react'
 import { api } from './api'
 import './Queries.css'
 
-// Q1 doctor's week, Q2 patient balance, Q3 patient search
+// Q1 patient search, Q2 patient balance, Q3 doctor's week.
+// Same layout as Reports: pick a query, fill the filter card, Run query, see the result.
+const money = (n) =>
+  Number(n ?? 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+
+function formatDay(value) {
+  return new Date(value).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
+function formatTime(value) {
+  return new Date(value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
 export default function Queries({ role }) {
   const canSeeBalance = role === 'Admin' || role === 'Receptionist'
+
+  const choices = [
+    ['search', 'Search patients'],
+    ...(canSeeBalance ? [['balance', 'Patient balance']] : []),
+    ['doctor-week', "Doctor's week"],
+  ]
 
   const [query, setQuery] = useState('search')
   const [doctors, setDoctors] = useState([])
@@ -18,45 +36,44 @@ export default function Queries({ role }) {
   const [weekStart, setWeekStart] = useState('')
 
   // results
-  const [rows, setRows] = useState([])   
-  const [balance, setBalance] = useState(null)  
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [rows, setRows] = useState([])
+  const [balance, setBalance] = useState(null)
   const [hasRun, setHasRun] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  // dropdowns for Q1 and Q2
+  // dropdowns for the balance and doctor's week queries
   useEffect(() => {
-    async function loadLookups() {
-      try {
-        const [doctorList, patientList] = await Promise.all([
-          api.get('/lookups/doctors'),
-          api.get('/lookups/patients'),
-        ])
+    Promise.all([api.get('/lookups/doctors'), api.get('/lookups/patients')])
+      .then(([doctorList, patientList]) => {
         setDoctors(doctorList)
         setPatients(patientList)
-      } catch (e) {
-        setError(`Could not load the dropdowns: ${e.message}`)
-      }
-    }
-    loadLookups()
+      })
+      .catch((e) => setError(`Could not load the dropdowns: ${e.message}`))
   }, [])
+
+  // Any change to the query or its inputs clears the old result
+  function clearResult() {
+    setRows([])
+    setBalance(null)
+    setHasRun(false)
+    setError('')
+  }
 
   function pickQuery(value) {
     setQuery(value)
-    setRows([])
-    setBalance(null)
-    setError('')
-    setHasRun(false)
+    clearResult()
+  }
+
+  // Wraps a setter so typing in a field also clears the old result
+  function onInput(setter) {
+    return (e) => { setter(e.target.value); clearResult() }
   }
 
   async function runQuery() {
-    setError('')
-    setRows([])
-    setBalance(null)
-    setHasRun(false)
+    clearResult()
 
     let url
-
     if (query === 'search') {
       const params = new URLSearchParams()
       if (name.trim() !== '') params.append('name', name.trim())
@@ -64,13 +81,13 @@ export default function Queries({ role }) {
       url = `/queries/patients?${params}`
     } else if (query === 'balance') {
       if (patientId === '') {
-        setError('Pick a patient.')
+        setError('Please pick a patient.')
         return
       }
       url = `/queries/balance?patientId=${patientId}`
     } else {
       if (doctorId === '' || weekStart === '') {
-        setError('Pick a doctor and the first day of the week.')
+        setError('Please pick a doctor and the first day of the week.')
         return
       }
       url = `/queries/doctor-week?doctorId=${doctorId}&weekStart=${weekStart}`
@@ -79,128 +96,204 @@ export default function Queries({ role }) {
     setLoading(true)
     try {
       const data = await api.get(url)
-      if (query === 'balance') {
-        setBalance(data)
-      } else {
-        setRows(data)
-      }
+      if (query === 'balance') setBalance(data)
+      else setRows(data)
       setHasRun(true)
     } catch (e) {
-      setError(e.message)
+      setError(`Could not run the query: ${e.message}`)
     } finally {
       setLoading(false)
     }
   }
 
-  const choices = [
-    ['search', 'Search patients'],
-    ...(canSeeBalance ? [['balance', 'Patient balance']] : []),
-    ['doctor-week', "Doctor's week"],
-  ]
+  const hints = {
+    search: 'Search by name, date of birth, or both. Leave both empty to list every patient.',
+    balance: 'Pick a patient to see what they were billed, what they paid, and what they still owe.',
+    'doctor-week': "Pick a doctor and a start date to see their appointments for the next 7 days.",
+  }
+
+  const selectedPatient = patients.find((p) => String(p.id) === String(patientId))
+  const selectedDoctor = doctors.find((d) => String(d.id) === String(doctorId))
 
   return (
-    <div className="queries">
+    <div className="queries-page">
       <h2>Clinic Queries</h2>
 
-      <div className="report-picker">
+      <div className="page-actions query-tabs">
         {choices.map(([value, label]) => (
-          <button key={value} aria-pressed={query === value} disabled={loading} onClick={() => pickQuery(value)}>
+          <button
+            key={value}
+            type="button"
+            className={query === value ? 'active' : ''}
+            aria-pressed={query === value}
+            disabled={loading}
+            onClick={() => pickQuery(value)}
+          >
             {label}
           </button>
         ))}
       </div>
 
-      {query === 'search' && (
-        <div className="filters">
-          <p>Search by name, date of birth, or both. Leave both empty to list every patient.</p>
-          Name <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. gar" />
-          Date of birth <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
-        </div>
-      )}
+      <div className="filter-bar">
+        {query === 'search' && (
+          <>
+            <div className="filter-field">
+              <label htmlFor="q-name">Name</label>
+              <input id="q-name" value={name} placeholder="e.g. Garcia" disabled={loading}
+                onChange={onInput(setName)}
+                onKeyDown={(e) => { if (e.key === 'Enter') runQuery() }} />
+            </div>
+            <div className="filter-field">
+              <label htmlFor="q-dob">Date of birth</label>
+              <input id="q-dob" type="date" value={dateOfBirth} disabled={loading}
+                onChange={onInput(setDateOfBirth)} />
+            </div>
+          </>
+        )}
 
-      {query === 'balance' && (
-        <div className="filters">
-          Patient{' '}
-          <select value={patientId} onChange={(e) => setPatientId(e.target.value)}>
-            <option value="">Select a patient</option>
-            {patients.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
+        {query === 'balance' && (
+          <div className="filter-field">
+            <label htmlFor="q-patient">Patient</label>
+            <select id="q-patient" value={patientId} disabled={loading} onChange={onInput(setPatientId)}>
+              <option value="">Select a patient</option>
+              {patients.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
-      {query === 'doctor-week' && (
-        <div className="filters">
-          Doctor{' '}
-          <select value={doctorId} onChange={(e) => setDoctorId(e.target.value)}>
-            <option value="">Select a doctor</option>
-            {doctors.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
-          {' '}Week starting <input type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} />
-        </div>
-      )}
+        {query === 'doctor-week' && (
+          <>
+            <div className="filter-field">
+              <label htmlFor="q-doctor">Doctor</label>
+              <select id="q-doctor" value={doctorId} disabled={loading} onChange={onInput(setDoctorId)}>
+                <option value="">Select a doctor</option>
+                {doctors.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="filter-field">
+              <label htmlFor="q-week">Week starting</label>
+              <input id="q-week" type="date" value={weekStart} disabled={loading}
+                onChange={onInput(setWeekStart)} />
+            </div>
+          </>
+        )}
 
-      <button onClick={runQuery} disabled={loading}>
-        {loading ? 'Running…' : 'Run query'}
-      </button>
+        <div className="filter-buttons">
+          <button type="button" className="primary-button" onClick={runQuery} disabled={loading}>
+            {loading ? 'Running…' : 'Run query'}
+          </button>
+        </div>
+      </div>
 
       {error && <p className="error-message">{error}</p>}
 
+      {!hasRun && !error && <p className="query-hint">{hints[query]}</p>}
+
+      {hasRun && query !== 'balance' && rows.length === 0 && (
+        <p className="query-hint">No results found.</p>
+      )}
+
+      {/* ---- Q1 Search patients ---- */}
       {query === 'search' && rows.length > 0 && (
-        <table>
-          <thead>
-            <tr><th>Patient ID</th><th>Name</th><th>Date of birth</th><th>Phone</th></tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.patientID}>
-                <td>{r.patientID}</td>
-                <td>{r.patientName}</td>
-                <td>{r.dateOfBirth}</td>
-                <td>{r.phone}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          <p className="list-summary">
+            {rows.length} {rows.length === 1 ? 'patient' : 'patients'} found
+          </p>
+          <div className="query-table-card">
+            <table className="data-table query-table">
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>Date of birth</th>
+                  <th>Phone</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.patientID}>
+                    <td>
+                      <div className="cell-main">{r.patientName}</div>
+                      <div className="cell-sub">ID {r.patientID}</div>
+                    </td>
+                    <td>{r.dateOfBirth}</td>
+                    <td>{r.phone}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
+      {/* ---- Q2 Patient balance ---- */}
       {query === 'balance' && balance && (
-        <table>
-          <thead>
-            <tr><th>Billed (completed visits)</th><th>Paid</th><th>Balance</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>${balance.billed.toFixed(2)}</td>
-              <td>${balance.paid.toFixed(2)}</td>
-              <td>${balance.balance.toFixed(2)}</td>
-            </tr>
-          </tbody>
-        </table>
+        <>
+          {selectedPatient && (
+            <h3 className="query-section-title">{selectedPatient.name}</h3>
+          )}
+          <div className="query-stats">
+            <div className="query-stat">
+              <span className="query-stat-label">Billed (completed visits)</span>
+              <span className="query-stat-value">{money(balance.billed)}</span>
+            </div>
+            <div className="query-stat">
+              <span className="query-stat-label">Paid</span>
+              <span className="query-stat-value">{money(balance.paid)}</span>
+            </div>
+            <div className={`query-stat ${Number(balance.balance) > 0 ? 'owes' : 'paid-up'}`}>
+              <span className="query-stat-label">
+                {Number(balance.balance) > 0 ? 'Still owes' : 'Balance'}
+              </span>
+              <span className="query-stat-value">{money(balance.balance)}</span>
+            </div>
+          </div>
+          {Number(balance.balance) <= 0 && (
+            <p className="query-hint">This patient is fully paid up.</p>
+          )}
+        </>
       )}
 
+      {/* ---- Q3 Doctor's week ---- */}
       {query === 'doctor-week' && rows.length > 0 && (
-        <table>
-          <thead>
-            <tr><th>Date and time</th><th>Patient</th><th>Office</th><th>Status</th></tr>
-          </thead>
-          <tbody>
-            {rows.map((r, index) => (
-              <tr key={`${r.date_Time}-${index}`}>
-                <td>{new Date(r.date_Time).toLocaleString()}</td>
-                <td>{r.patientName}</td>
-                <td>{r.office}</td>
-                <td>{r.appointStatus}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          <p className="list-summary">
+            {rows.length} {rows.length === 1 ? 'appointment' : 'appointments'}
+            {selectedDoctor ? ` for ${selectedDoctor.name}` : ''}
+          </p>
+          <div className="query-table-card">
+            <table className="data-table query-table">
+              <thead>
+                <tr>
+                  <th>Day</th>
+                  <th>Time</th>
+                  <th>Patient</th>
+                  <th>Office</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, index) => (
+                  <tr key={`${r.date_Time}-${index}`}>
+                    <td className="cell-main">{formatDay(r.date_Time)}</td>
+                    <td>{formatTime(r.date_Time)}</td>
+                    <td>{r.patientName}</td>
+                    <td>{r.office}</td>
+                    <td>
+                      <span className={`status-badge ${String(r.appointStatus).toLowerCase()}`}>
+                        {r.appointStatus}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
-
-      {hasRun && query !== 'balance' && rows.length === 0 && !error && <p>No results found.</p>}
     </div>
   )
 }
