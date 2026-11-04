@@ -257,6 +257,7 @@ public class AppointmentService
 
     public async Task<bool> CompleteAsync(
         int appointmentId,
+        int doctorId,
         CancellationToken cancellationToken
     )
     {
@@ -271,10 +272,12 @@ public class AppointmentService
                                 CancelReason  = NULL,
                                 CancelledBy   = NULL
                                 WHERE AppointmentID = @AppointmentID
+                                AND DoctorID = @DoctorID
                                 AND DeletionFlag = 0;
                                 """;
         
         command.Parameters.Add("@AppointmentID", SqlDbType.Int).Value = appointmentId;
+        command.Parameters.Add("@DoctorID", SqlDbType.Int).Value = doctorId;
 
         int rowsChanged = await command.ExecuteNonQueryAsync(cancellationToken);
 

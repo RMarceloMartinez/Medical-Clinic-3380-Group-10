@@ -17,6 +17,32 @@ const emptyForm = {
   channel: 'Phone',
 }
 
+// checks api's central local time and current central time
+function hasAppointmentStarted(value) {
+  if (!value) return false
+
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date())
+
+  const fields = Object.fromEntries(
+    parts.map(({ type, value }) => [type, value])
+  )
+
+  const centralNow =
+    `${fields.year}-${fields.month}-${fields.day}` +
+    `T${fields.hour}:${fields.minute}:${fields.second}`
+
+  return value <= centralNow
+}
+
 function formatDate(value) {
   return new Date(value).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
 }
@@ -221,15 +247,17 @@ export default function Appointments({ role }) {
       {view === 'list' && (
         <>
           <div className="filter-bar">
-            <div className="filter-field">
-              <label htmlFor="f-doctor">Doctor</label>
-              <select id="f-doctor" value={filters.doctorId} onChange={(e) => updateFilter('doctorId', e.target.value)}>
-                <option value="">All doctors</option>
-                {lookups.doctors.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
-            </div>
+            {!isDoctor && (
+              <div className="filter-field">
+                <label htmlFor="f-doctor">Doctor</label>
+                <select id="f-doctor" value={filters.doctorId} onChange={(e) => updateFilter('doctorId', e.target.value)}>
+                  <option value="">All doctors</option>
+                  {lookups.doctors.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="filter-field">
               <label htmlFor="f-patient">Patient</label>
               <select id="f-patient" value={filters.patientId} onChange={(e) => updateFilter('patientId', e.target.value)}>
@@ -308,7 +336,7 @@ export default function Appointments({ role }) {
                           <button type="button" onClick={() => startCancel(a)}>Cancel</button>
                         </>
                       )}
-                      {a.appointStatus === 'Scheduled' && isDoctor && (
+                      {a.appointStatus === 'Scheduled' && isDoctor && hasAppointmentStarted(a.appointmentDateTime) &&(
                         <button type="button" onClick={() => handleComplete(a)}>Complete</button>
                       )}
                       {isAdmin && (

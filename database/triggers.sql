@@ -262,3 +262,34 @@ BEGIN
 END;
 GO
 
+--Cannot mark completion before date of appt
+CREATE OR ALTER TRIGGER dbo.TR_Appointment_PreventEarlyCompletion
+ON dbo.Appointment
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT (UPDATE(AppointStatus) OR UPDATE(Date_Time)) RETURN;
+
+    DECLARE @CentralNow DATETIME2 =
+        CAST(
+            SYSUTCDATETIME() AT TIME ZONE 'UTC'
+            AT TIME ZONE 'Central Standard Time'
+            AS DATETIME2
+        );
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted AS i
+        WHERE i.AppointStatus = 'Completed'
+          AND i.Date_Time > @CentralNow
+    )
+    BEGIN
+        ROLLBACK TRANSACTION;
+        THROW 50008,
+            'An appointment cannot be completed before its scheduled date and time.',
+            1;
+    END;
+END;
+GO
