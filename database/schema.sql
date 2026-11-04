@@ -75,6 +75,26 @@ CREATE TABLE Employee(
     CONSTRAINT CK_Employee_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
+CREATE TABLE Specialty(
+    SpecialtyName VARCHAR(30) NOT NULL,
+    VisitFee NUMERIC(10,2) NOT NULL,
+    IsPrimaryCare BIT NOT NULL,
+    DeletionFlag BIT NOT NULL,
+
+    CONSTRAINT PK_Specialty PRIMARY KEY(SpecialtyName),
+    CONSTRAINT CK_Specialty_VisitFee CHECK(VisitFee > 0),
+    CONSTRAINT CK_Specialty_IsPrimaryCare CHECK (IsPrimaryCare IN (0, 1)),
+    CONSTRAINT CK_Specialty_DeletionFlag CHECK (DeletionFlag IN (0, 1))
+);
+
+INSERT INTO Specialty (SpecialtyName, VisitFee, IsPrimaryCare, DeletionFlag) VALUES
+    ('Family Medicine', 150.00, 1, 0),
+    ('Internal Medicine', 150.00, 1, 0),
+    ('Pediatrics', 150.00, 1, 0),
+    ('Dermatology', 200.00, 0, 0),
+    ('Orthopedics', 275.00, 0, 0),
+    ('Cardiology', 300.00, 0, 0);
+
 CREATE TABLE Doctor(
     DoctorID INT NOT NULL,
     LicenseNum VARCHAR(11) NOT NULL,
@@ -83,6 +103,7 @@ CREATE TABLE Doctor(
 
     CONSTRAINT PK_Doctor PRIMARY KEY(DoctorID),
     CONSTRAINT FK_Doctor_Employee FOREIGN KEY(DoctorID) REFERENCES Employee(EmployeeID) ON DELETE NO ACTION,
+    CONSTRAINT FK_Doctor_Specialty FOREIGN KEY(Specialty) REFERENCES Specialty(SpecialtyName) ON DELETE NO ACTION,
     CONSTRAINT UQ_Doctor_LicenseNum UNIQUE(LicenseNum),
     CONSTRAINT CK_Doctor_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
