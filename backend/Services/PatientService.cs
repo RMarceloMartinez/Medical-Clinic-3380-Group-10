@@ -144,6 +144,29 @@ public async Task<List<PatientResponse>> GetAllAsync(
 
         using var transaction = connection.BeginTransaction();
 
+        using var doctorCommand = connection.CreateCommand();
+        doctorCommand.Transaction = transaction;
+
+        doctorCommand.CommandText = """
+                                    SELECT COUNT(*)
+                                    FROM dbo.Doctor AS d
+                                    JOIN dbo.Member AS m ON m.MemberID = d.DoctorID
+                                    JOIN dbo.Specialty AS s ON s.SpecialtyName = d.Specialty
+                                    WHERE d.DoctorID = @DoctorID
+                                    AND s.IsPrimaryCare = 1
+                                    AND d.DeletionFlag = 0
+                                    AND m.DeletionFlag = 0
+                                    AND s.DeletionFlag = 0
+                                    """;
+        doctorCommand.Parameters.Add("@DoctorID",SqlDbType.Int)
+            .Value = request.PrimaryDoctorID;
+
+        if(await doctorCommand.ExecuteScalarAsync(cancellationToken) is not int
+        doctorCount || doctorCount == 0)
+        {
+            throw new ArgumentException("Pick a Primary Care Doctor from the list.");
+        }
+
         using var memberCommand = connection.CreateCommand();
         memberCommand.Transaction = transaction;
 
@@ -166,7 +189,9 @@ public async Task<List<PatientResponse>> GetAllAsync(
             """;
 
         memberCommand.Parameters.Add("@SSN", SqlDbType.VarChar, 11)
-            .Value = request.SSN;
+            .Value = string.IsNullOrWhiteSpace(request.SSN)
+                ? DBNull.Value
+                : request.SSN;
 
         memberCommand.Parameters.Add("@FirstName", SqlDbType.VarChar, 15)
             .Value = request.FirstName;
@@ -231,6 +256,21 @@ public async Task<List<PatientResponse>> GetAllAsync(
             .Value = patientId;
 
         await patientCommand.ExecuteNonQueryAsync(cancellationToken);
+
+        using var careCommand = connection.CreateCommand();
+        careCommand.Transaction = transaction;
+
+        careCommand.CommandText = """
+                                INSERT INTO dbo.PatientDoctor
+                                (PatientID, DoctorID, RolePlayed, StartDate, DeletionFlag)
+                                VALUES
+                                (@PatientID, @DoctorID, 'Primary', CAST(GETDATE() AS DATE), 0);
+                                """;
+        careCommand.Parameters.Add("@PatientID", SqlDbType.Int).Value = patientId;
+        careCommand.Parameters.Add("@DoctorID", SqlDbType.Int).Value = request.PrimaryDoctorID;
+
+        await careCommand.ExecuteNonQueryAsync(cancellationToken);
+
         await transaction.CommitAsync(cancellationToken);
 
         return patientId;
