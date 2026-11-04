@@ -49,6 +49,25 @@ public class AppointmentsController : ControllerBase
             });
         }
 
+        // Validate Doctor role
+
+        if (User.IsInRole("Doctor"))
+        {
+            if (!int.TryParse(User.FindFirst("UserID")?.Value, out int currentDoctorId))
+            {
+                return Forbid();
+            }
+
+            if (doctorId.HasValue && doctorId.Value != currentDoctorId)
+            {
+                return Forbid();
+            }
+
+            doctorId = currentDoctorId;
+        }
+
+
+
         var appointments = await _appointmentService.ListAsync(
             doctorId, patientId, officeId, from, to, status, cancellationToken
         );
@@ -80,6 +99,15 @@ public class AppointmentsController : ControllerBase
             {
                 message = "Appointment not found."
             });
+        }
+
+        if (User.IsInRole("Doctor"))
+        {
+            if (!int.TryParse(User.FindFirst("UserID")?.Value, out int currentDoctorId)
+                || appointment.DoctorID != currentDoctorId)
+            {
+                return Forbid();
+            }
         }
 
         return Ok(appointment);
@@ -221,7 +249,28 @@ public class AppointmentsController : ControllerBase
 
         try
         {
-            bool completed = await _appointmentService.CompleteAsync(id, cancellationToken);
+            if (!int.TryParse(User.FindFirst("UserID")?.Value, out int currentDoctorId))
+            {
+                return Forbid();
+            }
+
+            var existing = await _appointmentService.GetByIdAsync(id, cancellationToken);
+
+            if (existing is null)
+            {
+                return NotFound(new
+                {
+                    message = "Appointment not found."
+                });
+            }
+
+            if (existing.DoctorID != currentDoctorId)
+            {
+                return Forbid();
+            }
+
+            bool completed = await _appointmentService.CompleteAsync(id, currentDoctorId, cancellationToken);
+
 
             if (!completed)
             {
