@@ -73,4 +73,5 @@ export const api = {
     logout: () => request('/auth/logout', { method: 'POST' }),
     register: (body) => request('/auth/register', { method: 'POST', body }),
     me: () => request('/auth/me'),
+    health: () => request('/health'),
 }
