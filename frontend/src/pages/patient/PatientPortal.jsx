@@ -28,7 +28,7 @@ export default function PatientPortal({ account, onLogout }) {
 
   return (
     <Layout
-      title="Medical Clinic – Patient Portal"
+      title="Clarity Health – Patient Portal"
       account={account}
       items={PAGES}
       current={page}

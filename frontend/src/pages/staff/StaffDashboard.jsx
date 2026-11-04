@@ -11,15 +11,20 @@ import Reports from './Reports'
 const SECTIONS = [
   { key: 'home', label: 'Home', roles: ['Admin', 'Receptionist', 'Doctor', 'Nurse'] },
   { key: 'appointments', label: 'Appointments', roles: ['Admin', 'Receptionist', 'Doctor'],
-    description: 'Book, edit, cancel and complete visits.' },
+    description: {
+      Doctor: 'See your own visits and mark them completed.',
+      default: 'Book, edit, cancel, and complete visits',
+    }},
   { key: 'patients', label: 'Patients', roles: ['Admin', 'Receptionist'],
-    description: 'Add, edit and remove patient records.' },
+    description: {default:'Add, edit and remove patient records.'} },
   { key: 'payments', label: 'Payments', roles: ['Admin', 'Receptionist'],
-    description: 'Record payments for appointments.' },
+    description: {default: 'Record payments for appointments.'} },
   { key: 'queries', label: 'Queries', roles: ['Admin', 'Receptionist', 'Doctor'],
-    description: 'Search patients, check balances, see a doctor\'s week.' },
+    description: {
+      Doctor: 'Search patients and see our week',
+      default:'Search patients, check balances, see a doctor\'s week.'} },
   { key: 'reports', label: 'Reports', roles: ['Admin'],
-    description: 'Revenue, appointment activity and patient health summaries.' },
+    description: {default: 'Revenue, appointment activity and patient health summaries.'} },
 ]
 
 export default function StaffDashboard({ account, onLogout }) {
@@ -41,7 +46,7 @@ export default function StaffDashboard({ account, onLogout }) {
 
   return (
     <Layout
-      title="Medical Clinic – Staff"
+      title="Clarity Health – Staff"
       account={account}
       items={allowed}
       current={section}
@@ -72,7 +77,7 @@ function StaffHome({ role, sections, onOpen }) {
             {pages.map((s) => (
               <button key={s.key} type="button" className="home-card" onClick={() => onOpen(s.key)}>
                 <span className="home-card-title">{s.label}</span>
-                <span className="home-card-text">{s.description}</span>
+                <span className="home-card-text">{s.description[role]?? s.description.default}</span>
               </button>
             ))}
           </div>
