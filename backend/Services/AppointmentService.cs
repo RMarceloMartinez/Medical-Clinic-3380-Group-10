@@ -53,14 +53,16 @@ public class AppointmentService
                    CONVERT(VARCHAR(5), o.OpeningTime, 108) + '-'
                        + CONVERT(VARCHAR(5), o.ClosingTime, 108) AS OfficeHours,
                    b.ReferralID,
-                   CASE WHEN b.ReferralID IS NULL THEN 150.00 ELSE 250.00 END AS VisitFee
+                   sp.VisitFee AS VisitFee
             FROM Bookable AS b
             JOIN dbo.Doctor AS d ON d.DoctorID = b.DoctorID AND d.DeletionFlag = 0
+            JOIN dbo.Specialty AS sp ON sp.SpecialtyName = d.Specialty AND sp.DeletionFlag = 0
             JOIN dbo.Member AS m ON m.MemberID = b.DoctorID AND m.DeletionFlag = 0
             JOIN dbo.DoctorSchedule AS ds ON ds.DoctorID = b.DoctorID AND ds.DeletionFlag = 0
             JOIN dbo.Office AS o ON o.OfficeID = ds.OfficeID AND o.DeletionFlag = 0
             GROUP BY b.DoctorID, ds.OfficeID, m.FirstName, m.LastName, d.Specialty,
-                     o.StreetAddress, o.City, o.OpeningTime, o.ClosingTime, b.ReferralID
+            o.StreetAddress, o.City, o.OpeningTime, o.ClosingTime, b.ReferralID,
+            sp.VisitFee
             ORDER BY b.ReferralID, m.LastName;
             """;
 
@@ -113,11 +115,12 @@ public class AppointmentService
                                     )
         OUTPUT INSERTED.AppointmentID
         INTO @NewAppointment(AppointmentID)
-        Values(
-                @OfficeID, @DoctorID, @PatientID, @ReferralID,
-                @AppointmentDateTime, @TotalCost, @Channel, 'Scheduled',
-                NULL, NULL, 0
-                );
+        SELECT @OfficeID, @DoctorID, @PatientID, @ReferralID,
+               @AppointmentDateTime, sp.VisitFee, @Channel, 'Scheduled',
+               NULL, NULL, 0
+        FROM dbo.Doctor AS d
+        JOIN dbo.Specialty AS sp ON sp.SpecialtyName = d.Specialty
+        WHERE d.DoctorID = @DoctorID;
         SELECT AppointmentID FROM @NewAppointment
         """;
         
@@ -128,10 +131,7 @@ public class AppointmentService
                                                                     ? request.ReferralID
                                                                     : DBNull.Value;
         command.Parameters.Add("@AppointmentDateTime", SqlDbType.DateTime2).Value = request.AppointmentDateTime.Value;
-        var costParameter = command.Parameters.Add("@TotalCost", SqlDbType.Decimal);
-        costParameter.Precision = 10;
-        costParameter.Scale = 2;
-        costParameter.Value = request.TotalCost;
+        
         command.Parameters.Add("@Channel", SqlDbType.VarChar, 10).Value = request.Channel;
 
         var result = await command.ExecuteScalarAsync(cancellationToken);
@@ -296,14 +296,20 @@ public class AppointmentService
 
         using var command = connection.CreateCommand();
 
-        command.CommandText = """
+                command.CommandText = """
                             UPDATE dbo.Appointment
                             SET OfficeID   = @OfficeID,
                                 DoctorID   = @DoctorID,
                                 PatientID  = @PatientID,
                                 ReferralID = @ReferralID,
                                 Date_Time  = @AppointmentDateTime,
-                                TotalCost  = @TotalCost,
+                                TotalCost  = CASE
+                                                WHEN DoctorID = @DoctorID THEN TotalCost
+                                                ELSE (SELECT sp.VisitFee
+                                                      FROM dbo.Doctor AS d
+                                                      JOIN dbo.Specialty AS sp ON sp.SpecialtyName = d.Specialty
+                                                      WHERE d.DoctorID = @DoctorID)
+                                             END,
                                 Channel    = @Channel
                             WHERE AppointmentID = @AppointmentID
                               AND DeletionFlag = 0;
@@ -315,12 +321,6 @@ public class AppointmentService
         command.Parameters.Add("@PatientID", SqlDbType.Int).Value = request.PatientID;
         command.Parameters.Add("@ReferralID", SqlDbType.Int).Value = (object?)request.ReferralID ?? DBNull.Value;
         command.Parameters.Add("@AppointmentDateTime", SqlDbType.DateTime2).Value = request.AppointmentDateTime.Value;
-
-        var costParameter = command.Parameters.Add("@TotalCost", SqlDbType.Decimal);
-        costParameter.Precision = 10;
-        costParameter.Scale = 2;
-        costParameter.Value = request.TotalCost;
-
         command.Parameters.Add("@Channel", SqlDbType.VarChar, 10).Value = request.Channel;
 
         int rowsChanged = await command.ExecuteNonQueryAsync(cancellationToken);
