@@ -151,7 +151,9 @@ public class AuthService
             """;
 
         memberCommand.Parameters.Add("@SSN", SqlDbType.VarChar, 11)
-            .Value = request.SSN;
+            .Value = string.IsNullOrWhiteSpace(request.SSN)
+                ? DBNull.Value
+                : request.SSN;
 
         memberCommand.Parameters.Add("@FirstName", SqlDbType.VarChar, 15)
             .Value = request.FirstName;

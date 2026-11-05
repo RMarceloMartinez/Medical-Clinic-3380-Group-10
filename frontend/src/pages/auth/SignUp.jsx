@@ -16,7 +16,7 @@ function validate(form) {
   const errors = {}
   const required = {
     firstName: 'first name', lastName: 'last name', dateOfBirth: 'date of birth',
-    sex: 'sex', ssn: 'SSN', phone: 'phone number', email: 'email',
+    sex: 'sex', phone: 'phone number', email: 'email',
     streetAddress: 'street address', city: 'city', state: 'state', zipCode: 'ZIP code',
     country: 'country', primaryDoctorID: 'primary doctor', username: 'username', password: 'password',
   }
@@ -79,7 +79,7 @@ export default function SignUp({ onLoggedIn, onBack }) {
     if (Object.keys(found).length > 0) return
 
     const body = {
-      ssn: form.ssn,
+      ssn: form.ssn.trim() || null,
       firstName: form.firstName.trim(),
       middleName: form.middleName.trim() || null,
       lastName: form.lastName.trim(),
@@ -150,7 +150,7 @@ export default function SignUp({ onLoggedIn, onBack }) {
             </select>
             {errors.sex && <p className="field-error">{errors.sex}</p>}
           </div>
-          {field('ssn', 'SSN', { placeholder: '123-45-6789', maxLength: 11 })}
+          {field('ssn', 'SSN (optional)', { placeholder: '123-45-6789', maxLength: 11 })}
         </div>
 
         <h3>Contact</h3>

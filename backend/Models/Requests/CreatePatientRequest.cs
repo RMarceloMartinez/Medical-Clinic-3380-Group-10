@@ -4,10 +4,9 @@ namespace ClinicApi.Models;
 
 public class CreatePatientRequest : IValidatableObject
 {
-    [Required]
     [RegularExpression(@"[0-9]{3}-[0-9]{2}-[0-9]{4}",
         ErrorMessage = "SSN must use the format 123-45-6789.")]
-    public string SSN { get; set; } = string.Empty;
+    public string? SSN { get; set; }
 
     [Required, StringLength(15)]
     [RegularExpression(@"[^0-9]+")]
@@ -51,6 +50,10 @@ public class CreatePatientRequest : IValidatableObject
         ErrorMessage = "Sex must be M, F, or I.")]
     public string Sex { get; set; } = string.Empty;
 
+    [Range(1000000, 9999999,
+        ErrorMessage = "Pick a Primary Care Doctor.")]
+    public int PrimaryDoctorID { get; set; }
+    
     [Required]
     public DateOnly? DateOfBirth { get; set; }
 

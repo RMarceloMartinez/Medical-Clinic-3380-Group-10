@@ -29,7 +29,7 @@ CREATE TABLE Office (
 
 CREATE TABLE Member(
     MemberID  INT IDENTITY(1000000, 1) NOT NULL,
-    SSN VARCHAR(11) NOT NULL,
+    SSN VARCHAR(11) NULL,
     FirstName VARCHAR(15) NOT NULL,  
     MiddleName VARCHAR(15) NULL,
     LastName VARCHAR(31) NOT NULL,
@@ -50,7 +50,6 @@ CREATE TABLE Member(
     CONSTRAINT PK_Member PRIMARY KEY(MemberID),
     CONSTRAINT CK_Member_MemberID CHECK(MemberID BETWEEN 1000000 AND 9999999),
     CONSTRAINT CK_Member_SSN CHECK (SSN LIKE '[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]'),
-    CONSTRAINT UQ_Member_SSN UNIQUE (SSN),
     CONSTRAINT CK_Member_FirstName CHECK(FirstName NOT LIKE '%[0-9]%'),
     CONSTRAINT CK_Member_MiddleName CHECK(MiddleName NOT LIKE '%[0-9]%'),
     CONSTRAINT CK_Member_LastName CHECK(LastName NOT LIKE '%[0-9]%'),
@@ -63,6 +62,8 @@ CREATE TABLE Member(
     CONSTRAINT CK_Member_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 
 );
+
+CREATE UNIQUE INDEX UX_Member_SSN ON Member(SSN) WHERE SSN IS NOT NULL;
 
 CREATE TABLE Employee(
     EmployeeID  INT NOT NULL,

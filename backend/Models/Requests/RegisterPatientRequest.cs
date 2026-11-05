@@ -7,10 +7,9 @@ public class RegisterPatientRequest : IValidatableObject
 {
     // --- Member fields (same rules as CreatePatientRequest) ---
 
-    [Required]
     [RegularExpression(@"[0-9]{3}-[0-9]{2}-[0-9]{4}",
         ErrorMessage = "SSN must use the format 123-45-6789.")]
-    public string SSN { get; set; } = string.Empty;
+    public string? SSN { get; set; }
 
     [Required, StringLength(15)]
     [RegularExpression(@"[^0-9]+")]
