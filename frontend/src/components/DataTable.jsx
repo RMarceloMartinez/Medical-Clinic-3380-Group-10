@@ -1,27 +1,6 @@
 import { useId, useState } from 'react'
 import './DataTable.css'
 
-// Shared table: click a column header to sort, type in the box to filter.
-//
-// Props
-//   columns       array of column definitions (below)
-//   rows          array of row objects
-//   rowKey        function (row) => unique key, e.g. (r) => r.appointmentId
-//   filterLabel   label for the filter box (default "Filter")
-//   emptyMessage  shown when there are no rows at all
-//
-// Column definition
-//   key        field name on the row (also used as the column's id)
-//   label      header text
-//   format     optional (row) => text. Used for display AND for filtering.
-//              Use it for dates, yes/no, combined names, etc.
-//   sortValue  optional (row) => value to sort by (default row[key]).
-//              Use it when the displayed text sorts wrongly, e.g. a formatted date.
-//   render     optional (row) => JSX for custom cells such as buttons.
-//              Render columns are not filtered, and are not sortable unless sortValue is given.
-//   sortable   set false to turn sorting off for a column
-//   align      'right' for numbers
-//   hideLabel  true to hide the header text visually (still read by screen readers)
 export default function DataTable({
   columns,
   rows,
