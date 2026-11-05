@@ -75,7 +75,8 @@ app.UseHttpsRedirection();
    // Same address = the login and CSRF cookies work without CORS.
    // On your laptop there is no wwwroot, so nothing changes: keep using npm run dev.
 app.UseDefaultFiles();   // "/" -> index.html
-app.UseStaticFiles(new StaticFileOptions        // the JS/CSS files Vite builds
+// Same cache rules for the static files AND for the index.html fallback below
+var staticFileOptions = new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
     {
@@ -83,19 +84,22 @@ app.UseStaticFiles(new StaticFileOptions        // the JS/CSS files Vite builds
 
         if (ctx.File.Name.EndsWith(".html"))
         {
-            headers.CacheControl = "no-cache"; // always check for a new version
+            headers.CacheControl = "no-cache";                              // always check for a new version
         }
-        else if(ctx.Context.Request.Path.StartsWithSegments("/assets"))
+        else if (ctx.Context.Request.Path.StartsWithSegments("/assets"))
         {
-            headers.CacheControl = "public, max-age=31536000, immutable"; // file names change every build
+            headers.CacheControl = "public, max-age=31536000, immutable";   // file names change every build
         }
-        }
-});    
+    }
+};
+app.UseStaticFiles(staticFileOptions);    // the JS/CSS files Vite builds   
 
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+// Page addresses like /staff/patients have no file: send index.html and let React Router pick the page
+app.MapFallbackToFile("index.html", staticFileOptions);
 
 app.Run();

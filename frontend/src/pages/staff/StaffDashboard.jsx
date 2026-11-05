@@ -6,6 +6,7 @@ import Patients from './Patients'
 import Payments from './Payments'
 import Queries from './Queries'
 import Reports from './Reports'
+import { Navigate, useNavigate, useParams } from 'react-router'
 
 // Every staff page, who may open it (same roles as the API), and what it is for.
 // To add a page: add a line here and a case in renderPage().
@@ -29,10 +30,19 @@ const SECTIONS = [
 ]
 
 export default function StaffDashboard({ account, onLogout }) {
-  const [section, setSection] = useState('home')
+  
   const role = account.role
-
   const allowed = SECTIONS.filter((s) => s.roles.includes(role))
+
+  // The page comes from the address: /staff -> home, /staff/patients -> patients
+  const { section = 'home' } = useParams()
+  const navigate = useNavigate()
+  const setSection = (key) => navigate(key === 'home' ? '/staff' : `/staff/${key}`)
+
+  // An address this role may not open (or a typo) -> back to the staff home
+  if (!allowed.some((s) => s.key === section)) {
+    return <Navigate to="/staff" replace />
+  }
 
   function renderPage() {
     switch (section) {
