@@ -1,0 +1,104 @@
+.dt {
+  --dt-border: color-mix(in srgb, currentColor 28%, transparent);
+  --dt-header-bg: color-mix(in srgb, currentColor 12%, transparent);
+  --dt-hover-bg: color-mix(in srgb, currentColor 8%, transparent);
+  --dt-muted: color-mix(in srgb, currentColor 75%, transparent);
+  --dt-focus: #f0b429;
+}
+
+.dt-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.dt-filter label {
+  font-weight: 600;
+}
+
+.dt-filter input {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--dt-border);
+  border-radius: 6px;
+  background: var(--dt-hover-bg);
+  color: inherit;
+  font: inherit;
+}
+
+.dt-count {
+  margin: 0;
+  color: var(--dt-muted);
+  font-size: 0.875rem;
+}
+
+.dt-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--dt-border);
+  border-radius: 8px;
+}
+
+.dt-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dt-table th,
+.dt-table td {
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--dt-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.dt-table thead th {
+  background: var(--dt-header-bg);
+}
+
+.dt-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.dt-table tbody tr:hover {
+  background: var(--dt-hover-bg);
+}
+
+.dt-table th.dt-num,
+.dt-table td.dt-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.dt-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dt-arrow {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.dt-sort:focus-visible,
+.dt-filter input:focus-visible {
+  outline: 3px solid var(--dt-focus);
+  outline-offset: 2px;
+}
+
+.dt-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
