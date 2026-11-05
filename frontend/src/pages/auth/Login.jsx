@@ -46,7 +46,17 @@ export default function Login({ onLoggedIn, onSignUp, notice }) {
 
     setBusy(true)
     try {
-      const account = await api.login(username, password)   // { accountID, userID, username, role }
+      let account
+      try {
+        account = await api.login(username, password)       // { accountID, userID, username, role }
+      } catch (e) {
+        if (e.status >= 500) {                              // database still waking up: try once more
+          await wait(5000)
+          account = await api.login(username, password)
+        } else {
+          throw e                                           // 401 wrong password etc. → straight to the message
+        }
+      }
       onLoggedIn(account)
     } catch (e) {
       setError(e.message)
