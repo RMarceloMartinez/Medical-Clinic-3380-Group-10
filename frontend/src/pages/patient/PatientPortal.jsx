@@ -5,6 +5,7 @@ import Layout from '../../components/Layout'
 import MyAppointments from './MyAppointments'
 import BookAppointment from './BookAppointment'
 import MyBalance from './MyBalance'
+import { Navigate, useNavigate, useParams } from 'react-router'
 
 // The patient side of the app. Every page here calls /api/me/...,
 // which only ever returns the logged-in patient's own data.
@@ -16,7 +17,14 @@ const PAGES = [
 ]
 
 export default function PatientPortal({ account, onLogout }) {
-  const [page, setPage] = useState('home')
+  // The page comes from the address: /portal -> home, /portal/book -> book
+  const { page = 'home' } = useParams()
+  const navigate = useNavigate()
+  const setPage = (key) => navigate(key === 'home' ? '/portal' : `/portal/${key}`)
+
+  if (!PAGES.some((p) => p.key === page)) {
+    return <Navigate to="/portal" replace />
+  }
 
   function renderPage() {
     switch (page) {
