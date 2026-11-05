@@ -6,7 +6,7 @@ import { api } from '../../api/client'
 const emptyPatient = {
   ssn: '', firstName: '', middleName: '', lastName: '',
   streetAddress: '', apartmentNum: '', city: '', state: '', zipCode: '', country: '',
-  phone: '', sex: '', dateOfBirth: '', email: '',
+  phone: '', sex: '', dateOfBirth: '', email: '', primaryDoctorID: '',
 }
 
 function patientLabel(p) {
@@ -20,11 +20,14 @@ function validate(form, isNew) {
     city: 'the city', state: 'the state', zipCode: 'the ZIP code', country: 'the country',
     phone: 'the phone number', sex: 'the sex', dateOfBirth: 'the date of birth', email: 'a valid email',
   }
-  if (isNew) required.ssn = 'the SSN'
   Object.entries(required).forEach(([field, text]) => {
     if (form[field].trim() === '') errors[field] = `Please enter ${text}.`
   })
   if (form.email && !form.email.includes('@')) errors.email = 'Please enter a valid email.'
+  if (isNew && form.primaryDoctorID === '') errors.primaryDoctorID = 'Please pick a primary doctor.'
+  if (isNew && form.ssn && !/^[0-9]{3}-[0-9]{2}-[0-9]{4}$/.test(form.ssn)) {
+    errors.ssn = 'Use the format 123-45-6789.'
+  }
   return errors
 }
 
@@ -44,7 +47,10 @@ function toRequestBody(form, isNew) {
     dateOfBirth: form.dateOfBirth,
     email: form.email,
   }
-  if (isNew) body.ssn = form.ssn          // SSN is set once, when the patient is created
+  if (isNew) {
+    body.ssn = form.ssn.trim() || null          // optional; set once, when the patient is created
+    body.primaryDoctorID = Number(form.primaryDoctorID)
+  }
   return body
 }
 
@@ -57,6 +63,7 @@ export default function Patients() {
   const [selected, setSelected] = useState(null)  // the patient loaded for edit / remove
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [doctors, setDoctors] = useState([]);
 
   async function loadPatients() {
     try {
@@ -70,6 +77,9 @@ export default function Patients() {
     api.get('/patients')
       .then(setPatients)
       .catch((e) => setError(`Could not load patients: ${e.message}`))
+      api.get('/lookups/primary-doctors')
+        .then(setDoctors)
+        .catch((e) => setError(`Could not load doctors: ${e.message}`))
   }, [])
 
   function open(nextView) {
@@ -200,7 +210,20 @@ export default function Patients() {
           <option value="I">I</option>
         </select>
         {errors.sex && <p className="field-error">{errors.sex}</p>}
-        {isNew && field('ssn', 'SSN', { placeholder: '123-45-6789', maxLength: 11 })}
+        {isNew && field('ssn', 'SSN (optional)', { placeholder: '123-45-6789', maxLength: 11 })}
+        {isNew && (
+          <>
+            <label htmlFor="primaryDoctorID">Primary care doctor</label>
+            <select id="primaryDoctorID" value={form.primaryDoctorID}
+              onChange={(e) => update('primaryDoctorID', e.target.value)}>
+              <option value="">Select a doctor</option>
+              {doctors.map((d) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+            {errors.primaryDoctorID && <p className="field-error">{errors.primaryDoctorID}</p>}
+          </>
+        )}
         {field('phone', 'Phone number', { type: 'tel', maxLength: 10 })}
         {field('email', 'Email', { type: 'email', maxLength: 100 })}
         {field('streetAddress', 'Street address', { maxLength: 80 })}
