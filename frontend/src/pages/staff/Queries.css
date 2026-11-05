@@ -1,42 +1,30 @@
 /* Queries page. Everything is scoped under .queries-page so it can't change other pages.
    Shared pieces (filter-bar, data-table, page-actions, primary-button, cell-main/cell-sub,
-   status-badge, list-summary) come from App.css, same as the Reports page. */
+   status-badge, list-summary) come from App.css, same as the Reports page.
+   Colors come from the variables in styles/index.css. */
 
 .queries-page {
-  max-width: 1000px;
-  margin: 0 auto;
   text-align: left;
-}
-
-.queries-page h2 {
-  text-align: center;
-  color: white;
-}
-
-.queries-page .query-tabs {
-  justify-content: center;
 }
 
 .query-hint {
   margin: 16px 0;
   padding: 14px 16px;
-  border-radius: 12px;
-  background: #253d5f;
-  color: #dbe7ff;
-  text-align: center;
+  border-radius: var(--radius-lg);
+  background: var(--blue-50);
+  color: var(--navy);
 }
 
 .query-section-title {
-  margin: 20px 0 8px;
-  font-size: 20px;
-  color: white;
+  margin: 24px 0 10px;
+  font-size: 18px;
 }
 
 /* ---- Balance numbers ---- */
 .query-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
+  gap: 14px;
   margin: 12px 0 8px;
 }
 
@@ -44,39 +32,45 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 16px;
-  border-radius: 12px;
-  background: #4882da;
-  color: white;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  border-top: 4px solid var(--blue);   /* colored top edge shows the meaning */
 }
 
 .query-stat.owes {
-  background: #b3261e;
+  border-top-color: var(--danger);
 }
 
 .query-stat.paid-up {
-  background: #1a7f37;
+  border-top-color: var(--success);
 }
 
 .query-stat-label {
   font-size: 13px;
-  font-weight: bold;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #eef3ff;
+  letter-spacing: 0.4px;
+  color: var(--muted);
 }
 
 .query-stat-value {
+  font-family: var(--font-heading);
   font-size: 28px;
-  font-weight: bold;
+  font-weight: 700;
+  color: var(--navy);
   font-variant-numeric: tabular-nums;
+}
+
+.query-stat.owes .query-stat-value {
+  color: var(--danger);
 }
 
 /* ---- Tables: white card that scrolls sideways on small screens ---- */
 .query-table-card {
   overflow-x: auto;
-  border-radius: 10px;
-  background: white;
+  border-radius: var(--radius-lg);
 }
 
 .queries-page .query-table {

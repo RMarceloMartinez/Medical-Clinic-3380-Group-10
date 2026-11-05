@@ -48,7 +48,7 @@ export default function App() {
   }
 
   if (checking) {
-    return <div className="Login-screen"><p className="loading-text">Loading…</p></div>
+    return <p className="loading-text">Loading…</p>
   }
 
   if (!account) {

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Icon from '../../components/Icon'
 import Layout from '../../components/Layout'
 import Appointments from './Appointments'
 import Patients from './Patients'
@@ -9,21 +10,21 @@ import Reports from './Reports'
 // Every staff page, who may open it (same roles as the API), and what it is for.
 // To add a page: add a line here and a case in renderPage().
 const SECTIONS = [
-  { key: 'home', label: 'Home', roles: ['Admin', 'Receptionist', 'Doctor', 'Nurse'] },
-  { key: 'appointments', label: 'Appointments', roles: ['Admin', 'Receptionist', 'Doctor'],
+  { key: 'home', icon: 'home', label: 'Home', roles: ['Admin', 'Receptionist', 'Doctor', 'Nurse'] },
+  { key: 'appointments', icon: 'calendar', label: 'Appointments', roles: ['Admin', 'Receptionist', 'Doctor'],
     description: {
       Doctor: 'See your own visits and mark them completed.',
       default: 'Book, edit, cancel, and complete visits',
     }},
-  { key: 'patients', label: 'Patients', roles: ['Admin', 'Receptionist'],
+  { key: 'patients', icon: 'users', label: 'Patients', roles: ['Admin', 'Receptionist'],
     description: {default:'Add, edit and remove patient records.'} },
-  { key: 'payments', label: 'Payments', roles: ['Admin', 'Receptionist'],
+  { key: 'payments', icon: 'receipt', label: 'Payments', roles: ['Admin', 'Receptionist'],
     description: {default: 'Record payments for appointments.'} },
-  { key: 'queries', label: 'Queries', roles: ['Admin', 'Receptionist', 'Doctor'],
+  { key: 'queries', icon: 'search', label: 'Queries', roles: ['Admin', 'Receptionist', 'Doctor'],
     description: {
       Doctor: 'Search patients and see our week',
       default:'Search patients, check balances, see a doctor\'s week.'} },
-  { key: 'reports', label: 'Reports', roles: ['Admin'],
+  { key: 'reports', icon: 'chart', label: 'Reports', roles: ['Admin'],
     description: {default: 'Revenue, appointment activity and patient health summaries.'} },
 ]
 
@@ -40,13 +41,13 @@ export default function StaffDashboard({ account, onLogout }) {
       case 'payments': return <Payments />
       case 'queries': return <Queries role={role} />
       case 'reports': return <Reports role={role} />
-      default: return <StaffHome role={role} sections={allowed} onOpen={setSection} />
+      default: return <StaffHome account={account} sections={allowed} onOpen={setSection} />
     }
   }
 
   return (
     <Layout
-      title="Clarity Health – Staff"
+      title="Staff workspace"
       account={account}
       items={allowed}
       current={section}
@@ -59,25 +60,43 @@ export default function StaffDashboard({ account, onLogout }) {
   )
 }
 
-// Home page: one card per page this role can open
-function StaffHome({ role, sections, onOpen }) {
+// "Good morning" / "Good afternoon" / "Good evening" from the current hour
+function greeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+// Home page: a welcome banner, then one card per page this role can open
+function StaffHome({ account, sections, onOpen }) {
+  const role = account.role
   const pages = sections.filter((s) => s.key !== 'home')
+  const today = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })
 
   return (
     <div className="home">
-      <h2>Welcome</h2>
+      <div className="welcome-banner">
+        <div>
+          <h2>{greeting()}, {account.username}</h2>
+          <p>{today} · Signed in as {role}</p>
+        </div>
+      </div>
+
       {pages.length === 0 ? (
         <p className="home-empty">
           There are no pages for the {role} role yet. Please contact the clinic administrator.
         </p>
       ) : (
         <>
-          <p>Choose what you want to do.</p>
+          <h3 className="home-section-title">What would you like to do?</h3>
           <div className="home-cards">
             {pages.map((s) => (
               <button key={s.key} type="button" className="home-card" onClick={() => onOpen(s.key)}>
+                <span className="icon-circle"><Icon name={s.icon} size={24} /></span>
                 <span className="home-card-title">{s.label}</span>
-                <span className="home-card-text">{s.description[role]?? s.description.default}</span>
+                <span className="home-card-text">{s.description[role] ?? s.description.default}</span>
+                <span className="home-card-link">Open <Icon name="arrowRight" size={16} /></span>
               </button>
             ))}
           </div>
