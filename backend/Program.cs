@@ -15,7 +15,7 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddScoped<AuthService>();
 
-builder.Services.AddScoped<PatientService>();builder.Services.AddScoped<PatientService>();
+builder.Services.AddScoped<PatientService>();
 
 builder.Services.AddScoped<PaymentService>();
 
@@ -75,7 +75,22 @@ app.UseHttpsRedirection();
    // Same address = the login and CSRF cookies work without CORS.
    // On your laptop there is no wwwroot, so nothing changes: keep using npm run dev.
 app.UseDefaultFiles();   // "/" -> index.html
-app.UseStaticFiles();    // the JS/CSS files Vite builds
+app.UseStaticFiles(new StaticFileOptions        // the JS/CSS files Vite builds
+{
+    OnPrepareResponse = ctx =>
+    {
+        var headers = ctx.Context.Response.Headers;
+
+        if (ctx.File.Name.EndsWith(".html"))
+        {
+            headers.CacheControl = "no-cache"; // always check for a new version
+        }
+        else if(ctx.Context.Request.Path.StartsWithSegments("/assets"))
+        {
+            headers.CacheControl = "public, max-age=31536000, immutable"; // file names change every build
+        }
+        }
+});    
 
 
 app.UseAuthentication();

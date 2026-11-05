@@ -166,7 +166,7 @@ $principalId = az webapp identity assign -g $ResourceGroup -n $App --query princ
 Check "turn on the managed identity"
 
 Step "Web app settings"
-$connection = "Server=tcp:$ServerHost,1433;Database=$Database;Authentication=Active Directory Managed Identity;Encrypt=True;Connection Timeout=60;"
+$connection = "Server=tcp:$ServerHost,1433;Database=$Database;Authentication=Active Directory Managed Identity;Encrypt=True;Connection Timeout=60;ConnectRetryCount=3;ConnectRetryInterval=10;"
 az webapp config appsettings set -g $ResourceGroup -n $App --settings `
     "ConnectionStrings__ClinicDb=$connection" `
     "ASPNETCORE_FORWARDEDHEADERS_ENABLED=true" `
