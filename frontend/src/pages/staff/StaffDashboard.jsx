@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import Icon from '../../components/Icon'
 import Layout from '../../components/Layout'
 import Appointments from './Appointments'
