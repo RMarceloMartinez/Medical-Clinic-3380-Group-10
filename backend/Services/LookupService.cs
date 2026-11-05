@@ -15,9 +15,11 @@ public class LookupService
     {
         return QueryAsync("""
             SELECT d.DoctorID AS Id,
-                   m.FirstName + ' ' + m.LastName + ' (' + d.Specialty + ')' AS Name
+                   m.FirstName + ' ' + m.LastName
+                   + ' (' + d.Specialty + ' · $' + FORMAT(sp.VisitFee, 'N0') + ')' AS Name
             FROM dbo.Doctor AS d
             JOIN dbo.Member AS m ON m.MemberID = d.DoctorID
+            JOIN dbo.Specialty AS sp ON sp.SpecialtyName = d.Specialty
             WHERE d.DeletionFlag = 0
               AND m.DeletionFlag = 0
             ORDER BY m.LastName, m.FirstName;

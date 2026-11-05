@@ -62,7 +62,6 @@ function toRequestBody(form) {
     officeID: Number(form.officeID),
     referralID: form.referralID === '' ? null : Number(form.referralID),
     appointmentDateTime: form.appointmentDateTime,
-    totalCost: Number(form.totalCost),
     channel: form.channel,
   }
 }
@@ -180,8 +179,8 @@ export default function Appointments({ role }) {
   }
 
   async function handleSave() {
-    if (!form.patientID || !form.doctorID || !form.officeID || !form.appointmentDateTime || form.totalCost === '') {
-      setError('Fill in the patient, doctor, office, date and time, and cost.')
+    if (!form.patientID || !form.doctorID || !form.officeID || !form.appointmentDateTime) {
+            setError('Fill in the patient, doctor, office, date and time, and cost.')
       return
     }
     const body = toRequestBody(form)
@@ -390,9 +389,14 @@ export default function Appointments({ role }) {
                 onChange={(e) => updateForm('appointmentDateTime', e.target.value)} />
             </div>
             <div className="form-field">
-              <label htmlFor="cost">Total cost ($)</label>
-              <input id="cost" type="number" min="0" step="0.01" value={form.totalCost}
-                onChange={(e) => updateForm('totalCost', e.target.value)} />
+              <label>Visit fee</label>
+              {editingId ? (
+                <p className="field-hint">
+                  Price at booking: <strong>${Number(form.totalCost).toFixed(2)}</strong>. It changes only if you pick another doctor.
+                </p>
+              ) : (
+                <p className="field-hint">Set by the doctor's specialty (shown next to each doctor).</p>
+              )}
             </div>
             <div className="form-field">
               <label htmlFor="channel">Booked by</label>
