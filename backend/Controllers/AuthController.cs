@@ -113,7 +113,7 @@ public class AuthController : ControllerBase
                     ? "That username is already taken."
                 : ex.Message.Contains("UQ_Member_Email")
                     ? "An account with that email already exists."
-                : ex.Message.Contains("UQ_Member_SSN")
+                : ex.Message.Contains("UX_Member_SSN")
                     ? "That SSN is already registered. Please call the clinic for access to your account."
                 : "Some of these details are already registered.";
 

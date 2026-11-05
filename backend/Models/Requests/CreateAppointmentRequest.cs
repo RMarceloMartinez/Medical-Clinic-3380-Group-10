@@ -19,9 +19,6 @@ public class CreateAppointmentRequest : IValidatableObject
     [Required]
     public DateTime? AppointmentDateTime { get; set; }
 
-    [Range(0, 99999999.99)]
-    public decimal TotalCost { get; set; }
-
     [Required]
     [StringLength(10)]
     [RegularExpression ("(Phone|Web Portal)", ErrorMessage = "Appointment must be done by Phone Call or the Web Portal")]

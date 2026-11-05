@@ -83,6 +83,13 @@ public class PatientsController : ControllerBase
                 new { id = patientId },
                 new { patientID = patientId });
         }
+        catch(ArgumentException ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
         catch (SqlException ex) when (ex.Number is 2601 or 2627)
         {
             return Conflict(new

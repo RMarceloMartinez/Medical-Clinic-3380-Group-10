@@ -29,7 +29,7 @@ CREATE TABLE Office (
 
 CREATE TABLE Member(
     MemberID  INT IDENTITY(1000000, 1) NOT NULL,
-    SSN VARCHAR(11) NOT NULL,
+    SSN VARCHAR(11) NULL,
     FirstName VARCHAR(15) NOT NULL,  
     MiddleName VARCHAR(15) NULL,
     LastName VARCHAR(31) NOT NULL,
@@ -50,7 +50,6 @@ CREATE TABLE Member(
     CONSTRAINT PK_Member PRIMARY KEY(MemberID),
     CONSTRAINT CK_Member_MemberID CHECK(MemberID BETWEEN 1000000 AND 9999999),
     CONSTRAINT CK_Member_SSN CHECK (SSN LIKE '[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]'),
-    CONSTRAINT UQ_Member_SSN UNIQUE (SSN),
     CONSTRAINT CK_Member_FirstName CHECK(FirstName NOT LIKE '%[0-9]%'),
     CONSTRAINT CK_Member_MiddleName CHECK(MiddleName NOT LIKE '%[0-9]%'),
     CONSTRAINT CK_Member_LastName CHECK(LastName NOT LIKE '%[0-9]%'),
@@ -64,6 +63,8 @@ CREATE TABLE Member(
 
 );
 
+CREATE UNIQUE INDEX UX_Member_SSN ON Member(SSN) WHERE SSN IS NOT NULL;
+
 CREATE TABLE Employee(
     EmployeeID  INT NOT NULL,
     HiringDate DATE NOT NULL,
@@ -75,6 +76,26 @@ CREATE TABLE Employee(
     CONSTRAINT CK_Employee_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
+CREATE TABLE Specialty(
+    SpecialtyName VARCHAR(30) NOT NULL,
+    VisitFee NUMERIC(10,2) NOT NULL,
+    IsPrimaryCare BIT NOT NULL,
+    DeletionFlag BIT NOT NULL,
+
+    CONSTRAINT PK_Specialty PRIMARY KEY(SpecialtyName),
+    CONSTRAINT CK_Specialty_VisitFee CHECK(VisitFee > 0),
+    CONSTRAINT CK_Specialty_IsPrimaryCare CHECK (IsPrimaryCare IN (0, 1)),
+    CONSTRAINT CK_Specialty_DeletionFlag CHECK (DeletionFlag IN (0, 1))
+);
+
+INSERT INTO Specialty (SpecialtyName, VisitFee, IsPrimaryCare, DeletionFlag) VALUES
+    ('Family Medicine', 150.00, 1, 0),
+    ('Internal Medicine', 150.00, 1, 0),
+    ('Pediatrics', 150.00, 1, 0),
+    ('Dermatology', 200.00, 0, 0),
+    ('Orthopedics', 275.00, 0, 0),
+    ('Cardiology', 300.00, 0, 0);
+
 CREATE TABLE Doctor(
     DoctorID INT NOT NULL,
     LicenseNum VARCHAR(11) NOT NULL,
@@ -83,6 +104,7 @@ CREATE TABLE Doctor(
 
     CONSTRAINT PK_Doctor PRIMARY KEY(DoctorID),
     CONSTRAINT FK_Doctor_Employee FOREIGN KEY(DoctorID) REFERENCES Employee(EmployeeID) ON DELETE NO ACTION,
+    CONSTRAINT FK_Doctor_Specialty FOREIGN KEY(Specialty) REFERENCES Specialty(SpecialtyName) ON DELETE NO ACTION,
     CONSTRAINT UQ_Doctor_LicenseNum UNIQUE(LicenseNum),
     CONSTRAINT CK_Doctor_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
