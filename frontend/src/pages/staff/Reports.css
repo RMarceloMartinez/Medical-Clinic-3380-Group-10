@@ -1,37 +1,26 @@
 /* Reports page. Everything is scoped under .reports-page so it can't change other pages.
    Shared pieces (filter-bar, data-table, page-actions, primary-button, cell-main/cell-sub)
-   come from App.css, so Reports looks like the rest of the app. */
+   come from App.css, so Reports looks like the rest of the app.
+   Colors come from the variables in styles/index.css. */
 
 .reports-page {
-  max-width: 1000px;
-  margin: 0 auto;
   text-align: left;
-}
-
-.reports-page h2 {
-  text-align: center;
-  color: white;
-}
-
-.reports-page .report-tabs {
-  justify-content: center;
 }
 
 .report-hint,
 .report-empty {
   margin: 16px 0;
   padding: 14px 16px;
-  border-radius: 12px;
-  background: #253d5f;
-  color: #dbe7ff;
-  text-align: center;
+  border-radius: var(--radius-lg);
+  background: var(--blue-50);
+  color: var(--navy);
 }
 
 /* ---- Summary numbers above each report ---- */
 .report-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 12px;
+  gap: 14px;
   margin: 16px 0 8px;
 }
 
@@ -40,23 +29,26 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  background: #4882da;
-  color: white;
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  border-top: 4px solid var(--blue);
 }
 
 .report-stat-label {
   font-size: 13px;
-  font-weight: bold;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #e3ecff;
+  letter-spacing: 0.4px;
+  color: var(--muted);
 }
 
 .report-stat-value {
+  font-family: var(--font-heading);
   font-size: 26px;
-  font-weight: bold;
+  font-weight: 700;
+  color: var(--navy);
   font-variant-numeric: tabular-nums;
 }
 
@@ -65,32 +57,32 @@
 }
 
 .report-patient-name {
+  font-family: var(--font-heading);
   font-size: 22px;
-  font-weight: bold;
+  font-weight: 700;
+  color: var(--navy);
 }
 
 .report-patient-id {
   font-size: 14px;
-  color: #e3ecff;
+  color: var(--muted);
 }
 
 /* ---- Tables ---- */
 .report-section-title {
-  margin: 20px 0 8px;
+  margin: 24px 0 10px;
   font-size: 17px;
-  color: white;
 }
 
 .report-count {
-  font-weight: normal;
-  color: #c9d8f2;
+  font-weight: 400;
+  color: var(--muted);
 }
 
 /* White card that scrolls sideways on small screens instead of spilling off the page */
 .report-table-card {
   overflow-x: auto;
-  border-radius: 10px;
-  background: white;
+  border-radius: var(--radius-lg);
 }
 
 .reports-page .report-table {
@@ -113,17 +105,17 @@
 }
 
 .reports-page .owed {
-  color: #b3261e;
-  font-weight: bold;
+  color: var(--danger);
+  font-weight: 700;
 }
 
 .reports-page .cancel-split {
   font-size: 14px;
-  color: #444;
+  color: var(--muted);
 }
 
 .reports-page .report-table tfoot td {
-  font-weight: bold;
-  background: #e4ebf7;
-  border-top: 2px solid #253d5f;
+  font-weight: 700;
+  background: var(--blue-50);
+  border-top: 2px solid var(--blue);
 }

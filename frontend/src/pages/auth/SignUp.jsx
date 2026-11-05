@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
+import PublicHeader from '../../components/PublicHeader'
+import SiteFooter from '../../components/SiteFooter'
 
 const emptyForm = {
   firstName: '', middleName: '', lastName: '',
@@ -127,78 +129,88 @@ export default function SignUp({ onLoggedIn, onBack }) {
   }
 
   return (
-    <div className="Login-screen">
-      <div className="signup-card">
-        <h1>Create your patient account</h1>
-        <p className="signup-intro">
-          Fill in your details once. After that you can book and manage your own appointments online.
-        </p>
+    <>
+      <PublicHeader>
+        <button type="button" className="secondary-button" onClick={onBack}>
+          Sign in
+        </button>
+      </PublicHeader>
 
-        <h3>About you</h3>
-        <div className="form-grid">
-          {field('firstName', 'First name', { maxLength: 15 })}
-          {field('middleName', 'Middle name (optional)', { maxLength: 15 })}
-          {field('lastName', 'Last name', { maxLength: 31 })}
-          {field('dateOfBirth', 'Date of birth', { type: 'date' })}
-          <div className="form-field">
-            <label htmlFor="sex">Sex</label>
-            <select id="sex" value={form.sex} onChange={(e) => update('sex', e.target.value)}>
-              <option value="">Select</option>
-              <option value="F">Female</option>
-              <option value="M">Male</option>
-              <option value="I">Intersex</option>
-            </select>
-            {errors.sex && <p className="field-error">{errors.sex}</p>}
+      <div className="signup-wrap">
+        <div className="signup-card">
+          <h1>Create your patient account</h1>
+          <p className="signup-intro">
+            Fill in your details once. After that you can book and manage your own appointments online.
+          </p>
+
+          <h3>About you</h3>
+          <div className="form-grid">
+            {field('firstName', 'First name', { maxLength: 15 })}
+            {field('middleName', 'Middle name (optional)', { maxLength: 15 })}
+            {field('lastName', 'Last name', { maxLength: 31 })}
+            {field('dateOfBirth', 'Date of birth', { type: 'date' })}
+            <div className="form-field">
+              <label htmlFor="sex">Sex</label>
+              <select id="sex" value={form.sex} onChange={(e) => update('sex', e.target.value)}>
+                <option value="">Select</option>
+                <option value="F">Female</option>
+                <option value="M">Male</option>
+                <option value="I">Intersex</option>
+              </select>
+              {errors.sex && <p className="field-error">{errors.sex}</p>}
+            </div>
+            {field('ssn', 'SSN (optional)', { placeholder: '123-45-6789', maxLength: 11 })}
           </div>
-          {field('ssn', 'SSN (optional)', { placeholder: '123-45-6789', maxLength: 11 })}
+
+          <h3>Contact</h3>
+          <div className="form-grid">
+            {field('phone', 'Phone (10 digits)', { type: 'tel', placeholder: '7135551234', maxLength: 10 })}
+            {field('email', 'Email', { type: 'email', maxLength: 100 })}
+            {field('streetAddress', 'Street address', { maxLength: 80 })}
+            {field('apartmentNum', 'Apartment (optional)', { maxLength: 5 })}
+            {field('city', 'City', { maxLength: 48 })}
+            {field('state', 'State', { maxLength: 20 })}
+            {field('zipCode', 'ZIP code', { maxLength: 5 })}
+            {field('country', 'Country', { maxLength: 56 })}
+          </div>
+
+          <h3>Your primary doctor</h3>
+          <div className="form-field">
+            <label htmlFor="primaryDoctorID">Primary care doctor</label>
+            <select
+              id="primaryDoctorID"
+              value={form.primaryDoctorID}
+              onChange={(e) => update('primaryDoctorID', e.target.value)}
+            >
+              <option value="">Select a doctor</option>
+              {doctors.map((d) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+            {errors.primaryDoctorID && <p className="field-error">{errors.primaryDoctorID}</p>}
+            <p className="field-hint">You can book visits with this doctor. Specialists need a referral from them.</p>
+          </div>
+
+          <h3>Login details</h3>
+          <div className="form-grid">
+            {field('username', 'Username', { maxLength: 25, autoComplete: 'username' })}
+            <div />
+            {field('password', 'Password (8+ characters)', { type: 'password', maxLength: 72, autoComplete: 'new-password' })}
+            {field('confirmPassword', 'Confirm password', { type: 'password', maxLength: 72, autoComplete: 'new-password' })}
+          </div>
+
+          {serverError && <p className="error-message">{serverError}</p>}
+
+          <button type="button" className="primary-button" onClick={handleSubmit} disabled={busy}>
+            {busy ? 'Creating account…' : 'Create account'}
+          </button>
+          <button type="button" className="link-button" onClick={onBack}>
+            Already have an account? Log in
+          </button>
         </div>
-
-        <h3>Contact</h3>
-        <div className="form-grid">
-          {field('phone', 'Phone (10 digits)', { type: 'tel', placeholder: '7135551234', maxLength: 10 })}
-          {field('email', 'Email', { type: 'email', maxLength: 100 })}
-          {field('streetAddress', 'Street address', { maxLength: 80 })}
-          {field('apartmentNum', 'Apartment (optional)', { maxLength: 5 })}
-          {field('city', 'City', { maxLength: 48 })}
-          {field('state', 'State', { maxLength: 20 })}
-          {field('zipCode', 'ZIP code', { maxLength: 5 })}
-          {field('country', 'Country', { maxLength: 56 })}
-        </div>
-
-        <h3>Your primary doctor</h3>
-        <div className="form-field">
-          <label htmlFor="primaryDoctorID">Primary care doctor</label>
-          <select
-            id="primaryDoctorID"
-            value={form.primaryDoctorID}
-            onChange={(e) => update('primaryDoctorID', e.target.value)}
-          >
-            <option value="">Select a doctor</option>
-            {doctors.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
-          {errors.primaryDoctorID && <p className="field-error">{errors.primaryDoctorID}</p>}
-          <p className="field-hint">You can book visits with this doctor. Specialists need a referral from them.</p>
-        </div>
-
-        <h3>Login details</h3>
-        <div className="form-grid">
-          {field('username', 'Username', { maxLength: 25, autoComplete: 'username' })}
-          <div />
-          {field('password', 'Password (8+ characters)', { type: 'password', maxLength: 72, autoComplete: 'new-password' })}
-          {field('confirmPassword', 'Confirm password', { type: 'password', maxLength: 72, autoComplete: 'new-password' })}
-        </div>
-
-        {serverError && <p className="error-message">{serverError}</p>}
-
-        <button type="button" className="primary-button" onClick={handleSubmit} disabled={busy}>
-          {busy ? 'Creating account…' : 'Create account'}
-        </button>
-        <button type="button" className="link-button" onClick={onBack}>
-          Already have an account? Log in
-        </button>
       </div>
-    </div>
+
+      <SiteFooter />
+    </>
   )
 }

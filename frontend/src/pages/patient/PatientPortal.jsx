@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
+import Icon from '../../components/Icon'
 import Layout from '../../components/Layout'
 import MyAppointments from './MyAppointments'
 import BookAppointment from './BookAppointment'
@@ -8,10 +9,10 @@ import MyBalance from './MyBalance'
 // The patient side of the app. Every page here calls /api/me/...,
 // which only ever returns the logged-in patient's own data.
 const PAGES = [
-  { key: 'home', label: 'Home' },
-  { key: 'appointments', label: 'My appointments' },
-  { key: 'book', label: 'Book appointment' },
-  { key: 'balance', label: 'My balance' },
+  { key: 'home', icon: 'home', label: 'Home' },
+  { key: 'appointments', icon: 'calendar', label: 'My appointments' },
+  { key: 'book', icon: 'calendarPlus', label: 'Book appointment' },
+  { key: 'balance', icon: 'wallet', label: 'My balance' },
 ]
 
 export default function PatientPortal({ account, onLogout }) {
@@ -28,7 +29,7 @@ export default function PatientPortal({ account, onLogout }) {
 
   return (
     <Layout
-      title="Clarity Health – Patient Portal"
+      title="Patient portal"
       account={account}
       items={PAGES}
       current={page}
@@ -72,7 +73,16 @@ function PatientHome({ account, onOpen }) {
 
   return (
     <div className="home">
-      <h2>Welcome, {account.username}</h2>
+      <div className="welcome-banner">
+        <div>
+          <h2>Welcome back, {account.username}</h2>
+          <p>Your visits and bills, all in one place.</p>
+        </div>
+        <button type="button" className="primary-button" onClick={() => onOpen('book')}>
+          Book an appointment
+        </button>
+      </div>
+
       {error && <p className="error-message">{error}</p>}
 
       <div className="home-cards">
@@ -82,7 +92,7 @@ function PatientHome({ account, onOpen }) {
           {next === null && <span className="home-card-text">You have no upcoming appointments.</span>}
           {next && (
             <span className="home-card-text">
-              {formatDateTime(next.appointmentDateTime)}<br />
+              <strong>{formatDateTime(next.appointmentDateTime)}</strong><br />
               with {next.doctorName}<br />
               {next.officeAddress}
             </span>
@@ -97,16 +107,20 @@ function PatientHome({ account, onOpen }) {
         </div>
       </div>
 
+      <h3 className="home-section-title">Quick links</h3>
       <div className="home-cards">
         <button type="button" className="home-card" onClick={() => onOpen('book')}>
+          <span className="icon-circle orange"><Icon name="calendarPlus" size={24} /></span>
           <span className="home-card-title">Book an appointment</span>
           <span className="home-card-text">See your doctors and pick a day and time.</span>
         </button>
         <button type="button" className="home-card" onClick={() => onOpen('appointments')}>
+          <span className="icon-circle"><Icon name="calendar" size={24} /></span>
           <span className="home-card-title">My appointments</span>
           <span className="home-card-text">See upcoming and past visits, or cancel one.</span>
         </button>
         <button type="button" className="home-card" onClick={() => onOpen('balance')}>
+          <span className="icon-circle"><Icon name="wallet" size={24} /></span>
           <span className="home-card-title">My balance</span>
           <span className="home-card-text">What you have been billed and paid.</span>
         </button>
