@@ -180,7 +180,7 @@ export default function Appointments({ role }) {
 
   async function handleSave() {
     if (!form.patientID || !form.doctorID || !form.officeID || !form.appointmentDateTime) {
-            setError('Fill in the patient, doctor, office, date and time, and cost.')
+      setError('Fill in the patient, doctor, office, and date and time.')
       return
     }
     const body = toRequestBody(form)
