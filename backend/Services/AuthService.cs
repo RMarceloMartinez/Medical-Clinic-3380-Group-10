@@ -111,10 +111,12 @@ public class AuthService
             SELECT COUNT(*)
             FROM dbo.Doctor AS d
             JOIN dbo.Member AS m ON m.MemberID = d.DoctorID
+            JOIN dbo.Specialty AS s ON s.SpecialtyName = d.Specialty
             WHERE d.DoctorID = @DoctorID
-              AND d.Specialty IN ('Family Medicine', 'Internal Medicine', 'Pediatrics')
-              AND d.DeletionFlag = 0
-              AND m.DeletionFlag = 0;
+            AND s.IsPrimaryCare = 1
+            AND d.DeletionFlag = 0
+            AND m.DeletionFlag = 0
+            AnD s.DeletionFlag = 0;
             """;
 
         doctorCommand.Parameters.Add("@DoctorID", SqlDbType.Int)
