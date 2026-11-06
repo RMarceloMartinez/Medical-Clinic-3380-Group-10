@@ -156,4 +156,99 @@ public class ReportService
         return items;
     }
 
+    public async Task<object> GetHealthTrendsAsync(
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+
+        command.CommandText = "dbo.usp_GetHealthTrendsDashboard";
+        command.CommandType = CommandType.StoredProcedure;
+
+        command.Parameters.Add("@FromDate", SqlDbType.Date).Value = from;
+        command.Parameters.Add("@ToDate", SqlDbType.Date).Value = to;
+
+        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        // Result 1: Chronic vs acute conditions
+        var conditionSummary = new List<object>();
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            conditionSummary.Add(new
+            {
+                ConditionType = reader.GetString(
+                    reader.GetOrdinal("ConditionType")),
+                TotalConditions = reader.GetInt32(
+                    reader.GetOrdinal("TotalConditions")),
+                PatientsAffected = reader.GetInt32(
+                    reader.GetOrdinal("PatientsAffected")),
+                HereditaryConditions = reader.GetInt32(
+                    reader.GetOrdinal("HereditaryConditions"))
+            });
+        }
+
+        // Result 2: Most common health conditions
+        var commonConditions = new List<object>();
+
+        if (await reader.NextResultAsync(cancellationToken))
+        {
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                commonConditions.Add(new
+                {
+                    ConditionName = reader.GetString(
+                        reader.GetOrdinal("ConditionName")),
+                    ConditionType = reader.GetString(
+                        reader.GetOrdinal("ConditionType")),
+                    TotalCases = reader.GetInt32(
+                        reader.GetOrdinal("TotalCases")),
+                    PatientsAffected = reader.GetInt32(
+                        reader.GetOrdinal("PatientsAffected")),
+                    SevereCases = reader.GetInt32(
+                        reader.GetOrdinal("SevereCases")),
+                    HereditaryCases = reader.GetInt32(
+                        reader.GetOrdinal("HereditaryCases"))
+                });
+            }
+        }
+
+        // Result 3: Monthly diagnosis trends
+        var monthlyDiagnoses = new List<object>();
+
+        if (await reader.NextResultAsync(cancellationToken))
+        {
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                monthlyDiagnoses.Add(new
+                {
+                    DiagnosisYear = reader.GetInt32(
+                        reader.GetOrdinal("DiagnosisYear")),
+                    DiagnosisMonth = reader.GetInt32(
+                        reader.GetOrdinal("DiagnosisMonth")),
+                    MonthStart = reader.GetDateTime(
+                        reader.GetOrdinal("MonthStart")),
+                    DiagnosisType = reader.GetString(
+                        reader.GetOrdinal("DiagnosisType")),
+                    TotalDiagnoses = reader.GetInt32(
+                        reader.GetOrdinal("TotalDiagnoses")),
+                    PatientsDiagnosed = reader.GetInt32(
+                        reader.GetOrdinal("PatientsDiagnosed"))
+                });
+            }
+        }
+
+        return new
+        {
+            ConditionSummary = conditionSummary,
+            CommonConditions = commonConditions,
+            MonthlyDiagnoses = monthlyDiagnoses
+        };
+    }
+
+
 }
