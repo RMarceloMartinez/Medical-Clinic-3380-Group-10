@@ -22,7 +22,7 @@ public class NurseController : ControllerBase
     // The nurse's ID comes from the login cookie, never from the request.
     // ASSUMPTION: the NameIdentifier claim holds the user's MemberID. Copy however your other
     // controllers read the current user (e.g. the doctor's ID for Complete) if it differs.
-    private int CurrentNurseId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    private int CurrentNurseId => int.Parse(User.FindFirstValue("UserID")!);
 
     // GET api/nurse/visits?range=today   or   ?range=week
     [HttpGet("visits")]
