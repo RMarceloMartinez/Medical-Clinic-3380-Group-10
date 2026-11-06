@@ -27,8 +27,8 @@ const SECTIONS = [
       default:'Search patients, check balances, see a doctor\'s week.'} },
   { key: 'reports', icon: 'chart', label: 'Reports', roles: ['Admin'],
     description: {default: 'Revenue, appointment activity and patient health summaries.'} },
-  { key: 'nurse-visits', label: 'Visits', roles: ['Nurse'],
-    description: "See today's and this week's visits, record vitals, and view patient charts." },
+  { key: 'nurse-visits', icon: 'calendar', label: 'Visits', roles: ['Nurse'],
+    description: {default: "See today's and this week's visits, record vitals, and view patient charts."} },
 ]
 
 export default function StaffDashboard({ account, onLogout }) {
