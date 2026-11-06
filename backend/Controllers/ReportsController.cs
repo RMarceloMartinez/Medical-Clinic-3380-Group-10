@@ -72,4 +72,26 @@ public class ReportsController : ControllerBase
         return Ok(await _reportService.GetPatientHealthSummaryAsync(
             patientId, cancellationToken));
     }
+
+    [HttpGet("health-trends")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> HealthTrends(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to,
+        CancellationToken cancellationToken)
+    {
+        if (from == default || to == default || from > to)
+        {
+            return BadRequest(new
+            {
+                message = "Please provide a valid date range."
+            });
+        }
+
+        var results = await _reportService.GetHealthTrendsAsync(
+            from, to, cancellationToken);
+
+        return Ok(results);
+    }
+
 }
