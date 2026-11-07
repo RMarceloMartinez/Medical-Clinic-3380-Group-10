@@ -358,6 +358,7 @@ function HealthSummary({ rows }) {
             ))}
         </>
     )
+}
 
     function HealthTrendsReport({ data }) {
         const summary = data.conditionSummary ?? []
@@ -472,4 +473,3 @@ function HealthSummary({ rows }) {
         )
     }
 
-}
