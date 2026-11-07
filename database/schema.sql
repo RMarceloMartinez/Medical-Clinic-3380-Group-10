@@ -338,6 +338,7 @@ CREATE TABLE Appointment(
     Channel VARCHAR(10) NOT NULL,
     CancelReason VARCHAR(200) NULL,
     CancelledBy VARCHAR(7) NULL,
+    CancellationFee NUMERIC(10,2) NULL,
     DeletionFlag BIT NOT NULL,
         
     CONSTRAINT PK_Appointment PRIMARY KEY(AppointmentID),
@@ -358,6 +359,7 @@ CREATE TABLE Appointment(
             AND CancelReason IS NULL
             AND CancelledBy IS NULL)
     ),
+    CONSTRAINT CK_Appointment_CancellationFee CHECK(CancellationFee >= 0),
     CONSTRAINT CK_Appointment_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
