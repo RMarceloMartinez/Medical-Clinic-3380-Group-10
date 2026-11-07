@@ -22,7 +22,7 @@ public class NurseController : ControllerBase
     // The nurse's ID comes from the login cookie, never from the request.
     // ASSUMPTION: the NameIdentifier claim holds the user's MemberID. Copy however your other
     // controllers read the current user (e.g. the doctor's ID for Complete) if it differs.
-    private int CurrentNurseId => int.Parse(User.FindFirstValue("UserID")!);
+    private int CurrentNurseId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     // GET api/nurse/visits?range=today   or   ?range=week
     [HttpGet("visits")]
@@ -62,6 +62,48 @@ public class NurseController : ControllerBase
         }
 
         return Ok(new { recordId });
+    }
+
+    // GET api/nurse/appointments/1000005/vitals   (the saved vitals, to fill in the edit screen)
+    [HttpGet("appointments/{appointmentId:int}/vitals")]
+    public async Task<IActionResult> GetVitals(
+        int appointmentId,
+        CancellationToken cancellationToken)
+    {
+        var vitals = await _nurseService.GetVitalsAsync(CurrentNurseId, appointmentId, cancellationToken);
+
+        if (vitals is null)
+        {
+            return NotFound(new { error = "No saved vitals were found for this visit at your office." });
+        }
+
+        return Ok(vitals);
+    }
+
+    // PUT api/nurse/appointments/1000005/vitals   (replace the saved vitals)
+    [HttpPut("appointments/{appointmentId:int}/vitals")]
+    public async Task<IActionResult> UpdateVitals(
+        int appointmentId,
+        [FromBody] RecordVitalsRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.SystolicBP <= request.DiastolicBP)
+        {
+            return BadRequest(new { error = "Systolic pressure must be higher than diastolic." });
+        }
+
+        var updated = await _nurseService.UpdateVitalsAsync(
+            CurrentNurseId, appointmentId, request, cancellationToken);
+
+        if (!updated)
+        {
+            return Conflict(new
+            {
+                error = "Vitals were not changed. The visit may not be at your office, may no longer be scheduled, or may not have vitals yet."
+            });
+        }
+
+        return Ok(new { appointmentId });
     }
 
     // GET api/nurse/patients/1000010/chart

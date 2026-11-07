@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 import DataTable from '../../components/DataTable'
 
+
+// Same limits as the CK_MedicalRecord_* constraints in the database
 const VITAL_FIELDS = [
   { name: 'systolicBP', label: 'Systolic BP (mmHg)', min: 50, max: 300, step: 1 },
   { name: 'diastolicBP', label: 'Diastolic BP (mmHg)', min: 20, max: 200, step: 1 },
@@ -96,6 +98,7 @@ export default function NurseVisits() {
   const [selected, setSelected] = useState(null) // the visit being worked on
   const [vitals, setVitals] = useState({})
   const [saving, setSaving] = useState(false)
+  const [loadingVitals, setLoadingVitals] = useState(false)
   const [chart, setChart] = useState(null)
 
   // First load
@@ -128,13 +131,26 @@ export default function NurseVisits() {
     setView('list')
   }
 
-  // ----- Record vitals -----
-  function startVitals(visit) {
+  // ----- Record / edit vitals -----
+  // A visit that already has vitals opens in edit mode with the saved numbers filled in
+  async function startVitals(visit) {
     setMessage('')
     setError('')
     setSelected(visit)
     setVitals({})
     setView('vitals')
+
+    if (!visit.vitalsRecorded) return
+
+    setLoadingVitals(true)
+    try {
+      const saved = await api.get(`/nurse/appointments/${visit.appointmentID}/vitals`)
+      setVitals(Object.fromEntries(VITAL_FIELDS.map((f) => [f.name, String(saved[f.name])])))
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoadingVitals(false)
+    }
   }
 
   async function handleSaveVitals() {
@@ -147,8 +163,13 @@ export default function NurseVisits() {
     setError('')
     try {
       const body = Object.fromEntries(VITAL_FIELDS.map((f) => [f.name, Number(vitals[f.name])]))
-      await api.post(`/nurse/appointments/${selected.appointmentID}/vitals`, body)
-      setMessage(`Vitals saved for ${selected.patientName}.`)
+      if (selected.vitalsRecorded) {
+        await api.put(`/nurse/appointments/${selected.appointmentID}/vitals`, body)
+        setMessage(`Vitals updated for ${selected.patientName}.`)
+      } else {
+        await api.post(`/nurse/appointments/${selected.appointmentID}/vitals`, body)
+        setMessage(`Vitals saved for ${selected.patientName}.`)
+      }
       showList()
       await loadVisits()
     } catch (e) {
@@ -193,8 +214,8 @@ export default function NurseVisits() {
       cellClassName: 'row-actions',
       render: (v) => (
         <>
-          <button type="button" disabled={v.vitalsRecorded} onClick={() => startVitals(v)}>
-            Record vitals
+          <button type="button" onClick={() => startVitals(v)}>
+            {v.vitalsRecorded ? 'Edit vitals' : 'Record vitals'}
           </button>
           <button type="button" onClick={() => startChart(v)}>View chart</button>
         </>
@@ -238,11 +259,13 @@ export default function NurseVisits() {
       {/* ---------- Record vitals ---------- */}
       {view === 'vitals' && selected && (
         <div className="panel panel-wide">
-          <h2>Record vitals</h2>
+          <h2>{selected.vitalsRecorded ? 'Edit vitals' : 'Record vitals'}</h2>
           <p>
             <strong>{selected.patientName}</strong> with {selected.doctorName}<br />
             {formatDateTime(selected.appointmentDateTime)}
           </p>
+
+          {loadingVitals && <p>Loading saved vitals…</p>}
 
           <div className="form-grid">
             {VITAL_FIELDS.map((f) => (
@@ -255,6 +278,7 @@ export default function NurseVisits() {
                   min={f.min}
                   max={f.max}
                   value={vitals[f.name] ?? ''}
+                  disabled={loadingVitals}
                   onChange={(e) => setVitals({ ...vitals, [f.name]: e.target.value })}
                 />
               </div>
@@ -262,14 +286,16 @@ export default function NurseVisits() {
           </div>
 
           <p className="field-hint">
-            Vitals can be recorded only once per visit, so check the numbers before saving.
+            {selected.vitalsRecorded
+              ? 'Saving replaces the vitals on file for this visit. They can be changed until the doctor completes the visit.'
+              : 'Check the numbers before saving. You can edit them later, until the doctor completes the visit.'}
           </p>
 
           {error && <p className="error-message">{error}</p>}
 
           <div className="page-actions">
-            <button type="button" className="primary-button" onClick={handleSaveVitals} disabled={saving}>
-              {saving ? 'Saving…' : 'Save vitals'}
+            <button type="button" className="primary-button" onClick={handleSaveVitals} disabled={saving || loadingVitals}>
+              {saving ? 'Saving…' : selected.vitalsRecorded ? 'Save changes' : 'Save vitals'}
             </button>
             <button type="button" onClick={showList} disabled={saving}>Back to visits</button>
           </div>
@@ -323,3 +349,4 @@ export default function NurseVisits() {
     </div>
   )
 }
+

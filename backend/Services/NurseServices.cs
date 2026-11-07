@@ -6,7 +6,7 @@ using Microsoft.Data.SqlClient;
 namespace ClinicApi.Services;
 
 // Database work for the nurse pages. The nurse's ID comes from the login (the controller
-// passes it in), and their office is looked up from dbo.Nurse, never taken from the browser.
+// passes it in), and her office is looked up from dbo.Nurse, never taken from the browser.
 public class NurseService
 {
     // "Today" must be the clinic's date, not the server's: Azure servers run in UTC
@@ -129,6 +129,99 @@ public class NurseService
         var result = await command.ExecuteScalarAsync(cancellationToken);
 
         return result is int id ? id : null;
+    }
+
+    // The vitals already saved for a visit, so the nurse can edit them.
+    // Returns null when the visit is not at this nurse's office or has no vitals yet.
+    public async Task<VitalsResponse?> GetVitalsAsync(
+        int nurseId,
+        int appointmentId,
+        CancellationToken cancellationToken = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+
+        command.CommandText = """
+                            SELECT mr.SystolicBP, mr.DiastolicBP, mr.HeartRate,
+                                   mr.Temperature, mr.WeightPounds, mr.HeightInches
+                            FROM dbo.MedicalRecord AS mr
+                            JOIN dbo.Appointment AS a ON a.AppointmentID = mr.AppointmentID
+                            JOIN dbo.Nurse AS n ON n.OfficeID = a.OfficeID
+                            WHERE mr.AppointmentID = @AppointmentID
+                              AND mr.DeletionFlag = 0
+                              AND a.DeletionFlag = 0
+                              AND n.NurseID = @NurseID
+                              AND n.DeletionFlag = 0;
+                            """;
+
+        command.Parameters.Add("@NurseID", SqlDbType.Int).Value = nurseId;
+        command.Parameters.Add("@AppointmentID", SqlDbType.Int).Value = appointmentId;
+
+        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        if (!await reader.ReadAsync(cancellationToken))
+        {
+            return null;
+        }
+
+        return new VitalsResponse
+        {
+            SystolicBP = reader.GetInt16(reader.GetOrdinal("SystolicBP")),
+            DiastolicBP = reader.GetInt16(reader.GetOrdinal("DiastolicBP")),
+            HeartRate = reader.GetInt16(reader.GetOrdinal("HeartRate")),
+            Temperature = reader.GetDecimal(reader.GetOrdinal("Temperature")),
+            WeightPounds = reader.GetDecimal(reader.GetOrdinal("WeightPounds")),
+            HeightInches = reader.GetDecimal(reader.GetOrdinal("HeightInches"))
+        };
+    }
+
+    // Changes the vitals on a visit's existing record. Returns false when nothing was updated:
+    // the visit is not at this nurse's office, is no longer 'Scheduled', or has no vitals yet.
+    // Only the six vitals change, so notes and diagnoses the doctor adds are left alone.
+    public async Task<bool> UpdateVitalsAsync(
+        int nurseId,
+        int appointmentId,
+        RecordVitalsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+
+        command.CommandText = """
+                            UPDATE mr
+                            SET mr.SystolicBP = @SystolicBP,
+                                mr.DiastolicBP = @DiastolicBP,
+                                mr.HeartRate = @HeartRate,
+                                mr.Temperature = @Temperature,
+                                mr.WeightPounds = @WeightPounds,
+                                mr.HeightInches = @HeightInches
+                            FROM dbo.MedicalRecord AS mr
+                            JOIN dbo.Appointment AS a ON a.AppointmentID = mr.AppointmentID
+                            JOIN dbo.Nurse AS n ON n.OfficeID = a.OfficeID
+                            WHERE mr.AppointmentID = @AppointmentID
+                              AND mr.DeletionFlag = 0
+                              AND a.AppointStatus = 'Scheduled'
+                              AND a.DeletionFlag = 0
+                              AND n.NurseID = @NurseID
+                              AND n.DeletionFlag = 0;
+                            """;
+
+        command.Parameters.Add("@NurseID", SqlDbType.Int).Value = nurseId;
+        command.Parameters.Add("@AppointmentID", SqlDbType.Int).Value = appointmentId;
+        command.Parameters.Add("@SystolicBP", SqlDbType.SmallInt).Value = request.SystolicBP;
+        command.Parameters.Add("@DiastolicBP", SqlDbType.SmallInt).Value = request.DiastolicBP;
+        command.Parameters.Add("@HeartRate", SqlDbType.SmallInt).Value = request.HeartRate;
+        AddDecimal(command, "@Temperature", 4, 1, request.Temperature);
+        AddDecimal(command, "@WeightPounds", 5, 1, request.WeightPounds);
+        AddDecimal(command, "@HeightInches", 4, 1, request.HeightInches);
+
+        int rowsChanged = await command.ExecuteNonQueryAsync(cancellationToken);
+
+        return rowsChanged > 0;
     }
 
     // A patient's chart. Returns null when the patient has no appointment at this nurse's office.
