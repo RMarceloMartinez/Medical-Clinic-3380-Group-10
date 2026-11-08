@@ -23,16 +23,19 @@ public class ReferralService
         command.CommandText =   """
                                 SELECT p.PatientID AS Id,
                                 m.FirstName + ' ' + m.LastName
-                                + ' (born ' + CONVERT(VARCHAR(10), m.DateOfBirth, 23) + ')' AS Name
-                                FROM dbo.PatientDoctor AS pd
-                                JOIN dbo.Patient AS p ON p.PatientID = pd.PatientID
-                                JOIN dbo.Member  AS m ON m.MemberID  = p.PatientID
-                                WHERE pd.DoctorID = @DoctorID
-                                AND pd.RolePlayed = 'Primary'
-                                AND pd.DeletionFlag = 0
-                                AND p.DeletionFlag = 0
+                                + ' (born ' + CONVERT(VARCHAR(10), m.DateOfBirth, 23) + ')'
+                                + CASE WHEN pd.PatientID IS NOT NULL THEN ' · your patient' ELSE '' END AS Name
+                                FROM dbo.Patient AS p
+                                JOIN dbo.Member AS m ON m.MemberID = p.PatientID
+                                LEFT JOIN dbo.PatientDoctor AS pd
+                                    ON pd.PatientID = p.PatientID
+                                    AND pd.DoctorID = @DoctorID
+                                    AND pd.RolePlayed = 'Primary'
+                                    AND pd.DeletionFlag = 0
+                                WHERE p.DeletionFlag = 0
                                 AND m.DeletionFlag = 0
-                                ORDER BY m.LastName, m.FirstName;
+                                ORDER BY CASE WHEN pd.PatientID IS NULL THEN 1 ELSE 0 END,
+                                         m.LastName, m.FirstName;
                                 """;
         command.Parameters.Add("@DoctorID",SqlDbType.Int).Value = doctorId;
 
