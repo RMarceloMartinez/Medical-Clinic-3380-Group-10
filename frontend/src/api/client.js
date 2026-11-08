@@ -13,6 +13,7 @@ async function getCsrfToken() {
 }
 function errorMessage(data, status) {
     if(data?.message) return data.message
+    if(data?.error) return data.error
     if(data?.errors){
         const first = Object.values(data.errors)[0]
         if(Array.isArray(first) && first.length > 0) return first[0]
