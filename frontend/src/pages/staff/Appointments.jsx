@@ -223,7 +223,7 @@ export default function Appointments({ role }) {
     }
     // Check whether the cancellation fee applies
     const hoursUntil = hoursUntilCentral(toCancel.appointmentDateTime)
-    const feeApplies = cancelledBy !== 'Doctor' && hoursUntil < 24
+    const feeApplies = toCancel.appointStatus === 'Scheduled' && cancelledBy !== 'Doctor' && hoursUntil < 24
 
     if (feeApplies && !window.confirm(
       hoursUntil < 0
@@ -361,12 +361,12 @@ export default function Appointments({ role }) {
                     </td>
                     <td className="row-actions">
                       {a.appointStatus === 'Scheduled' && canManage && (
-                        <>
-                          <button type="button" onClick={() => startEdit(a)}>Edit</button>
-                          <button type="button" onClick={() => startCancel(a)}>Cancel</button>
-                        </>
+                        <button type="button" onClick={() => startEdit(a)}>Edit</button>
                       )}
-                      {a.appointStatus === 'Scheduled' && isDoctor && hasAppointmentStarted(a.appointmentDateTime) &&(
+                      {(a.appointStatus === 'Scheduled' || a.appointStatus === 'Completed') && canManage && (
+                        <button type="button" onClick={() => startCancel(a)}>Cancel</button>
+                      )}
+                      {a.appointStatus === 'Scheduled' && isDoctor && (
                         <button type="button" onClick={() => handleComplete(a)}>Complete</button>
                       )}
                       {isAdmin && a.appointStatus !== 'Completed' && a.hasCompletedPayments === false && (
