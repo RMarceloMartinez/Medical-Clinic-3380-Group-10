@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 import DataTable from '../../components/DataTable'
 
+// Nurse page. One screen at a time:
+//   'list'   = today's / this week's visits at the nurse's own office
+//   'vitals' = record vitals for one visit (creates its medical record), or edit the saved ones
+//   'chart'  = one patient's allergies, conditions and past visits
+// The office is decided by the server from the logged-in nurse, never sent from here.
 
 // Same limits as the CK_MedicalRecord_* constraints in the database
 const VITAL_FIELDS = [
@@ -27,6 +32,21 @@ function formatDateTime(value) {
 
 function formatShortDate(value) {
   return value ? new Date(value).toLocaleDateString() : ''
+}
+
+// "Nov 11 at 10:00 AM", used in the success messages
+function formatWhen(value) {
+  const day = new Date(value).toLocaleDateString([], { month: 'short', day: 'numeric' })
+  return `${day} at ${formatTime(value)}`
+}
+
+// The numbers that were saved, for the success message
+function describeVitals(v) {
+  return `BP ${v.systolicBP}/${v.diastolicBP}, heart rate ${v.heartRate} bpm, temperature ${v.temperature} °F, weight ${v.weightPounds} lb, height ${v.heightInches} in`
+}
+
+function hasNotes(visit) {
+  return Boolean(visit.clinicalNotes || visit.treatmentPlan || visit.followUp)
 }
 
 // Returns the first problem with the entered vitals, or '' if they look fine
@@ -165,10 +185,10 @@ export default function NurseVisits() {
       const body = Object.fromEntries(VITAL_FIELDS.map((f) => [f.name, Number(vitals[f.name])]))
       if (selected.vitalsRecorded) {
         await api.put(`/nurse/appointments/${selected.appointmentID}/vitals`, body)
-        setMessage(`Vitals updated for ${selected.patientName}.`)
+        setMessage(`Updated vitals for ${selected.patientName}, ${formatWhen(selected.appointmentDateTime)}: ${describeVitals(body)}.`)
       } else {
         await api.post(`/nurse/appointments/${selected.appointmentID}/vitals`, body)
-        setMessage(`Vitals saved for ${selected.patientName}.`)
+        setMessage(`Recorded vitals for ${selected.patientName}, ${formatWhen(selected.appointmentDateTime)}: ${describeVitals(body)}.`)
       }
       showList()
       await loadVisits()
@@ -250,7 +270,7 @@ export default function NurseVisits() {
               rows={visits}
               rowKey={(v) => v.appointmentID}
               filterLabel="Filter visits"
-              emptyMessage={`No scheduled visits ${range === 'today' ? 'today' : 'in the next 7 days'}.`}
+              emptyMessage={`No scheduled visits at your office ${range === 'today' ? 'today' : 'this week'}.`}
             />
           )}
         </>
@@ -338,6 +358,22 @@ export default function NurseVisits() {
                 filterLabel="Filter past visits"
                 emptyMessage="No completed visits yet."
               />
+
+              {chart.pastVisits.some(hasNotes) && (
+                <>
+                  <h3>Notes from past visits</h3>
+                  {chart.pastVisits.filter(hasNotes).map((p) => (
+                    <div key={p.appointmentID}>
+                      <p>
+                        <strong>{formatShortDate(p.appointmentDateTime)}</strong> with {p.doctorName}
+                      </p>
+                      {p.clinicalNotes && <p>Clinical notes: {p.clinicalNotes}</p>}
+                      {p.treatmentPlan && <p>Treatment plan: {p.treatmentPlan}</p>}
+                      {p.followUp && <p>Follow-up: {p.followUp}</p>}
+                    </div>
+                  ))}
+                </>
+              )}
             </>
           )}
 
@@ -349,4 +385,3 @@ export default function NurseVisits() {
     </div>
   )
 }
-

@@ -280,7 +280,10 @@ public class NurseService
                                    mr.SystolicBP,
                                    mr.DiastolicBP,
                                    mr.HeartRate,
-                                   mr.WeightPounds
+                                   mr.WeightPounds,
+                                   mr.ClinicalNotes,
+                                   mr.TreatmentPlan,
+                                   mr.FollowUp
                             FROM dbo.Appointment AS a
                             JOIN dbo.Member AS d ON d.MemberID = a.DoctorID
                             JOIN dbo.Office AS o ON o.OfficeID = a.OfficeID
@@ -351,7 +354,16 @@ public class NurseService
                     : reader.GetInt16(reader.GetOrdinal("HeartRate")),
                 WeightPounds = reader.IsDBNull(reader.GetOrdinal("WeightPounds"))
                     ? null
-                    : reader.GetDecimal(reader.GetOrdinal("WeightPounds"))
+                    : reader.GetDecimal(reader.GetOrdinal("WeightPounds")),
+                ClinicalNotes = reader.IsDBNull(reader.GetOrdinal("ClinicalNotes"))
+                    ? null
+                    : reader.GetString(reader.GetOrdinal("ClinicalNotes")),
+                TreatmentPlan = reader.IsDBNull(reader.GetOrdinal("TreatmentPlan"))
+                    ? null
+                    : reader.GetString(reader.GetOrdinal("TreatmentPlan")),
+                FollowUp = reader.IsDBNull(reader.GetOrdinal("FollowUp"))
+                    ? null
+                    : reader.GetString(reader.GetOrdinal("FollowUp"))
             });
         }
 
