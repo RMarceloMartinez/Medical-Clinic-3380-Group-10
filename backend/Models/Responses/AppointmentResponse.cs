@@ -29,5 +29,7 @@ public class AppointmentResponse
     public string DoctorName { get; set; } = string.Empty;
 
     public string OfficeAddress { get; set; } = string.Empty;
+
+    public string? ReferredBy { get; set; }
     
 }
