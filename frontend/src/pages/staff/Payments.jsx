@@ -58,7 +58,7 @@ export default function Payments() {
       return
     }
     if (!/^\d+(\.\d{1,2})?$/.test(form.amount) || amount < 0.01 || amount > 99999999.99) {
-      setError('Enter an amount from $0.01 to $99,999,999.99 with at most two decimal places.')
+      setError('Enter an amount between $0.01 to $99,999,999.99')
       return
     }
     if (!Number.isInteger(installment) || installment < 1 || installment > 2147483647) {
@@ -93,7 +93,23 @@ export default function Payments() {
       }])
 
       setForm({ ...emptyForm, date: today() })
-      setMessage(`Payment of $${amount.toFixed(2)} recorded.`)
+      if (request.payStatus === 'Completed' && appointment?.patientID) {
+        try {
+          const balance = await api.get(`/queries/balance?patientId=${appointment.patientID}`)
+          const remaining = Number(balance.balance)
+          const balanceText = remaining < 0
+            ? `has a credit balance of $${Math.abs(remaining).toFixed(2)}`
+            : `now owes $${remaining.toFixed(2)}`
+
+          setMessage(`Payment of $${amount.toFixed(2)} saved. ${appointment.patientName} ${balanceText}.`)
+        } catch (balanceError) {
+          setMessage(`Payment of $${amount.toFixed(2)} saved, but the updated balance could not be loaded.`)
+        }
+      } else if (request.payStatus === 'Pending') {
+        setMessage(`Pending payment of $${amount.toFixed(2)} recorded. The balance has not changed.`)
+      } else {
+        setMessage(`Payment of $${amount.toFixed(2)} saved.`)
+      }
     } catch (e) {
       setError(e.message || 'Could not record payment.')
     } finally {
@@ -127,7 +143,22 @@ export default function Payments() {
               <option key={a.appointmentID} value={a.appointmentID}>{appointmentLabel(a)}</option>
             ))}
           </select>
+          {form.appointmentId && (() => {
+            const appointment = appointments.find(
+              (a) => a.appointmentID === Number(form.appointmentId)
+            )
 
+            return appointment && (
+              <p className="field-hint">
+                Appointment total: ${Number(appointment.totalCost).toFixed(2)}
+              </p>
+            )
+          })()}
+          {appointments.find((a) => a.appointmentID === Number(form.appointmentId))?.appointStatus === 'Cancelled' && (
+            <p className="field-hint">
+              This visit was cancelled; only an outstanding cancellation fee can be paid.
+            </p>
+          )}
           <label htmlFor="amount">Payment amount ($)</label>
           <input id="amount" type="number" placeholder="Enter amount" min="0" step="0.01"
             value={form.amount} onChange={(e) => update('amount', e.target.value)} />

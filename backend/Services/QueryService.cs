@@ -71,7 +71,9 @@ public class QueryService
         {
             Billed = reader.GetDecimal(reader.GetOrdinal("Billed")),
             Paid = reader.GetDecimal(reader.GetOrdinal("Paid")),
-            Balance = reader.GetDecimal(reader.GetOrdinal("Balance"))
+            Balance = reader.GetDecimal(reader.GetOrdinal("Balance")),
+            Visits = reader.GetDecimal(reader.GetOrdinal("Visits")),
+            Fees = reader.GetDecimal(reader.GetOrdinal("Fees"))
         };
     }
 

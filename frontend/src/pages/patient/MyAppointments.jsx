@@ -1,6 +1,22 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 
+function hoursUntilCentral(value) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date())
+
+  const f = Object.fromEntries(parts.map(p => [p.type, p.value]))
+  const centralNow =
+    `${f.year}-${f.month}-${f.day}T${f.hour}:${f.minute}:${f.second}`
+
+  return (Date.parse(value + 'Z') - Date.parse(centralNow + 'Z')) / 3600000
+}
+
+
 function formatDateTime(value) {
   return new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
 }
@@ -54,9 +70,18 @@ export default function MyAppointments({ onBook }) {
       setError('Please tell us why you are cancelling.')
       return
     }
+    // Check whether the $25 fee applies
+    const hoursUntil = hoursUntilCentral(toCancel.appointmentDateTime)
+    const feeApplies = hoursUntil < 24
+
+    if (feeApplies && !window.confirm(
+      'This visit is less than 24 hours away. Cancelling adds a $25 fee. Cancel anyway?'
+    )) return
     try {
       await api.post(`/me/appointments/${toCancel.appointmentID}/cancel`, { cancelReason: reason.trim() })
-      setMessage(`Your appointment on ${formatDateTime(toCancel.appointmentDateTime)} was cancelled.`)
+      setMessage(feeApplies
+        ? 'Your appointment was cancelled. A $25 late-cancellation fee was added to your balance.'
+        : `Your appointment on ${formatDateTime(toCancel.appointmentDateTime)} was cancelled.`)
       setToCancel(null)
       setView('upcoming')
       await load()

@@ -91,27 +91,53 @@ public class PaymentService
 
         using var transaction = connection.BeginTransaction();
 
-        // Coordinate payments for the same appointment.
+        // Coordinate payments for the same appointment
         using (var appointmentCommand = connection.CreateCommand())
         {
             appointmentCommand.Transaction = transaction;
             appointmentCommand.CommandText = """
-                SELECT AppointmentID
-                FROM dbo.Appointment WITH (UPDLOCK, HOLDLOCK)
-                WHERE AppointmentID = @AppointmentID;
+                SELECT a.AppointStatus, a.CancellationFee,
+                    ISNULL((
+                        SELECT SUM(pd.AmountApplied)
+                        FROM dbo.Payment AS p
+                        JOIN dbo.PaymentDetail AS pd
+                            ON pd.PaymentID = p.PaymentID
+                        WHERE p.AppointmentID = a.AppointmentID
+                          AND p.PayStatus = 'Completed'
+                          AND p.DeletionFlag = 0
+                          AND pd.DeletionFlag = 0
+                    ), 0) AS AlreadyPaid
+                FROM dbo.Appointment AS a WITH (UPDLOCK, HOLDLOCK)
+                WHERE a.AppointmentID = @AppointmentID
+                  AND a.DeletionFlag = 0;
                 """;
 
+            // Status and cancellation fee
+            // Total completed payments for this visit
             appointmentCommand.Parameters
                 .Add("@AppointmentID", SqlDbType.Int)
                 .Value = request.AppointmentID;
 
-            var appointment = await appointmentCommand
-                .ExecuteScalarAsync(cancellationToken);
+            using var reader = await appointmentCommand
+                .ExecuteReaderAsync(cancellationToken);
 
-            if (appointment is null)
+            if (!await reader.ReadAsync(cancellationToken))
                 throw new KeyNotFoundException(
                     "Appointment was not found.");
+
+            if (reader.GetString(0) == "Cancelled")
+            {
+                decimal fee = reader.IsDBNull(1) ? 0 : reader.GetDecimal(1);
+                decimal paid = reader.GetDecimal(2);
+                decimal remaining = Math.Max(0, fee - paid);
+                decimal amount = request.Details.Sum(d => d.AmountApplied);
+
+                if (fee == 0 || amount > remaining)
+                    throw new ArgumentException(
+                        $"This visit was cancelled; only ${remaining:0.00} of the cancellation fee remains to be paid.");
+            }
         }
+
 
         int paymentId;
 
