@@ -5,6 +5,7 @@ import Patients from './Patients'
 import Payments from './Payments'
 import Queries from './Queries'
 import Reports from './Reports'
+import Referrals from './Referrals'
 import NurseVisits from '../nurse/NurseVisits'
 import { Navigate, useNavigate, useParams } from 'react-router'
 
@@ -27,6 +28,8 @@ const SECTIONS = [
       default:'Search patients, check balances, see a doctor\'s week.'} },
   { key: 'reports', icon: 'chart', label: 'Reports', roles: ['Admin'],
     description: {default: 'Revenue, appointment activity and patient health summaries.'} },
+  { key: 'referrals', icon: 'stethoscope', label: 'Referrals', roles: ['Doctor'],
+    description: {default: 'Refer your patients to a specialist and see the referrals you sent.'} },
   { key: 'nurse-visits', icon: 'calendar', label: 'Visits', roles: ['Nurse'],
     description: {default: "See today's and this week's visits, record vitals, and view patient charts."} },
 ]
@@ -52,6 +55,7 @@ export default function StaffDashboard({ account, onLogout }) {
       case 'patients': return <Patients />
       case 'payments': return <Payments />
       case 'queries': return <Queries role={role} />
+      case 'referrals': return <Referrals />
       case 'reports': return <Reports role={role} />
       case 'nurse-visits': return <NurseVisits />
       default: return <StaffHome account={account} sections={allowed} onOpen={setSection} />
