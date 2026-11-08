@@ -200,9 +200,17 @@ export default function Appointments({ role }) {
       return
     }
     const body = toRequestBody(form)
+
+    // Names for the message, without the "(born ...)" / "(Cardiology · $150)" part
+    const patientName = lookups.patients.find((p) => String(p.id) === form.patientID)?.name.split(' (')[0] ?? 'the patient'
+    const doctorName = lookups.doctors.find((d) => String(d.id) === form.doctorID)?.name.split(' (')[0] ?? 'the doctor'
+    const when = formatDateTime(form.appointmentDateTime)
+
     const ok = editingId
-      ? await run(() => api.put(`/appointments/${editingId}`, body), 'Appointment updated.')
-      : await run(() => api.post('/appointments', body), 'Appointment booked.')
+      ? await run(() => api.put(`/appointments/${editingId}`, body),
+          `Saved changes to ${patientName}'s appointment with ${doctorName}, ${when}.`)
+      : await run(() => api.post('/appointments', body),
+          `Booked ${patientName} with ${doctorName}, ${when}.`)
     if (ok) showList()
   }
 
