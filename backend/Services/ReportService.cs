@@ -250,5 +250,58 @@ public class ReportService
         };
     }
 
+    // R3: the visits behind a report. NULL filters are skipped by the procedure.
+    public async Task<List<VisitDetailRow>> GetVisitDetailsAsync(DateTime? from, DateTime? to, int? patientId,
+                                                CancellationToken cancellationToken = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
 
+        using var command = connection.CreateCommand();
+
+        command.CommandText = """
+                              EXEC dbo.usp_RefreshVisitDetailsReport
+                              @FromDate = @FromDate, @ToDate = @ToDate, @PatientID = @PatientID;
+                              SELECT AppointmentID, VisitDateTime,
+                              PatientFirstName + ' ' + PatientLastName AS PatientName,
+                              'Dr. ' + DoctorFirstName + ' ' + DoctorLastName AS DoctorName,
+                              Specialty, OfficeStreetAddress, AppointStatus, CancelledBy,
+                              TotalCost, AmountPaid, CancellationFee, Diagnoses
+                              FROM dbo.VisitDetailsReport
+                              WHERE DeletionFlag = 0
+                              ORDER BY VisitDateTime;
+                              """;
+
+        command.Parameters.Add("@FromDate", SqlDbType.Date).Value = (object?)from ?? DBNull.Value;
+        command.Parameters.Add("@ToDate", SqlDbType.Date).Value = (object?)to ?? DBNull.Value;
+        command.Parameters.Add("@PatientID", SqlDbType.Int).Value = (object?)patientId ?? DBNull.Value;
+
+        var items = new List<VisitDetailRow>();
+        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            int cancelledBy = reader.GetOrdinal("CancelledBy");
+            int fee = reader.GetOrdinal("CancellationFee");
+            int diagnoses = reader.GetOrdinal("Diagnoses");
+
+            items.Add(new VisitDetailRow
+            {
+                AppointmentID = reader.GetInt32(reader.GetOrdinal("AppointmentID")),
+                VisitDateTime = reader.GetDateTime(reader.GetOrdinal("VisitDateTime")),
+                PatientName = reader.GetString(reader.GetOrdinal("PatientName")),
+                DoctorName = reader.GetString(reader.GetOrdinal("DoctorName")),
+                Specialty = reader.GetString(reader.GetOrdinal("Specialty")),
+                OfficeStreetAddress = reader.GetString(reader.GetOrdinal("OfficeStreetAddress")),
+                AppointStatus = reader.GetString(reader.GetOrdinal("AppointStatus")),
+                CancelledBy = reader.IsDBNull(cancelledBy) ? null : reader.GetString(cancelledBy),
+                TotalCost = reader.GetDecimal(reader.GetOrdinal("TotalCost")),
+                AmountPaid = reader.GetDecimal(reader.GetOrdinal("AmountPaid")),
+                CancellationFee = reader.IsDBNull(fee) ? null : reader.GetDecimal(fee),
+                Diagnoses = reader.IsDBNull(diagnoses) ? null : reader.GetString(diagnoses)
+            });
+        }
+
+        return items;
+    }
 }
