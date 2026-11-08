@@ -7,6 +7,7 @@ import Queries from './Queries'
 import Reports from './Reports'
 import Referrals from './Referrals'
 import NurseVisits from '../nurse/NurseVisits'
+import DoctorVisits from '../doctor/DoctorVisits'
 import { Navigate, useNavigate, useParams } from 'react-router'
 
 // Every staff page, who may open it (same roles as the API), and what it is for.
@@ -30,6 +31,8 @@ const SECTIONS = [
     description: {default: 'Revenue, appointment activity and patient health summaries.'} },
   { key: 'referrals', icon: 'stethoscope', label: 'Referrals', roles: ['Doctor'],
     description: {default: 'Refer your patients to a specialist and see the referrals you sent.'} },
+  { key: 'doctor-visits', icon: 'clock', label: 'My visits', roles: ['Doctor'],
+    description: {default: 'Open your visits, read the vitals, write notes and complete the visit.'} },
   { key: 'nurse-visits', icon: 'calendar', label: 'Visits', roles: ['Nurse'],
     description: {default: "See today's and this week's visits, record vitals, and view patient charts."} },
 ]
@@ -58,6 +61,7 @@ export default function StaffDashboard({ account, onLogout }) {
       case 'referrals': return <Referrals />
       case 'reports': return <Reports role={role} />
       case 'nurse-visits': return <NurseVisits />
+      case 'doctor-visits': return <DoctorVisits />
       default: return <StaffHome account={account} sections={allowed} onOpen={setSection} />
     }
   }

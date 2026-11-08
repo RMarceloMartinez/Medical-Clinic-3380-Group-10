@@ -31,6 +31,8 @@ builder.Services.AddScoped<QueryService>();
 
 builder.Services.AddScoped<ReferralService>();
 
+builder.Services.AddScoped<DoctorService>();
+
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
