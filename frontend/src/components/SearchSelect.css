@@ -1,0 +1,40 @@
+.ss {
+  position: relative;          /* the anchor */
+}
+
+.ss input {
+  width: 100%;
+}
+
+.ss-list {
+  position: absolute;          /* floats, placed against .ss */
+  top: 100%;                   /* right under the input */
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin: 4px 0 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.ss-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+}
+
+.ss-option:hover {
+  background: var(--blue-50);
+}
+
+.ss-empty {
+  padding: 0.4rem 0.6rem;
+  color: var(--muted);
+}

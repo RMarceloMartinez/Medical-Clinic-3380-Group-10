@@ -43,26 +43,30 @@ public class AppointmentService
                 GROUP BY r.SpecialistID
             )
             SELECT b.DoctorID,
-                   ds.OfficeID,
-                   m.FirstName + ' ' + m.LastName AS DoctorName,
-                   d.Specialty,
-                   o.StreetAddress + ', ' + o.City AS OfficeAddress,
-                   STRING_AGG(ds.DayOfWeek, ', ')
+                    ds.OfficeID,
+                    m.FirstName + ' ' + m.LastName AS DoctorName,
+                    d.Specialty,
+                    o.StreetAddress + ', ' + o.City AS OfficeAddress,
+                    STRING_AGG(ds.DayOfWeek, ', ')
                        WITHIN GROUP (ORDER BY (CHARINDEX(ds.DayOfWeek, 'MonTueWedThuFriSatSun') + 2) / 3)
                        AS WorkDays,
-                   CONVERT(VARCHAR(5), o.OpeningTime, 108) + '-'
+                    CONVERT(VARCHAR(5), o.OpeningTime, 108) + '-'
                        + CONVERT(VARCHAR(5), o.ClosingTime, 108) AS OfficeHours,
-                   b.ReferralID,
-                   sp.VisitFee AS VisitFee
+                    b.ReferralID,
+                    'Dr. ' + rm.FirstName + ' ' + rm.LastName AS ReferredBy,
+                    r.DateIssued AS ReferralDate,
+                    sp.VisitFee AS VisitFee
             FROM Bookable AS b
             JOIN dbo.Doctor AS d ON d.DoctorID = b.DoctorID AND d.DeletionFlag = 0
             JOIN dbo.Specialty AS sp ON sp.SpecialtyName = d.Specialty AND sp.DeletionFlag = 0
             JOIN dbo.Member AS m ON m.MemberID = b.DoctorID AND m.DeletionFlag = 0
             JOIN dbo.DoctorSchedule AS ds ON ds.DoctorID = b.DoctorID AND ds.DeletionFlag = 0
             JOIN dbo.Office AS o ON o.OfficeID = ds.OfficeID AND o.DeletionFlag = 0
+            LEFT JOIN dbo.Referral AS r ON r.ReferralID = b.ReferralID
+            LEFT JOIN dbo.Member AS rm ON rm.MemberID = r.PrimaryID
             GROUP BY b.DoctorID, ds.OfficeID, m.FirstName, m.LastName, d.Specialty,
             o.StreetAddress, o.City, o.OpeningTime, o.ClosingTime, b.ReferralID,
-            sp.VisitFee
+            sp.VisitFee, rm.FirstName, rm.LastName, r.DateIssued
             ORDER BY b.ReferralID, m.LastName;
             """;
 
@@ -73,7 +77,7 @@ public class AppointmentService
 
         while (await reader.ReadAsync(cancellationToken))
         {
-            rows.Add(new BookableDoctorRow
+                        rows.Add(new BookableDoctorRow
             {
                 DoctorID = reader.GetInt32(reader.GetOrdinal("DoctorID")),
                 OfficeID = reader.GetInt32(reader.GetOrdinal("OfficeID")),
@@ -85,6 +89,12 @@ public class AppointmentService
                 ReferralID = reader.IsDBNull(reader.GetOrdinal("ReferralID"))
                     ? null
                     : reader.GetInt32(reader.GetOrdinal("ReferralID")),
+                ReferredBy = reader.IsDBNull(reader.GetOrdinal("ReferredBy"))
+                    ? null
+                    : reader.GetString(reader.GetOrdinal("ReferredBy")),
+                ReferralDate = reader.IsDBNull(reader.GetOrdinal("ReferralDate"))
+                    ? null
+                    : reader.GetDateTime(reader.GetOrdinal("ReferralDate")),
                 VisitFee = reader.GetDecimal(reader.GetOrdinal("VisitFee"))
             });
         }
@@ -115,9 +125,17 @@ public class AppointmentService
                                     )
         OUTPUT INSERTED.AppointmentID
         INTO @NewAppointment(AppointmentID)
-        SELECT @OfficeID, @DoctorID, @PatientID, @ReferralID,
-               @AppointmentDateTime, sp.VisitFee, @Channel, 'Scheduled',
-               NULL, NULL, 0
+        SELECT @OfficeID, @DoctorID, @PatientID,
+        COALESCE(@ReferralID,
+            (SELECT MAX(r.ReferralID)
+            FROM dbo.Referral AS r
+            WHERE r.PatientID = @PatientID
+            AND r.SpecialistID = @DoctorID
+           AND r.RefStatus = 'Scheduled'
+           AND r.DeletionFlag = 0
+           AND r.DateIssued <= CAST(@AppointmentDateTime AS DATE))),
+           @AppointmentDateTime, sp.VisitFee, @Channel, 'Scheduled',
+           NULL, NULL, 0
         FROM dbo.Doctor AS d
         JOIN dbo.Specialty AS sp ON sp.SpecialtyName = d.Specialty
         WHERE d.DoctorID = @DoctorID;
@@ -156,11 +174,14 @@ public class AppointmentService
                             SELECT a.*,
                                    p.FirstName + ' ' + p.LastName AS PatientName,
                                    d.FirstName + ' ' + d.LastName AS DoctorName,
-                                   o.StreetAddress + ', ' + o.City AS OfficeAddress
+                                   o.StreetAddress + ', ' + o.City AS OfficeAddress,
+                                   'Dr. ' + rm.FirstName + ' ' + rm.LastName AS ReferredBy
                             FROM dbo.Appointment AS a
                             JOIN dbo.Member AS p ON p.MemberID = a.PatientID
                             JOIN dbo.Member AS d ON d.MemberID = a.DoctorID
                             JOIN dbo.Office AS o ON o.OfficeID = a.OfficeID
+                            LEFT JOIN dbo.Referral AS r  ON r.ReferralID = a.ReferralID
+                            LEFT JOIN dbo.Member   AS rm ON rm.MemberID  = r.PrimaryID
                             WHERE a.AppointmentID = @AppointmentID
                             AND a.DeletionFlag = 0;
                             """;
@@ -194,11 +215,14 @@ public class AppointmentService
                             SELECT a.*,
                                    p.FirstName + ' ' + p.LastName AS PatientName,
                                    d.FirstName + ' ' + d.LastName AS DoctorName,
-                                   o.StreetAddress + ', ' + o.City AS OfficeAddress
+                                   o.StreetAddress + ', ' + o.City AS OfficeAddress,
+                                   'Dr. ' + rm.FirstName + ' ' + rm.LastName AS ReferredBy
                             FROM dbo.Appointment AS a
                             JOIN dbo.Member AS p ON p.MemberID = a.PatientID
                             JOIN dbo.Member AS d ON d.MemberID = a.DoctorID
                             JOIN dbo.Office AS o ON o.OfficeID = a.OfficeID
+                            LEFT JOIN dbo.Referral AS r  ON r.ReferralID = a.ReferralID
+                            LEFT JOIN dbo.Member   AS rm ON rm.MemberID  = r.PrimaryID
                             WHERE a.DeletionFlag = 0
                             AND (@DoctorID  IS NULL OR a.DoctorID      = @DoctorID)
                             AND (@PatientID IS NULL OR a.PatientID     = @PatientID)
@@ -377,7 +401,10 @@ public class AppointmentService
                 : reader.GetString(reader.GetOrdinal("CancelledBy")),
             PatientName = reader.GetString(reader.GetOrdinal("PatientName")),
             DoctorName = reader.GetString(reader.GetOrdinal("DoctorName")),
-            OfficeAddress = reader.GetString(reader.GetOrdinal("OfficeAddress"))  
+            OfficeAddress = reader.GetString(reader.GetOrdinal("OfficeAddress")),
+            ReferredBy = reader.IsDBNull(reader.GetOrdinal("ReferredBy"))
+                ?null
+                :reader.GetString(reader.GetOrdinal("ReferredBy"))
         };
     }
 

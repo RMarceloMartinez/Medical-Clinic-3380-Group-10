@@ -11,5 +11,9 @@ public class BookableDoctorRow
     public string WorkDays { get; set; } = string.Empty;      // e.g. "Mon, Wed, Fri"
     public string OfficeHours { get; set; } = string.Empty;   // e.g. "08:00-17:00"
     public int? ReferralID { get; set; }                       // null = primary doctor
+
+    public string? ReferredBy { get; set; }
+
+    public DateTime? ReferralDate { get; set; }
     public decimal VisitFee { get; set; }
 }

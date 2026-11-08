@@ -121,7 +121,10 @@ export default function MyAppointments({ onBook }) {
               {upcoming.map((a) => (
                 <tr key={a.appointmentID}>
                   <td>{formatDateTime(a.appointmentDateTime)}</td>
-                  <td>{a.doctorName}</td>
+                                    <td>
+                    {a.doctorName}
+                    {a.referredBy && <div className="cell-sub">Referred by {a.referredBy}</div>}
+                  </td>
                   <td>{a.officeAddress}</td>
                   <td>${Number(a.totalCost).toFixed(2)}</td>
                   <td><button type="button" onClick={() => startCancel(a)}>Cancel</button></td>
@@ -144,7 +147,10 @@ export default function MyAppointments({ onBook }) {
               {past.map((a) => (
                 <tr key={a.appointmentID}>
                   <td>{formatDateTime(a.appointmentDateTime)}</td>
-                  <td>{a.doctorName}</td>
+                                    <td>
+                    {a.doctorName}
+                    {a.referredBy && <div className="cell-sub">Referred by {a.referredBy}</div>}
+                  </td>
                   <td>{a.officeAddress}</td>
                   <td>${Number(a.totalCost).toFixed(2)}</td>
                   <td>

@@ -321,7 +321,10 @@ export default function Appointments({ role }) {
                       <div className="cell-sub">{formatTime(a.appointmentDateTime)} · {a.channel}</div>
                     </td>
                     <td>{a.patientName}</td>
-                    <td>{a.doctorName}</td>
+                    <td>
+                      {a.doctorName}
+                      {a.referredBy && <div className="cell-sub">Referred by {a.referredBy}</div>}
+                    </td>
                     <td>{a.officeAddress}</td>
                     <td>${Number(a.totalCost).toFixed(2)}</td>
                     <td>
