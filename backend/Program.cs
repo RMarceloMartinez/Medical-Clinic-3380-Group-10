@@ -33,6 +33,8 @@ builder.Services.AddScoped<ReferralService>();
 
 builder.Services.AddScoped<DoctorService>();
 
+builder.Services.AddScoped<EmployeeService>();
+
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
