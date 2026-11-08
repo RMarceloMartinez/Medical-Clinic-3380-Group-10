@@ -293,3 +293,35 @@ BEGIN
     END;
 END;
 GO
+
+--Cannot delete a completed or paid appointment
+CREATE OR ALTER TRIGGER dbo.TR_Appointment_PreventDeleteCompletedOrPaid
+ON dbo.Appointment
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT (UPDATE(DeletionFlag)) RETURN;
+
+    IF EXISTS (
+        SELECT 1
+        FROM deleted AS d
+        JOIN inserted AS i ON i.AppointmentID = d.AppointmentID
+        WHERE d.DeletionFlag = 0
+          AND i.DeletionFlag = 1
+          AND (    i.AppointStatus = 'Completed'
+                OR EXISTS (SELECT 1
+                           FROM dbo.Payment AS p
+                           WHERE p.AppointmentID = i.AppointmentID
+                             AND p.PayStatus = 'Completed'
+                             AND p.DeletionFlag = 0))
+    )
+    BEGIN
+        ROLLBACK TRANSACTION;
+        THROW 50009,
+            'A completed or paid visit can''t be deleted, because it is part of the clinic''s records.',
+            1;
+    END;
+END;
+GO
