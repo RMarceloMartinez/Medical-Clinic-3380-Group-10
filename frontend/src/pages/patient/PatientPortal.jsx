@@ -29,7 +29,7 @@ export default function PatientPortal({ account, onLogout }) {
   function renderPage() {
     switch (page) {
       case 'appointments': return <MyAppointments onBook={() => setPage('book')} />
-      case 'book': return <BookAppointment onBooked={() => setPage('appointments')} />
+      case 'book': return <BookAppointment onBooked={(text) => navigate('/portal/appointments', { state: { message: text } })} />
       case 'balance': return <MyBalance />
       default: return <PatientHome account={account} onOpen={setPage} />
     }

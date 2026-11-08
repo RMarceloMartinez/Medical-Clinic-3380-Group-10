@@ -65,7 +65,8 @@ export default function BookAppointment({ onBooked }) {
         officeID: choice.officeID,
         appointmentDateTime: `${date}T${time}:00`,
       })
-      onBooked()                     // go to "My appointments", which shows the new visit
+      const when = new Date(`${date}T${time}:00`).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+      onBooked(`Booked with ${choice.doctorName} on ${when} at ${choice.officeAddress}.`)
     } catch (e) {
       setError(e.message)            // e.g. a trigger message from the database
     } finally {

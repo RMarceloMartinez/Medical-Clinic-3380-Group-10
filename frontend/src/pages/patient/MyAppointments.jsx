@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
+import { useLocation } from 'react-router'
 
 function hoursUntilCentral(value) {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -24,14 +25,15 @@ function formatDateTime(value) {
 // The logged-in patient's own appointments. Three screens:
 //   'upcoming' (with Cancel), 'past' (history), 'cancel' (confirm one cancellation)
 export default function MyAppointments({ onBook }) {
+  const location = useLocation()
   const [view, setView] = useState('upcoming')
   const [appointments, setAppointments] = useState([])
   const [loaded, setLoaded] = useState(false)
   const [toCancel, setToCancel] = useState(null)
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
-
+  const [message, setMessage] = useState(location.state?.message ?? '')
+  
   async function load() {
     try {
       setAppointments(await api.get('/me/appointments'))
