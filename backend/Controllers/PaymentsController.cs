@@ -72,6 +72,13 @@ public class PaymentsController : ControllerBase
                 new { id = paymentId },
                 new { paymentID = paymentId });
         }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
         catch (KeyNotFoundException)
         {
             return NotFound(new
@@ -87,7 +94,7 @@ public class PaymentsController : ControllerBase
             return Conflict(new
             {
                 message =
-                    "A payment cannot be recorded for a cancelled appointment."
+                    "A cancelled appointment without a cancellation fee cannot accept payments."
             });
         }
 

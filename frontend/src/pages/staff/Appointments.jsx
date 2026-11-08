@@ -1,6 +1,22 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 
+function hoursUntilCentral(value) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date())
+
+  const f = Object.fromEntries(parts.map(p => [p.type, p.value]))
+  const centralNow =
+    `${f.year}-${f.month}-${f.day}T${f.hour}:${f.minute}:${f.second}`
+
+  return (Date.parse(value + 'Z') - Date.parse(centralNow + 'Z')) / 3600000
+}
+
+
 // Staff appointments page. One screen at a time:
 //   'list'   = filters + table (+ Edit / Cancel / Complete / Delete per row)
 //   'form'   = book a new appointment, or edit one (editingId set)
@@ -205,9 +221,21 @@ export default function Appointments({ role }) {
       setError('Enter a reason for the cancellation.')
       return
     }
+    // Check whether the cancellation fee applies
+    const hoursUntil = hoursUntilCentral(toCancel.appointmentDateTime)
+    const feeApplies = cancelledBy !== 'Doctor' && hoursUntil < 24
+
+    if (feeApplies && !window.confirm(
+      hoursUntil < 0
+        ? 'This visit has already passed. Cancelling as a no-show adds a $25 fee. Cancel anyway?'
+        : 'This visit is less than 24 hours away. Cancelling adds a $25 fee. Cancel anyway?'
+    )) return
+
     const ok = await run(
       () => api.post(`/appointments/${toCancel.appointmentID}/cancel`, { cancelReason: cancelReason.trim(), cancelledBy }),
-      `Cancelled ${toCancel.patientName}'s appointment on ${formatDateTime(toCancel.appointmentDateTime)}.`)
+      feeApplies
+        ? `Cancelled. A $25 late-cancellation fee was added to ${toCancel.patientName}'s balance.`
+        : `Cancelled ${toCancel.patientName}'s appointment on ${formatDateTime(toCancel.appointmentDateTime)}.`)
     if (ok) showList()
   }
 
@@ -341,7 +369,7 @@ export default function Appointments({ role }) {
                       {a.appointStatus === 'Scheduled' && isDoctor && hasAppointmentStarted(a.appointmentDateTime) &&(
                         <button type="button" onClick={() => handleComplete(a)}>Complete</button>
                       )}
-                      {isAdmin && a.appointStatus !== 'Completed' && (
+                      {isAdmin && a.appointStatus !== 'Completed' && a.hasCompletedPayments === false && (
                         <button type="button" className="danger-link" onClick={() => handleDelete(a)}>Delete</button>
                       )}
                     </td>

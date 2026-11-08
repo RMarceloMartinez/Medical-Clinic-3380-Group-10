@@ -23,9 +23,13 @@ export default function MyBalance() {
         <>
           <table className="data-table balance-table">
             <tbody>
-              <tr><th>Billed for completed visits</th><td>{money(balance.billed)}</td></tr>
+              <tr><th>Visits</th><td>{money(balance.visits)}</td></tr>
+              <tr><th>Late-cancel fees</th><td>{money(balance.fees)}</td></tr>
               <tr><th>Paid</th><td>{money(balance.paid)}</td></tr>
-              <tr className="balance-total"><th>Balance due</th><td>{money(balance.balance)}</td></tr>
+              <tr className="balance-total">
+                <th>{balance.balance < 0 ? 'Credit balance' : 'Balance due'}</th>
+                <td>{money(Math.abs(balance.balance))}</td>
+            </tr>
             </tbody>
           </table>
           <p className="field-hint">

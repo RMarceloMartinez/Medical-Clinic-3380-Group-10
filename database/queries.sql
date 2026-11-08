@@ -28,41 +28,6 @@ GO
 -- Test call (the backend runs this with the user's input)
 EXEC usp_DoctorWeekAppointments @DoctorID = 1000001, @WeekStart = '2026-10-05';  -- James Wilson: Oct 6, Michael Brown, Completed
 GO
-CREATE OR ALTER PROCEDURE usp_PatientBalance
-    @PatientID INT
-
-AS BEGIN
-    SET NOCOUNT ON;
-
-    DECLARE @Billed NUMERIC(10,2), @Paid NUMERIC(10,2);
-
-    --Billed completed visits only
-    SELECT @Billed = ISNULL(SUM (a.TotalCost), 0)
-    FROM Appointment AS a
-    WHERE a.PatientID = @PatientID
-    AND a.AppointStatus = 'Completed'
-    AND a.DeletionFlag = 0;
-
--- Paid: payment lines on those visits, refunds excluded
-SELECT @Paid = ISNULL(SUM(pd.AmountApplied), 0)
-FROM PaymentDetail  AS pd
-JOIN Payment AS p ON p.PaymentID = pd.PaymentID
-JOIN Appointment AS a ON a.AppointmentID = p.AppointmentID
-WHERE a.PatientID = @PatientID
-AND a.AppointStatus = 'Completed'
-AND p.PayStatus = 'Completed'
-AND a.DeletionFlag = 0
-AND p.DeletionFlag = 0;
-
-SELECT @Billed AS Billed, @Paid AS Paid, @Billed - @Paid AS Balance;
-END;
-GO
-
-EXEC usp_PatientBalance @PatientID = 1000002;   -- Emily Garcia: 600.00 / 600.00 / 0.00
-EXEC usp_PatientBalance @PatientID = 1000004;   -- Olivia Davis: 375.00 / 375.00 / 0.00
-
-GO
-
 -- Query 2: patient's balance
 
 CREATE OR ALTER PROCEDURE usp_PatientBalance
@@ -71,27 +36,44 @@ CREATE OR ALTER PROCEDURE usp_PatientBalance
 AS BEGIN
     SET NOCOUNT ON;
 
-    DECLARE @Billed NUMERIC(10,2), @Paid NUMERIC(10,2);
+    DECLARE @Billed NUMERIC(10,2), @Paid NUMERIC(10,2),
+            @Visits NUMERIC(10,2), @Fees NUMERIC(10,2);
 
     --Billed completed visits only
-    SELECT @Billed = ISNULL(SUM (a.TotalCost), 0)
+    SELECT @Visits = ISNULL(SUM(a.TotalCost), 0)
     FROM Appointment AS a
     WHERE a.PatientID = @PatientID
     AND a.AppointStatus = 'Completed'
     AND a.DeletionFlag = 0;
 
--- Paid: payment lines on those visits, refunds excluded
+    --Late-cancellation fees
+    SELECT @Fees = ISNULL(SUM(a.CancellationFee), 0)
+    FROM Appointment AS a
+    WHERE a.PatientID = @PatientID
+    AND a.AppointStatus = 'Cancelled'
+    AND a.DeletionFlag = 0;
+
+    SET @Billed = @Visits + @Fees;
+
+-- Paid: payment lines on completed visits and cancelled visits with fees
 SELECT @Paid = ISNULL(SUM(pd.AmountApplied), 0)
-FROM PaymentDetail  AS pd
+FROM PaymentDetail AS pd
 JOIN Payment AS p ON p.PaymentID = pd.PaymentID
 JOIN Appointment AS a ON a.AppointmentID = p.AppointmentID
 WHERE a.PatientID = @PatientID
-AND a.AppointStatus = 'Completed'
+AND (
+    a.AppointStatus = 'Completed'
+    OR (a.AppointStatus = 'Cancelled'
+        AND ISNULL(a.CancellationFee, 0) > 0)
+)
 AND p.PayStatus = 'Completed'
 AND a.DeletionFlag = 0
-AND p.DeletionFlag = 0;
+AND p.DeletionFlag = 0
+AND pd.DeletionFlag = 0;
 
-SELECT @Billed AS Billed, @Paid AS Paid, @Billed - @Paid AS Balance;
+SELECT @Billed AS Billed, @Paid AS Paid,
+       @Billed - @Paid AS Balance,
+       @Visits AS Visits, @Fees AS Fees;
 END;
 GO
 

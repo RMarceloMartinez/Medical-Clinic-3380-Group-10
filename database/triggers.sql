@@ -74,7 +74,13 @@ BEGIN
                 ON pd.PaymentID = p.PaymentID
             WHERE p.AppointmentID = a.AppointmentID
               AND p.PayStatus = 'Completed'
-        ) > a.TotalCost
+              AND p.DeletionFlag = 0
+              AND pd.DeletionFlag = 0
+        ) > CASE
+                WHEN a.AppointStatus = 'Cancelled'
+                    THEN ISNULL(a.CancellationFee, 0)
+                ELSE a.TotalCost
+            END
     )
     BEGIN
         ROLLBACK TRANSACTION;
@@ -111,7 +117,13 @@ BEGIN
                 ON pd.PaymentID = p.PaymentID
             WHERE p.AppointmentID = a.AppointmentID
               AND p.PayStatus = 'Completed'
-        ) > a.TotalCost
+              AND p.DeletionFlag = 0
+              AND pd.DeletionFlag = 0
+        ) > CASE
+                WHEN a.AppointStatus = 'Cancelled'
+                    THEN ISNULL(a.CancellationFee, 0)
+                ELSE a.TotalCost
+            END
     )
     BEGIN
         ROLLBACK TRANSACTION;
@@ -148,7 +160,13 @@ BEGIN
                 ON pd.PaymentID = p.PaymentID
             WHERE p.AppointmentID = a.AppointmentID
               AND p.PayStatus = 'Completed'
-        ) > a.TotalCost
+              AND p.DeletionFlag = 0
+              AND pd.DeletionFlag = 0
+        ) > CASE
+                WHEN a.AppointStatus = 'Cancelled'
+                    THEN ISNULL(a.CancellationFee, 0)
+                ELSE a.TotalCost
+            END
     )
     BEGIN
         ROLLBACK TRANSACTION;
@@ -253,6 +271,7 @@ IF EXISTS(
     FROM inserted AS i
     JOIN Appointment AS a ON a.AppointmentID = i.AppointmentID
     WHERE a.AppointStatus = 'Cancelled'
+    AND ISNULL(a.CancellationFee, 0) = 0
     AND i.PayStatus <> 'Refunded'
 )
 BEGIN 
@@ -323,5 +342,36 @@ BEGIN
             'A completed or paid visit can''t be deleted, because it is part of the clinic''s records.',
             1;
     END;
+END;
+GO
+-- R5: $25 late-cancellation/no show fee
+CREATE OR ALTER TRIGGER dbo.TR_Appointment_LateCancelFee
+ON dbo.Appointment
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT UPDATE(AppointStatus) RETURN;
+
+    -- Central time
+    DECLARE @CentralNow DATETIME2 =
+        CAST(
+            SYSUTCDATETIME() AT TIME ZONE 'UTC'
+            AT TIME ZONE 'Central Standard Time'
+            AS DATETIME2
+        );
+
+    UPDATE a
+    SET CancellationFee = 25.00
+    FROM dbo.Appointment AS a
+    INNER JOIN inserted AS i
+        ON i.AppointmentID = a.AppointmentID
+    INNER JOIN deleted AS d
+        ON d.AppointmentID = i.AppointmentID
+    WHERE d.AppointStatus = 'Scheduled'
+        AND i.AppointStatus = 'Cancelled'
+        AND ISNULL(i.CancelledBy, '') <> 'Doctor'
+        AND i.Date_Time < DATEADD(HOUR, 24, @CentralNow);
 END;
 GO

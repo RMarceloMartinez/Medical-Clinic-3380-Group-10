@@ -31,5 +31,6 @@ public class AppointmentResponse
     public string OfficeAddress { get; set; } = string.Empty;
 
     public string? ReferredBy { get; set; }
-    
+
+    public bool HasCompletedPayments { get; set; }
 }

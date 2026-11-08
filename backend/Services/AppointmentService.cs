@@ -172,6 +172,13 @@ public class AppointmentService
 
         command.CommandText = """
                             SELECT a.*,
+                                    CAST(CASE WHEN EXISTS (
+                                        SELECT 1
+                                        FROM dbo.Payment AS pay
+                                        WHERE pay.AppointmentID = a.AppointmentID
+                                            AND pay.PayStatus = 'Completed'
+                                            AND pay.DeletionFlag = 0
+                                    ) THEN 1 ELSE 0 END AS bit) AS HasCompletedPayments,
                                    p.FirstName + ' ' + p.LastName AS PatientName,
                                    d.FirstName + ' ' + d.LastName AS DoctorName,
                                    o.StreetAddress + ', ' + o.City AS OfficeAddress,
@@ -213,6 +220,13 @@ public class AppointmentService
 
         command.CommandText = """
                             SELECT a.*,
+                                    CAST(CASE WHEN EXISTS (
+                                        SELECT 1
+                                        FROM dbo.Payment AS pay
+                                        WHERE pay.AppointmentID = a.AppointmentID
+                                            AND pay.PayStatus = 'Completed'
+                                            AND pay.DeletionFlag = 0
+                                    ) THEN 1 ELSE 0 END AS bit) AS HasCompletedPayments,
                                    p.FirstName + ' ' + p.LastName AS PatientName,
                                    d.FirstName + ' ' + d.LastName AS DoctorName,
                                    o.StreetAddress + ', ' + o.City AS OfficeAddress,
@@ -402,6 +416,8 @@ public class AppointmentService
             PatientName = reader.GetString(reader.GetOrdinal("PatientName")),
             DoctorName = reader.GetString(reader.GetOrdinal("DoctorName")),
             OfficeAddress = reader.GetString(reader.GetOrdinal("OfficeAddress")),
+            HasCompletedPayments = reader.GetBoolean(
+            reader.GetOrdinal("HasCompletedPayments")),
             ReferredBy = reader.IsDBNull(reader.GetOrdinal("ReferredBy"))
                 ?null
                 :reader.GetString(reader.GetOrdinal("ReferredBy"))
