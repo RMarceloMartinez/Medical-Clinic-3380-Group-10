@@ -738,10 +738,12 @@ SELECT
         ELSE 1
     END,
     CASE
-        WHEN a.AppointmentID % 3 = 1
-            THEN a.TotalCost
-        ELSE a.TotalCost * 0.50
-    END,
+    WHEN m.Email = 'patient3002@example.com'
+        THEN 50.00
+    WHEN a.AppointmentID % 3 = 1
+        THEN a.TotalCost
+    ELSE a.TotalCost * 0.50
+END,
     0
 FROM dbo.Payment pay
 JOIN dbo.Appointment a
@@ -795,3 +797,129 @@ GROUP BY
 HAVING COUNT(*) > 1;
 
 
+-- R4 Demo Data: Active Referral
+-- Emma Johnson referred to Dr. Angela Nguyen (Cardiology)
+
+INSERT INTO dbo.Referral
+    (PatientID, SpecialistID, PrimaryID,
+     DateIssued, RefStatus, DeletionFlag)
+SELECT
+    p.PatientID,
+    specialist.DoctorID,
+    pd.DoctorID,
+    CAST(GETDATE() AS DATE),
+    'Scheduled',
+    0
+FROM dbo.Patient p
+JOIN dbo.Member pm
+    ON pm.MemberID = p.PatientID
+JOIN dbo.PatientDoctor pd
+    ON pd.PatientID = p.PatientID
+    AND pd.RolePlayed = 'Primary'
+JOIN dbo.Member sm
+    ON sm.Email = 'angela.nguyen@example.com'
+JOIN dbo.Doctor specialist
+    ON specialist.DoctorID = sm.MemberID
+WHERE pm.Email = 'patient3001@example.com'
+AND pd.DoctorID <> specialist.DoctorID
+AND NOT EXISTS (
+    SELECT 1
+    FROM dbo.Referral r
+    WHERE r.PatientID = p.PatientID
+      AND r.SpecialistID = specialist.DoctorID
+      AND r.RefStatus = 'Scheduled'
+      AND r.DeletionFlag = 0
+);
+-- R4 Demo: Cancelled visit with $25 fee
+-- Patient: Mia Clark
+
+INSERT INTO dbo.Appointment
+(
+    OfficeID, DoctorID, PatientID, ReferralID,
+    Date_Time, AppointStatus, TotalCost,
+    Channel, CancelReason, CancelledBy,
+    CancellationFee, DeletionFlag
+)
+SELECT
+    o.OfficeID,
+    d.DoctorID,
+    p.PatientID,
+    NULL,
+    '2026-11-06T10:00:00',
+    'Cancelled',
+    150.00,
+    'Phone',
+    'Cancelled same day',
+    'Patient',
+    25.00,
+    0
+FROM dbo.Member pm
+JOIN dbo.Patient p
+    ON p.PatientID = pm.MemberID
+JOIN dbo.PatientDoctor pd
+    ON pd.PatientID = p.PatientID
+    AND pd.RolePlayed = 'Primary'
+JOIN dbo.Doctor d
+    ON d.DoctorID = pd.DoctorID
+JOIN dbo.DoctorSchedule ds
+    ON ds.DoctorID = d.DoctorID
+    AND ds.DayOfWeek = 'Fri'
+JOIN dbo.Office o
+    ON o.OfficeID = ds.OfficeID
+WHERE pm.Email = 'patient3005@example.com'
+AND NOT EXISTS (
+    SELECT 1
+    FROM dbo.Appointment a
+    WHERE a.PatientID = p.PatientID
+      AND a.Date_Time = '2026-11-06T10:00:00'
+);
+
+-- R4 Demo: November 11 nurse visit
+-- Patient: Emma Johnson
+-- Doctor: Priya Shah
+-- Office: 1234 Main Street
+
+INSERT INTO dbo.Appointment
+(
+    OfficeID, DoctorID, PatientID, ReferralID,
+    Date_Time, AppointStatus, TotalCost,
+    Channel, CancelReason, CancelledBy,
+    CancellationFee, DeletionFlag
+)
+SELECT
+    o.OfficeID,
+    d.DoctorID,
+    p.PatientID,
+    NULL,
+    '2026-11-11T10:00:00',
+    'Scheduled',
+    150.00,
+    'Web Portal',
+    NULL,
+    NULL,
+    NULL,
+    0
+FROM dbo.Member pm
+JOIN dbo.Patient p
+    ON p.PatientID = pm.MemberID
+JOIN dbo.PatientDoctor pd
+    ON pd.PatientID = p.PatientID
+    AND pd.RolePlayed = 'Primary'
+JOIN dbo.Doctor d
+    ON d.DoctorID = pd.DoctorID
+JOIN dbo.Member dm
+    ON dm.MemberID = d.DoctorID
+JOIN dbo.DoctorSchedule ds
+    ON ds.DoctorID = d.DoctorID
+    AND ds.DayOfWeek = 'Wed'
+JOIN dbo.Office o
+    ON o.OfficeID = ds.OfficeID
+WHERE pm.Email = 'patient3001@example.com'
+  AND dm.Email = 'priya.shah@example.com'
+  AND o.StreetAddress = '1234 Main Street'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM dbo.Appointment a
+      WHERE a.PatientID = p.PatientID
+        AND a.Date_Time = '2026-11-11T10:00:00'
+  );
