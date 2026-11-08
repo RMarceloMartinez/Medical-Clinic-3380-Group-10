@@ -3,6 +3,7 @@ using ClinicApi.Models;
 using ClinicApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 
 namespace ClinicApi.Controllers;
 
@@ -19,10 +20,8 @@ public class NurseController : ControllerBase
         _nurseService = nurseService;
     }
 
-    // The nurse's ID comes from the login cookie, never from the request.
-    // ASSUMPTION: the NameIdentifier claim holds the user's MemberID. Copy however your other
-    // controllers read the current user (e.g. the doctor's ID for Complete) if it differs.
-    private int CurrentNurseId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    // The nurse's ID comes from the login's "UserID" claim, never from the request.
+    private int CurrentNurseId => int.Parse(User.FindFirstValue("UserID")!);
 
     // GET api/nurse/visits?range=today   or   ?range=week
     [HttpGet("visits")]
@@ -50,18 +49,26 @@ public class NurseController : ControllerBase
             return BadRequest(new { error = "Systolic pressure must be higher than diastolic." });
         }
 
-        var recordId = await _nurseService.RecordVitalsAsync(
-            CurrentNurseId, appointmentId, request, cancellationToken);
-
-        if (recordId is null)
+        try
         {
-            return Conflict(new
-            {
-                error = "Vitals were not saved. The visit may not be at your office, may no longer be scheduled, or may already have vitals."
-            });
-        }
+            var recordId = await _nurseService.RecordVitalsAsync(
+                CurrentNurseId, appointmentId, request, cancellationToken);
 
-        return Ok(new { recordId });
+            if (recordId is null)
+            {
+                return Conflict(new
+                {
+                    error = "Vitals were not saved. The visit may not be at your office, may no longer be scheduled, or may already have vitals."
+                });
+            }
+
+            return Ok(new { recordId });
+        }
+        catch (SqlException ex) when (ex.Number >= 50000)
+        {
+            // Errors raised by the database's own rules (triggers) become a plain sentence
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     // GET api/nurse/appointments/1000005/vitals   (the saved vitals, to fill in the edit screen)
@@ -92,18 +99,25 @@ public class NurseController : ControllerBase
             return BadRequest(new { error = "Systolic pressure must be higher than diastolic." });
         }
 
-        var updated = await _nurseService.UpdateVitalsAsync(
-            CurrentNurseId, appointmentId, request, cancellationToken);
-
-        if (!updated)
+        try
         {
-            return Conflict(new
-            {
-                error = "Vitals were not changed. The visit may not be at your office, may no longer be scheduled, or may not have vitals yet."
-            });
-        }
+            var updated = await _nurseService.UpdateVitalsAsync(
+                CurrentNurseId, appointmentId, request, cancellationToken);
 
-        return Ok(new { appointmentId });
+            if (!updated)
+            {
+                return Conflict(new
+                {
+                    error = "Vitals were not changed. The visit may not be at your office, may no longer be scheduled, or may not have vitals yet."
+                });
+            }
+
+            return Ok(new { appointmentId });
+        }
+        catch (SqlException ex) when (ex.Number >= 50000)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     // GET api/nurse/patients/1000010/chart
