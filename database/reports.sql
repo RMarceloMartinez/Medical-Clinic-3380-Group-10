@@ -301,3 +301,77 @@ SELECT Category, ItemName, Detail, ItemDate
 FROM PatientHealthSummaryReport
 ORDER BY Category, ItemDate DESC;
 GO
+
+
+-- R3: Visit details behind every report
+-- One row per visit with all its data: who, where, status, money, diagnoses
+CREATE OR ALTER VIEW vw_VisitDetails
+AS
+SELECT a.AppointmentID,
+       a.Date_Time,
+       a.PatientID,
+       pm.FirstName AS PatientFirstName,
+       pm.LastName  AS PatientLastName,
+       dm.FirstName AS DoctorFirstName,
+       dm.LastName  AS DoctorLastName,
+       d.Specialty,
+       o.StreetAddress AS OfficeStreetAddress,
+       a.AppointStatus,
+       a.CancelledBy,
+       a.TotalCost,
+       a.CancellationFee,
+       ISNULL((SELECT SUM(pd.AmountApplied)              -- completed payments on THIS visit
+               FROM Payment AS p
+               JOIN PaymentDetail AS pd ON pd.PaymentID = p.PaymentID
+               WHERE p.AppointmentID = a.AppointmentID
+                 AND p.PayStatus = 'Completed'
+                 AND p.DeletionFlag = 0
+                 AND pd.DeletionFlag = 0), 0) AS AmountPaid,
+       (SELECT LEFT(STRING_AGG(CAST(dg.DiagnosisDescription AS VARCHAR(MAX)), '; ')
+                    WITHIN GROUP (ORDER BY dg.DiagnosisType, dg.DiagnosisID), 2000)
+        FROM MedicalRecord AS mr
+        JOIN Diagnosis AS dg ON dg.RecordID = mr.RecordID
+        WHERE mr.AppointmentID = a.AppointmentID
+          AND mr.DeletionFlag = 0
+          AND dg.DeletionFlag = 0) AS Diagnoses     -- NULL when the visit has none
+FROM Appointment AS a
+JOIN Member AS pm ON pm.MemberID = a.PatientID
+JOIN Member AS dm ON dm.MemberID = a.DoctorID
+JOIN Doctor AS d  ON d.DoctorID  = a.DoctorID
+JOIN Office AS o  ON o.OfficeID  = a.OfficeID
+WHERE a.DeletionFlag = 0
+  AND dm.DeletionFlag = 0
+  AND o.DeletionFlag = 0;                            -- same filters as vw_AppointmentActivity
+GO
+
+-- Fills VisitDetailsReport for a date range and/or one patient (NULL = no filter)
+CREATE OR ALTER PROCEDURE usp_RefreshVisitDetailsReport
+    @FromDate DATE,
+    @ToDate DATE,
+    @PatientID INT
+AS BEGIN
+    SET NOCOUNT ON;
+    DELETE FROM VisitDetailsReport;
+
+    INSERT INTO VisitDetailsReport
+        (AppointmentID, VisitDateTime, PatientID, PatientFirstName, PatientLastName,
+         DoctorFirstName, DoctorLastName, Specialty, OfficeStreetAddress,
+         AppointStatus, CancelledBy, TotalCost, AmountPaid, CancellationFee,
+         Diagnoses, DeletionFlag)
+    SELECT AppointmentID, Date_Time, PatientID, PatientFirstName, PatientLastName,
+           DoctorFirstName, DoctorLastName, Specialty, OfficeStreetAddress,
+           AppointStatus, CancelledBy, TotalCost, AmountPaid, CancellationFee,
+           Diagnoses, 0
+    FROM vw_VisitDetails
+    WHERE (@PatientID IS NULL OR PatientID = @PatientID)
+      AND (@FromDate IS NULL OR Date_Time >= @FromDate)
+      AND (@ToDate IS NULL OR Date_Time < DATEADD(DAY, 1, @ToDate));
+END;
+GO
+
+-- Test: the visit count here should match the activity report's total for the same range
+EXEC usp_RefreshVisitDetailsReport @FromDate = '2026-07-01', @ToDate = '2026-12-31', @PatientID = NULL;
+SELECT COUNT(*) AS Visits,
+       SUM(CASE WHEN AppointStatus = 'Completed' THEN 1 ELSE 0 END) AS Completed
+FROM VisitDetailsReport;
+GO

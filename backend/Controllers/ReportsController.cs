@@ -94,4 +94,32 @@ public class ReportsController : ControllerBase
         return Ok(results);
     }
 
+    // R3: GET /api/reports/visits?from=&to=  or  ?patientId=
+    [HttpGet("visits")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<List<VisitDetailRow>>> Visits(
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] int? patientId,
+        CancellationToken cancellationToken)
+    {
+        if (patientId is null && (from is null || to is null))
+        {
+            return BadRequest(new
+            {
+                message = "Pick a patient or both dates."
+            });
+        }
+
+        if (from > to)
+        {
+            return BadRequest(new
+            {
+                message = "From date must be on or before To date."
+            });
+        }
+
+        return Ok(await _reportService.GetVisitDetailsAsync(
+            from, to, patientId, cancellationToken));
+    }
 }

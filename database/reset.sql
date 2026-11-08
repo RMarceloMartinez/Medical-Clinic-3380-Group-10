@@ -33,4 +33,5 @@ DROP TABLE IF EXISTS ReferralTrackingReport;
 DROP TABLE IF EXISTS PatientHealthSummaryReport;
 DROP TABLE IF EXISTS InsuranceMixReport;
 DROP TABLE IF EXISTS DoctorWorkloadReport;
+DROP TABLE IF EXISTS VisitDetailsReport;
 GO

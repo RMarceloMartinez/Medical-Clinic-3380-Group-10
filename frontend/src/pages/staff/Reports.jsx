@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
+import DataTable from '../../components/DataTable'
 import './Reports.css'
 
 // Admin reports: R1 office revenue, R2 appointment activity, R3 patient health summary.
@@ -24,6 +25,7 @@ export default function Reports() {
     const [patients, setPatients] = useState([])
     const [rows, setRows] = useState([])
     const [trends, setTrends] = useState(null)
+    const [visits, setVisits] = useState([])
     const [hasRun, setHasRun] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
@@ -38,6 +40,7 @@ export default function Reports() {
     function clearResult() {
         setRows([])
         setTrends(null)
+        setVisits([])
         setHasRun(false)
         setError('')
     }
@@ -69,9 +72,15 @@ export default function Reports() {
             url = `/reports/${report}?from=${from}&to=${to}`
         }
 
+        // R3: the visits behind the report, with the same filter
+        const visitsUrl = report === 'health-summary'
+            ? `/reports/visits?patientId=${patientId}`
+            : `/reports/visits?from=${from}&to=${to}`
+
         setLoading(true)
         try {
-            const data = await api.get(url)
+            const [data, visitRows] = await Promise.all([api.get(url), api.get(visitsUrl)])
+            setVisits(visitRows)
 
             if (report === 'health-trends') {
                 setTrends(data)
@@ -161,6 +170,10 @@ export default function Reports() {
             {report === 'activity' && rows.length > 0 && <ActivityReport rows={rows} />}
             {report === 'health-summary' && rows.length > 0 && <HealthSummary rows={rows} />}
             {report === 'health-trends' && hasRun && trends && <HealthTrendsReport data={trends} />}
+
+            {hasRun && (rows.length > 0 || trends) && (
+                <VisitDetails report={report} visits={visits} from={from} to={to} />
+            )}
         </div>
     )
 }
@@ -473,3 +486,54 @@ function HealthSummary({ rows }) {
         )
     }
 
+// ----- R3: Visits in this report -----
+
+const shortDate = (value) =>
+    new Date(`${value}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+const visitColumns = [
+    {
+        key: 'visitDateTime', label: 'Date and time',
+        format: (v) => new Date(v.visitDateTime).toLocaleString('en-US',
+            { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }),
+        sortValue: (v) => v.visitDateTime,
+    },
+    { key: 'patientName', label: 'Patient' },
+    { key: 'doctorName', label: 'Doctor', format: (v) => `${v.doctorName} (${v.specialty})` },
+    { key: 'officeStreetAddress', label: 'Office' },
+    {
+        key: 'appointStatus', label: 'Status',
+        format: (v) => (v.cancelledBy ? `Cancelled by ${v.cancelledBy.toLowerCase()}` : v.appointStatus),
+    },
+    { key: 'totalCost', label: 'Cost', format: (v) => money(v.totalCost) },
+    { key: 'amountPaid', label: 'Paid', format: (v) => money(v.amountPaid) },
+    { key: 'cancellationFee', label: 'Late-cancel fee', format: (v) => (v.cancellationFee ? money(v.cancellationFee) : '—') },
+    { key: 'diagnoses', label: 'Diagnoses', format: (v) => v.diagnoses ?? '—' },
+]
+
+// The same visits the summary above counts, one row each, sortable and filterable
+function VisitDetails({ report, visits, from, to }) {
+    const shown =
+        report === 'revenue' ? visits.filter((v) => v.appointStatus === 'Completed')
+        : report === 'health-trends' ? visits.filter((v) => v.appointStatus === 'Completed' && v.diagnoses)
+        : visits
+
+    const empty = report === 'health-summary'
+        ? 'This patient has no visits yet.'
+        : `No visits between ${shortDate(from)} and ${shortDate(to)}.`
+
+    return (
+        <>
+            <h3 className="report-section-title">
+                Visits in this report <span className="report-count">({shown.length})</span>
+            </h3>
+            <DataTable
+                columns={visitColumns}
+                rows={shown}
+                rowKey={(v) => v.appointmentID}
+                filterLabel="Filter visits"
+                emptyMessage={empty}
+            />
+        </>
+    )
+}
