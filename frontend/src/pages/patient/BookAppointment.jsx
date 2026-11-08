@@ -88,7 +88,11 @@ export default function BookAppointment({ onBooked }) {
             <button key={`${c.doctorID}-${c.officeID}`} type="button" className="home-card" onClick={() => pick(c)}>
               <span className="home-card-title">{c.doctorName}</span>
               <span className="home-card-text">
-                {c.specialty}{c.referralID ? ' (referral)' : ' (your primary doctor)'}<br />
+                {c.specialty}
+                {c.referralID
+                  ? ` – referral from ${c.referredBy}, ${new Date(c.referralDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}`
+                  : ' (your primary doctor)'}
+                <br />
                 {c.officeAddress}<br />
                 {c.workDays}, {c.officeHours}<br />
                 Visit fee: ${Number(c.visitFee).toFixed(2)}

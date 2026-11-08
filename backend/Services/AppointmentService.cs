@@ -43,26 +43,30 @@ public class AppointmentService
                 GROUP BY r.SpecialistID
             )
             SELECT b.DoctorID,
-                   ds.OfficeID,
-                   m.FirstName + ' ' + m.LastName AS DoctorName,
-                   d.Specialty,
-                   o.StreetAddress + ', ' + o.City AS OfficeAddress,
-                   STRING_AGG(ds.DayOfWeek, ', ')
+                    ds.OfficeID,
+                    m.FirstName + ' ' + m.LastName AS DoctorName,
+                    d.Specialty,
+                    o.StreetAddress + ', ' + o.City AS OfficeAddress,
+                    STRING_AGG(ds.DayOfWeek, ', ')
                        WITHIN GROUP (ORDER BY (CHARINDEX(ds.DayOfWeek, 'MonTueWedThuFriSatSun') + 2) / 3)
                        AS WorkDays,
-                   CONVERT(VARCHAR(5), o.OpeningTime, 108) + '-'
+                    CONVERT(VARCHAR(5), o.OpeningTime, 108) + '-'
                        + CONVERT(VARCHAR(5), o.ClosingTime, 108) AS OfficeHours,
-                   b.ReferralID,
-                   sp.VisitFee AS VisitFee
+                    b.ReferralID,
+                    'Dr. ' + rm.FirstName + ' ' + rm.LastName AS ReferredBy,
+                    r.DateIssued AS ReferralDate,
+                    sp.VisitFee AS VisitFee
             FROM Bookable AS b
             JOIN dbo.Doctor AS d ON d.DoctorID = b.DoctorID AND d.DeletionFlag = 0
             JOIN dbo.Specialty AS sp ON sp.SpecialtyName = d.Specialty AND sp.DeletionFlag = 0
             JOIN dbo.Member AS m ON m.MemberID = b.DoctorID AND m.DeletionFlag = 0
             JOIN dbo.DoctorSchedule AS ds ON ds.DoctorID = b.DoctorID AND ds.DeletionFlag = 0
             JOIN dbo.Office AS o ON o.OfficeID = ds.OfficeID AND o.DeletionFlag = 0
+            LEFT JOIN dbo.Referral AS r ON r.ReferralID = b.ReferralID
+            LEFT JOIN dbo.Member AS rm ON rm.MemberID = r.PrimaryID
             GROUP BY b.DoctorID, ds.OfficeID, m.FirstName, m.LastName, d.Specialty,
             o.StreetAddress, o.City, o.OpeningTime, o.ClosingTime, b.ReferralID,
-            sp.VisitFee
+            sp.VisitFee, rm.FirstName, rm.LastName, r.DateIssued
             ORDER BY b.ReferralID, m.LastName;
             """;
 
@@ -73,7 +77,7 @@ public class AppointmentService
 
         while (await reader.ReadAsync(cancellationToken))
         {
-            rows.Add(new BookableDoctorRow
+                        rows.Add(new BookableDoctorRow
             {
                 DoctorID = reader.GetInt32(reader.GetOrdinal("DoctorID")),
                 OfficeID = reader.GetInt32(reader.GetOrdinal("OfficeID")),
@@ -85,6 +89,12 @@ public class AppointmentService
                 ReferralID = reader.IsDBNull(reader.GetOrdinal("ReferralID"))
                     ? null
                     : reader.GetInt32(reader.GetOrdinal("ReferralID")),
+                ReferredBy = reader.IsDBNull(reader.GetOrdinal("ReferredBy"))
+                    ? null
+                    : reader.GetString(reader.GetOrdinal("ReferredBy")),
+                ReferralDate = reader.IsDBNull(reader.GetOrdinal("ReferralDate"))
+                    ? null
+                    : reader.GetDateTime(reader.GetOrdinal("ReferralDate")),
                 VisitFee = reader.GetDecimal(reader.GetOrdinal("VisitFee"))
             });
         }
