@@ -24,6 +24,10 @@ public class CreateAppointmentRequest : IValidatableObject
     [RegularExpression ("(Phone|Web Portal)", ErrorMessage = "Appointment must be done by Phone Call or the Web Portal")]
     public string Channel { get; set; } = string.Empty;
 
+    // Why the patient is coming in (optional, matches Appointment.VisitReason)
+    [StringLength(200, ErrorMessage = "Keep the reason for the visit under 200 characters.")]
+    public string? VisitReason { get; set; }
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         var now = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(

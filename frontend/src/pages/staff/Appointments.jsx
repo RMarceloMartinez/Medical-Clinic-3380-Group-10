@@ -31,6 +31,7 @@ const emptyForm = {
   appointmentDateTime: '',
   totalCost: '',
   channel: 'Phone',
+  visitReason: '',
 }
 
 // checks api's central local time and current central time
@@ -79,6 +80,7 @@ function toRequestBody(form) {
     referralID: form.referralID === '' ? null : Number(form.referralID),
     appointmentDateTime: form.appointmentDateTime,
     channel: form.channel,
+    visitReason: form.visitReason.trim() === '' ? null : form.visitReason.trim(),
   }
 }
 
@@ -190,6 +192,7 @@ export default function Appointments({ role }) {
       appointmentDateTime: a.appointmentDateTime.slice(0, 16),
       totalCost: String(a.totalCost),
       channel: a.channel,
+      visitReason: a.visitReason ?? '',
     })
     setView('form')
   }
@@ -358,7 +361,10 @@ export default function Appointments({ role }) {
                       <div className="cell-main">{formatDate(a.appointmentDateTime)}</div>
                       <div className="cell-sub">{formatTime(a.appointmentDateTime)} · {a.channel}</div>
                     </td>
-                    <td>{a.patientName}</td>
+                    <td>
+                      {a.patientName}
+                      {a.visitReason && <div className="cell-sub">Reason: {a.visitReason}</div>}
+                    </td>
                     <td>
                       {a.doctorName}
                       {a.referredBy && <div className="cell-sub">Referred by {a.referredBy}</div>}
@@ -452,6 +458,16 @@ export default function Appointments({ role }) {
                 <option value="Phone">Phone</option>
                 <option value="Web Portal">Web Portal</option>
               </select>
+            </div>
+            <div className="form-field">
+              <label htmlFor="visitReason">Reason for visit ({form.visitReason.length}/200)</label>
+              <input
+                id="visitReason"
+                maxLength={200}
+                placeholder="e.g. Follow-up on blood pressure"
+                value={form.visitReason}
+                onChange={(e) => updateForm('visitReason', e.target.value)}
+              />
             </div>
           </div>
 

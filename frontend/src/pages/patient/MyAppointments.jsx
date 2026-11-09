@@ -142,7 +142,7 @@ export default function MyAppointments({ onBook }) {
         ) : (
           <table className="data-table">
             <thead>
-              <tr><th>Date / time</th><th>Doctor</th><th>Office</th><th>Cost</th><th></th></tr>
+              <tr><th>Date / time</th><th>Doctor</th><th>Reason for visit</th><th>Office</th><th>Cost</th><th></th></tr>
             </thead>
             <tbody>
               {upcoming.map((a) => (
@@ -152,6 +152,7 @@ export default function MyAppointments({ onBook }) {
                     {a.doctorName}
                     {a.referredBy && <div className="cell-sub">Referred by {a.referredBy}</div>}
                   </td>
+                  <td>{a.visitReason ?? '—'}</td>
                   <td>{a.officeAddress}</td>
                   <td>${Number(a.totalCost).toFixed(2)}</td>
                   <td><button type="button" onClick={() => startCancel(a)}>Cancel</button></td>
@@ -168,7 +169,7 @@ export default function MyAppointments({ onBook }) {
         ) : (
           <table className="data-table">
             <thead>
-              <tr><th>Date / time</th><th>Doctor</th><th>Office</th><th>Cost</th><th>Status</th></tr>
+              <tr><th>Date / time</th><th>Doctor</th><th>Reason for visit</th><th>Office</th><th>Cost</th><th>Status</th></tr>
             </thead>
             <tbody>
               {past.map((a) => (
@@ -178,6 +179,7 @@ export default function MyAppointments({ onBook }) {
                     {a.doctorName}
                     {a.referredBy && <div className="cell-sub">Referred by {a.referredBy}</div>}
                   </td>
+                  <td>{a.visitReason ?? '—'}</td>
                   <td>{a.officeAddress}</td>
                   <td>${Number(a.totalCost).toFixed(2)}</td>
                   <td>
