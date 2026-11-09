@@ -13,6 +13,9 @@ public class VisitRecordResponse
     public string? TreatmentPlan { get; set; }
     public string? FollowUp { get; set; }
 
+    // What the nurse wrote (symptoms, complaints, observations)
+    public string? NursingNotes { get; set; }
+
     // The patient's allergies, shown before prescribing
     public List<AllergyRow> Allergies { get; set; } = new();
 

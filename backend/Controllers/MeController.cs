@@ -216,6 +216,11 @@ public class MeController : ControllerBase
             return BadRequest(new { message = "Invalid or missing CSRF token." });
         }
 
+        if (request.MethodID is not (2 or 3 or 5))
+        {
+            return BadRequest(new { message = "Online payments take a credit card, debit card or check." });
+        }
+
         var centralNow = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
             DateTimeOffset.UtcNow, "America/Chicago");
 
@@ -264,6 +269,11 @@ public class MeController : ControllerBase
             {
                 message = "This cancelled visit has no cancellation fee to pay."
             });
+        }
+        catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number >= 50000))
+        {
+            // Any other business rule: show its own message
+            return BadRequest(new { message = ex.Errors.Cast<SqlError>().First(e => e.Number >= 50000).Message });
         }
         catch (SqlException ex) when (ex.Number is 2601 or 2627)
         {
@@ -321,7 +331,7 @@ public class MeController : ControllerBase
         }
 
         if (request.DoctorID <= 0)
-            return BadRequest("Please select a valid doctor.");
+            return BadRequest(new { message = "Please select a valid doctor." });
 
         try
         {
@@ -339,7 +349,7 @@ public class MeController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(new { message = ex.Message });
         }
     }
 

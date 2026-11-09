@@ -10,4 +10,7 @@ public class DoctorVisitRow
     public string PatientName { get; set; } = "";
     public string OfficeAddress { get; set; } = "";
     public bool VitalsRecorded { get; set; }
+
+    // Set by the nurse: "Checked in", "Waiting", "Ready for doctor", or null if not checked in yet
+    public string? CheckInStatus { get; set; }
 }

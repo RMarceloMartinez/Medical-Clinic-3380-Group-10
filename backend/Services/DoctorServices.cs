@@ -41,7 +41,8 @@ public class DoctorService
                                    a.AppointStatus,
                                    p.FirstName + ' ' + p.LastName AS PatientName,
                                    o.StreetAddress + ', ' + o.City AS OfficeAddress,
-                                   CASE WHEN mr.RecordID IS NULL THEN 0 ELSE 1 END AS VitalsRecorded
+                                   CASE WHEN mr.RecordID IS NULL THEN 0 ELSE 1 END AS VitalsRecorded,
+                                   a.CheckInStatus
                             FROM dbo.Appointment AS a
                             JOIN dbo.Member AS p ON p.MemberID = a.PatientID
                             JOIN dbo.Office AS o ON o.OfficeID = a.OfficeID
@@ -73,7 +74,10 @@ public class DoctorService
                 AppointStatus = reader.GetString(reader.GetOrdinal("AppointStatus")),
                 PatientName = reader.GetString(reader.GetOrdinal("PatientName")),
                 OfficeAddress = reader.GetString(reader.GetOrdinal("OfficeAddress")),
-                VitalsRecorded = reader.GetInt32(reader.GetOrdinal("VitalsRecorded")) == 1
+                VitalsRecorded = reader.GetInt32(reader.GetOrdinal("VitalsRecorded")) == 1,
+                CheckInStatus = reader.IsDBNull(reader.GetOrdinal("CheckInStatus"))
+                    ? null
+                    : reader.GetString(reader.GetOrdinal("CheckInStatus"))
             });
         }
 
@@ -120,7 +124,7 @@ public class DoctorService
         command.CommandText = """
                             SELECT mr.RecordID, mr.SystolicBP, mr.DiastolicBP, mr.HeartRate, mr.Temperature,
                                    mr.WeightPounds, mr.HeightInches,
-                                   mr.ClinicalNotes, mr.TreatmentPlan, mr.FollowUp
+                                   mr.ClinicalNotes, mr.TreatmentPlan, mr.FollowUp, mr.NursingNotes
                             FROM dbo.MedicalRecord AS mr
                             WHERE mr.AppointmentID = @AppointmentID
                               AND mr.DeletionFlag = 0;
@@ -167,7 +171,10 @@ public class DoctorService
                 : reader.GetString(reader.GetOrdinal("TreatmentPlan")),
             FollowUp = reader.IsDBNull(reader.GetOrdinal("FollowUp"))
                 ? null
-                : reader.GetString(reader.GetOrdinal("FollowUp"))
+                : reader.GetString(reader.GetOrdinal("FollowUp")),
+            NursingNotes = reader.IsDBNull(reader.GetOrdinal("NursingNotes"))
+                ? null
+                : reader.GetString(reader.GetOrdinal("NursingNotes"))
         };
 
         // Result set 2: allergies

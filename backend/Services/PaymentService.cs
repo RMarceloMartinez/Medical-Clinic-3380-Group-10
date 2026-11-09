@@ -286,8 +286,10 @@ public class PaymentService
                       AND p.PayStatus = 'Completed'
                       AND p.DeletionFlag = 0
                       AND pd.DeletionFlag = 0
-                ), 0) AS Paid
+                ), 0) AS Paid,
+                'Dr. ' + dm.FirstName + ' ' + dm.LastName AS DoctorName
             FROM dbo.Appointment a
+            JOIN dbo.Member dm ON dm.MemberID = a.DoctorID
             WHERE a.PatientID = @PatientID
               AND a.DeletionFlag = 0
               AND (a.AppointStatus = 'Completed'
@@ -307,6 +309,7 @@ public class PaymentService
                 appointmentID = reader.GetInt32(0),
                 appointmentDateTime = reader.GetDateTime(1),
                 status = reader.GetString(2),
+                doctorName = reader.GetString(5),
                 charge,
                 paid,
                 remaining = Math.Max(0, charge - paid)
@@ -324,9 +327,11 @@ public class PaymentService
         command.CommandText = """
             SELECT p.PaymentID, p.AppointmentID, p.PaymentDate,
                    p.PayStatus, a.Date_Time,
-                   pm.MethodName, pd.AmountApplied
+                   pm.MethodName, pd.AmountApplied,
+                   'Dr. ' + dm.FirstName + ' ' + dm.LastName AS DoctorName
             FROM dbo.Payment p
             JOIN dbo.Appointment a ON a.AppointmentID = p.AppointmentID
+            JOIN dbo.Member dm ON dm.MemberID = a.DoctorID
             LEFT JOIN dbo.PaymentDetail pd
                 ON pd.PaymentID = p.PaymentID AND pd.DeletionFlag = 0
             LEFT JOIN dbo.PaymentMethod pm ON pm.MethodID = pd.MethodID
@@ -348,7 +353,8 @@ public class PaymentService
                 status = reader.GetString(3),
                 appointmentDateTime = reader.GetDateTime(4),
                 method = reader.IsDBNull(5) ? "Not recorded" : reader.GetString(5),
-                amount = reader.IsDBNull(6) ? 0m : reader.GetDecimal(6)
+                amount = reader.IsDBNull(6) ? 0m : reader.GetDecimal(6),
+                doctorName = reader.GetString(7)
             });
         }
         return rows;
@@ -361,7 +367,8 @@ public class PaymentService
         await connection.OpenAsync(cancellationToken);
         using var command = connection.CreateCommand();
         command.CommandText =
-            "SELECT MethodID, MethodName FROM dbo.PaymentMethod ORDER BY MethodID;";
+            // Online payments: card or check only, no cash or insurance (2 = Credit Card, 3 = Debit Card, 5 = Check)
+            "SELECT MethodID, MethodName FROM dbo.PaymentMethod WHERE MethodID IN (2, 3, 5) AND DeletionFlag = 0 ORDER BY MethodID;";
         using var reader = await command.ExecuteReaderAsync(cancellationToken);
         var rows = new List<object>();
         while (await reader.ReadAsync(cancellationToken))

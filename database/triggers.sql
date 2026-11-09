@@ -377,7 +377,7 @@ BEGIN
 END;
 GO
 
--- Cannot double book within 45 minutes of eachother
+-- A doctor cannot have two scheduled visits less than 30 minutes apart (booking slots are 30 minutes)
 CREATE OR ALTER TRIGGER dbo.TR_Appointment_NoDoubleBook
 ON dbo.Appointment
 AFTER INSERT, UPDATE
@@ -400,8 +400,8 @@ BEGIN
         JOIN dbo.Appointment AS a WITH (UPDLOCK, HOLDLOCK)
             ON a.DoctorID = i.DoctorID
            AND a.AppointmentID <> i.AppointmentID
-           AND a.Date_Time > DATEADD(MINUTE, -45, i.Date_Time)  --(45 minutes, can alter)
-           AND a.Date_Time < DATEADD(MINUTE, 45, i.Date_Time)
+           AND a.Date_Time > DATEADD(MINUTE, -30, i.Date_Time)
+           AND a.Date_Time < DATEADD(MINUTE, 30, i.Date_Time)
         WHERE i.DeletionFlag = 0
           AND i.AppointStatus = 'Scheduled'
           AND a.DeletionFlag = 0
@@ -411,7 +411,7 @@ BEGIN
         ROLLBACK TRANSACTION;
 
         THROW 50010,
-            'This doctor already has an appointment within 45 minutes of this time. Choose another time please.',
+            'This doctor already has an appointment at that time. Choose another time.',
             1;
     END;
 END;
