@@ -397,4 +397,497 @@ public async Task<List<PatientResponse>> GetAllAsync(
 
         return result is int rowsUpdated && rowsUpdated == 1;
     }
+        public async Task<StaffPatientChartResponse?> GetStaffChartAsync(
+        int patientId,
+        CancellationToken cancellationToken = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        var chart = new StaffPatientChartResponse();
+
+        using var command = connection.CreateCommand();
+
+        command.CommandText = """
+            -- 1. Patient identity
+            SELECT p.PatientID,
+                   m.FirstName + ' ' + m.LastName AS PatientName
+            FROM dbo.Patient AS p
+            JOIN dbo.Member AS m ON m.MemberID = p.PatientID
+            WHERE p.PatientID = @PatientID
+              AND p.DeletionFlag = 0
+              AND m.DeletionFlag = 0;
+
+            -- 2. Allergies
+            SELECT AllergyID, Allergen, ReactionType, Severity, DateIdentified
+            FROM dbo.Allergy
+            WHERE PatientID = @PatientID
+              AND DeletionFlag = 0
+            ORDER BY Allergen;
+
+            -- 3. Conditions
+            SELECT ConditionID, ConditionName, ConditionType,
+                   Severity, IsHereditary, DateDiagnosed
+            FROM dbo.PatientCondition
+            WHERE PatientID = @PatientID
+              AND DeletionFlag = 0
+            ORDER BY ConditionName;
+
+            -- 4. Visits and medical record data
+            SELECT a.AppointmentID,
+                   a.Date_Time,
+                   a.AppointStatus,
+                   a.VisitReason,
+                   mr.SystolicBP,
+                   mr.DiastolicBP,
+                   mr.HeartRate,
+                   mr.Temperature,
+                   mr.WeightPounds,
+                   mr.HeightInches,
+                   mr.NursingNotes,
+                   mr.ClinicalNotes
+            FROM dbo.Appointment AS a
+            LEFT JOIN dbo.MedicalRecord AS mr
+                ON mr.AppointmentID = a.AppointmentID
+               AND mr.DeletionFlag = 0
+            WHERE a.PatientID = @PatientID
+              AND a.DeletionFlag = 0
+            ORDER BY a.Date_Time DESC;
+
+            -- 5. Diagnoses
+            SELECT a.AppointmentID,
+                   d.DiagnosisID,
+                   d.DiagnosisDescription,
+                   d.DiagnosisType
+            FROM dbo.Appointment AS a
+            JOIN dbo.MedicalRecord AS mr
+                ON mr.AppointmentID = a.AppointmentID
+               AND mr.DeletionFlag = 0
+            JOIN dbo.Diagnosis AS d
+                ON d.RecordID = mr.RecordID
+               AND d.DeletionFlag = 0
+            WHERE a.PatientID = @PatientID
+              AND a.DeletionFlag = 0;
+
+            -- 6. Prescriptions
+            SELECT a.AppointmentID,
+                   p.PrescriptionID,
+                   p.MedicationName,
+                   p.Dosage,
+                   p.Frequency,
+                   p.Duration,
+                   p.Instructions,
+                   p.Pharmacy
+            FROM dbo.Appointment AS a
+            JOIN dbo.MedicalRecord AS mr
+                ON mr.AppointmentID = a.AppointmentID
+               AND mr.DeletionFlag = 0
+            JOIN dbo.Prescription AS p
+                ON p.RecordID = mr.RecordID
+               AND p.DeletionFlag = 0
+            WHERE a.PatientID = @PatientID
+              AND a.DeletionFlag = 0;
+            """;
+
+        command.Parameters.Add("@PatientID", SqlDbType.Int).Value = patientId;
+
+        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        // Result set 1: patient identity
+        if (!await reader.ReadAsync(cancellationToken))
+        {
+            return null;
+        }
+
+        chart.PatientID = reader.GetInt32(reader.GetOrdinal("PatientID"));
+        chart.PatientName = reader.GetString(reader.GetOrdinal("PatientName"));
+
+        // Result set 2: allergies
+        await reader.NextResultAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            chart.Allergies.Add(new AllergyRow
+            {
+                AllergyID = reader.GetInt32(reader.GetOrdinal("AllergyID")),
+                Allergen = reader.GetString(reader.GetOrdinal("Allergen")),
+                ReactionType = reader.GetString(reader.GetOrdinal("ReactionType")),
+                Severity = reader.GetString(reader.GetOrdinal("Severity")),
+                DateIdentified = reader.IsDBNull(reader.GetOrdinal("DateIdentified"))
+                    ? null
+                    : reader.GetDateTime(reader.GetOrdinal("DateIdentified"))
+            });
+        }
+
+        // Result set 3: conditions
+        await reader.NextResultAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            chart.Conditions.Add(new ConditionRow
+            {
+                ConditionID = reader.GetInt32(reader.GetOrdinal("ConditionID")),
+                ConditionName = reader.GetString(reader.GetOrdinal("ConditionName")),
+                ConditionType = reader.GetString(reader.GetOrdinal("ConditionType")),
+                Severity = reader.GetString(reader.GetOrdinal("Severity")),
+                IsHereditary = reader.GetBoolean(reader.GetOrdinal("IsHereditary")),
+                DateDiagnosed = reader.IsDBNull(reader.GetOrdinal("DateDiagnosed"))
+                    ? null
+                    : reader.GetDateTime(reader.GetOrdinal("DateDiagnosed"))
+            });
+        }
+
+        // Result set 4: visits
+        await reader.NextResultAsync(cancellationToken);
+
+        var visitsByAppointmentId = new Dictionary<int, StaffChartVisit>();
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            int appointmentId =
+                reader.GetInt32(reader.GetOrdinal("AppointmentID"));
+
+            var visit = new StaffChartVisit
+            {
+                AppointmentID = appointmentId,
+                VisitDate = reader.GetDateTime(reader.GetOrdinal("Date_Time")),
+                AppointmentStatus =
+                    reader.GetString(reader.GetOrdinal("AppointStatus")),
+
+                VisitReason = reader.IsDBNull(reader.GetOrdinal("VisitReason"))
+                    ? null
+                    : reader.GetString(reader.GetOrdinal("VisitReason")),
+
+                SystolicBP = reader.IsDBNull(reader.GetOrdinal("SystolicBP"))
+                    ? null
+                    : reader.GetInt16(reader.GetOrdinal("SystolicBP")),
+
+                DiastolicBP = reader.IsDBNull(reader.GetOrdinal("DiastolicBP"))
+                    ? null
+                    : reader.GetInt16(reader.GetOrdinal("DiastolicBP")),
+
+                HeartRate = reader.IsDBNull(reader.GetOrdinal("HeartRate"))
+                    ? null
+                    : reader.GetInt16(reader.GetOrdinal("HeartRate")),
+
+                Temperature = reader.IsDBNull(reader.GetOrdinal("Temperature"))
+                    ? null
+                    : reader.GetDecimal(reader.GetOrdinal("Temperature")),
+
+                WeightPounds = reader.IsDBNull(reader.GetOrdinal("WeightPounds"))
+                    ? null
+                    : reader.GetDecimal(reader.GetOrdinal("WeightPounds")),
+
+                HeightInches = reader.IsDBNull(reader.GetOrdinal("HeightInches"))
+                    ? null
+                    : reader.GetDecimal(reader.GetOrdinal("HeightInches")),
+
+                NursingNotes = reader.IsDBNull(reader.GetOrdinal("NursingNotes"))
+                    ? null
+                    : reader.GetString(reader.GetOrdinal("NursingNotes")),
+
+                DoctorNotes = reader.IsDBNull(reader.GetOrdinal("ClinicalNotes"))
+                    ? null
+                    : reader.GetString(reader.GetOrdinal("ClinicalNotes"))
+            };
+
+            chart.Visits.Add(visit);
+            visitsByAppointmentId[appointmentId] = visit;
+        }
+
+        // Result set 5: diagnoses
+        await reader.NextResultAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            int appointmentId =
+                reader.GetInt32(reader.GetOrdinal("AppointmentID"));
+
+            if (visitsByAppointmentId.TryGetValue(
+                appointmentId, out var visit))
+            {
+                visit.Diagnoses.Add(new StaffChartDiagnosis
+                {
+                    DiagnosisID =
+                        reader.GetInt32(reader.GetOrdinal("DiagnosisID")),
+
+                    DiagnosisDescription =
+                        reader.GetString(reader.GetOrdinal("DiagnosisDescription")),
+
+                    DiagnosisType =
+                        reader.GetString(reader.GetOrdinal("DiagnosisType"))
+                });
+            }
+        }
+
+        // Result set 6: prescriptions
+        await reader.NextResultAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            int appointmentId =
+                reader.GetInt32(reader.GetOrdinal("AppointmentID"));
+
+            if (visitsByAppointmentId.TryGetValue(
+                appointmentId, out var visit))
+            {
+                visit.Prescriptions.Add(new StaffChartPrescription
+                {
+                    PrescriptionID =
+                        reader.GetInt32(reader.GetOrdinal("PrescriptionID")),
+
+                    MedicationName =
+                        reader.GetString(reader.GetOrdinal("MedicationName")),
+
+                    Dosage = reader.GetString(reader.GetOrdinal("Dosage")),
+                    Frequency = reader.GetString(reader.GetOrdinal("Frequency")),
+                    Duration = reader.GetString(reader.GetOrdinal("Duration")),
+
+                    Instructions = reader.IsDBNull(reader.GetOrdinal("Instructions"))
+                        ? null
+                        : reader.GetString(reader.GetOrdinal("Instructions")),
+
+                    Pharmacy = reader.IsDBNull(reader.GetOrdinal("Pharmacy"))
+                        ? null
+                        : reader.GetString(reader.GetOrdinal("Pharmacy"))
+                });
+            }
+        }
+
+        return chart;
+    }
+    public async Task<int?> AddAllergyAsync(
+    int patientId,
+    AllergyRequest request,
+    CancellationToken cancellationToken = default)
+{
+    using var connection = _connectionFactory.CreateConnection();
+    await connection.OpenAsync(cancellationToken);
+
+    using var command = connection.CreateCommand();
+
+    command.CommandText = """
+        INSERT INTO dbo.Allergy
+            (PatientID, Allergen, ReactionType, Severity,
+             DateIdentified, DeletionFlag)
+        SELECT
+            @PatientID, @Allergen, @ReactionType, @Severity,
+            @DateIdentified, 0
+        WHERE EXISTS (
+            SELECT 1
+            FROM dbo.Patient
+            WHERE PatientID = @PatientID
+              AND DeletionFlag = 0
+        );
+
+        SELECT CAST(SCOPE_IDENTITY() AS INT);
+        """;
+
+    command.Parameters.Add("@PatientID", SqlDbType.Int)
+        .Value = patientId;
+
+    command.Parameters.Add("@Allergen", SqlDbType.VarChar, 60)
+        .Value = request.Allergen.Trim();
+
+    command.Parameters.Add("@ReactionType", SqlDbType.VarChar, 30)
+        .Value = request.ReactionType.Trim();
+
+    command.Parameters.Add("@Severity", SqlDbType.VarChar, 20)
+        .Value = request.Severity.Trim();
+
+    command.Parameters.Add("@DateIdentified", SqlDbType.Date)
+        .Value = request.DateIdentified?.Date is DateTime date
+            ? date
+            : DBNull.Value;
+
+    var result = await command.ExecuteScalarAsync(cancellationToken);
+
+    return result == null || result == DBNull.Value
+        ? null
+        : Convert.ToInt32(result);
+}
+public async Task<bool> UpdateAllergyAsync(
+    int patientId,
+    int allergyId,
+    AllergyRequest request,
+    CancellationToken cancellationToken = default)
+{
+    using var connection = _connectionFactory.CreateConnection();
+    await connection.OpenAsync(cancellationToken);
+
+    using var command = connection.CreateCommand();
+
+    command.CommandText = """
+        UPDATE dbo.Allergy
+        SET Allergen = @Allergen,
+            ReactionType = @ReactionType,
+            Severity = @Severity,
+            DateIdentified = @DateIdentified
+        WHERE AllergyID = @AllergyID
+          AND PatientID = @PatientID
+          AND DeletionFlag = 0;
+        """;
+
+    command.Parameters.Add("@PatientID", SqlDbType.Int).Value = patientId;
+    command.Parameters.Add("@AllergyID", SqlDbType.Int).Value = allergyId;
+
+    command.Parameters.Add("@Allergen", SqlDbType.VarChar, 60)
+        .Value = request.Allergen.Trim();
+
+    command.Parameters.Add("@ReactionType", SqlDbType.VarChar, 30)
+        .Value = request.ReactionType.Trim();
+
+    command.Parameters.Add("@Severity", SqlDbType.VarChar, 20)
+        .Value = request.Severity.Trim();
+
+    command.Parameters.Add("@DateIdentified", SqlDbType.Date)
+        .Value = request.DateIdentified?.Date is DateTime date
+            ? date
+            : DBNull.Value;
+
+    return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+}
+public async Task<bool> DeleteAllergyAsync(
+    int patientId,
+    int allergyId,
+    CancellationToken cancellationToken = default)
+{
+    using var connection = _connectionFactory.CreateConnection();
+    await connection.OpenAsync(cancellationToken);
+
+    using var command = connection.CreateCommand();
+
+    command.CommandText = """
+        UPDATE dbo.Allergy
+        SET DeletionFlag = 1
+        WHERE AllergyID = @AllergyID
+          AND PatientID = @PatientID
+          AND DeletionFlag = 0;
+        """;
+
+    command.Parameters.Add("@PatientID", SqlDbType.Int).Value = patientId;
+    command.Parameters.Add("@AllergyID", SqlDbType.Int).Value = allergyId;
+
+    return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+}
+public async Task<int?> AddConditionAsync(
+    int patientId,
+    ConditionRequest request,
+    CancellationToken cancellationToken = default)
+{
+    using var connection = _connectionFactory.CreateConnection();
+    await connection.OpenAsync(cancellationToken);
+
+    using var command = connection.CreateCommand();
+
+    command.CommandText = """
+        INSERT INTO dbo.PatientCondition
+            (PatientID, ConditionName, ConditionType, IsHereditary,
+             Severity, DateDiagnosed, DeletionFlag)
+        SELECT
+            @PatientID, @ConditionName, @ConditionType, @IsHereditary,
+            @Severity, @DateDiagnosed, 0
+        WHERE EXISTS (
+            SELECT 1
+            FROM dbo.Patient
+            WHERE PatientID = @PatientID
+              AND DeletionFlag = 0
+        );
+
+        SELECT CAST(SCOPE_IDENTITY() AS INT);
+        """;
+
+    command.Parameters.Add("@PatientID", SqlDbType.Int).Value = patientId;
+
+    command.Parameters.Add("@ConditionName", SqlDbType.VarChar, 100)
+        .Value = request.ConditionName.Trim();
+
+    command.Parameters.Add("@ConditionType", SqlDbType.VarChar, 30)
+        .Value = request.ConditionType.Trim();
+
+    command.Parameters.Add("@IsHereditary", SqlDbType.Bit)
+        .Value = request.IsHereditary;
+
+    command.Parameters.Add("@Severity", SqlDbType.VarChar, 20)
+        .Value = request.Severity.Trim();
+
+    command.Parameters.Add("@DateDiagnosed", SqlDbType.Date)
+        .Value = request.DateDiagnosed?.Date is DateTime date
+            ? date
+            : DBNull.Value;
+
+    var result = await command.ExecuteScalarAsync(cancellationToken);
+
+    return result == null || result == DBNull.Value
+        ? null
+        : Convert.ToInt32(result);
+}
+public async Task<bool> UpdateConditionAsync(
+    int patientId,
+    int conditionId,
+    ConditionRequest request,
+    CancellationToken cancellationToken = default)
+{
+    using var connection = _connectionFactory.CreateConnection();
+    await connection.OpenAsync(cancellationToken);
+
+    using var command = connection.CreateCommand();
+
+    command.CommandText = """
+        UPDATE dbo.PatientCondition
+        SET ConditionName = @ConditionName,
+            ConditionType = @ConditionType,
+            IsHereditary = @IsHereditary,
+            Severity = @Severity,
+            DateDiagnosed = @DateDiagnosed
+        WHERE ConditionID = @ConditionID
+          AND PatientID = @PatientID
+          AND DeletionFlag = 0;
+        """;
+
+    command.Parameters.Add("@PatientID", SqlDbType.Int).Value = patientId;
+    command.Parameters.Add("@ConditionID", SqlDbType.Int).Value = conditionId;
+
+    command.Parameters.Add("@ConditionName", SqlDbType.VarChar, 100)
+        .Value = request.ConditionName.Trim();
+
+    command.Parameters.Add("@ConditionType", SqlDbType.VarChar, 30)
+        .Value = request.ConditionType.Trim();
+
+    command.Parameters.Add("@IsHereditary", SqlDbType.Bit)
+        .Value = request.IsHereditary;
+
+    command.Parameters.Add("@Severity", SqlDbType.VarChar, 20)
+        .Value = request.Severity.Trim();
+
+    command.Parameters.Add("@DateDiagnosed", SqlDbType.Date)
+        .Value = request.DateDiagnosed?.Date is DateTime date
+            ? date
+            : DBNull.Value;
+
+    return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+}
+public async Task<bool> DeleteConditionAsync(
+    int patientId,
+    int conditionId,
+    CancellationToken cancellationToken = default)
+{
+    using var connection = _connectionFactory.CreateConnection();
+    await connection.OpenAsync(cancellationToken);
+
+    using var command = connection.CreateCommand();
+
+    command.CommandText = """
+        UPDATE dbo.PatientCondition
+        SET DeletionFlag = 1
+        WHERE ConditionID = @ConditionID
+          AND PatientID = @PatientID
+          AND DeletionFlag = 0;
+        """;
+
+    command.Parameters.Add("@PatientID", SqlDbType.Int).Value = patientId;
+    command.Parameters.Add("@ConditionID", SqlDbType.Int).Value = conditionId;
+
+    return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+}
 }
