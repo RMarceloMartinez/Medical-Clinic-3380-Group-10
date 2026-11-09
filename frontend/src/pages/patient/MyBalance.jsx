@@ -27,6 +27,9 @@ export default function MyBalance() {
   const [cardNumber, setCardNumber] = useState('')
   const [cardExpiry, setCardExpiry] = useState('')
   const [cardCvv, setCardCvv] = useState('')
+  const [checkName, setCheckName] = useState('')
+  const [checkBank, setCheckBank] = useState('')
+  const [checkNumber, setCheckNumber] = useState('')
   const [refreshRequired, setRefreshRequired] = useState(false)
   const submitting = useRef(false)
 
@@ -120,6 +123,17 @@ export default function MyBalance() {
       }
     }
 
+    if (isCheck) {
+      if (!checkName.trim() || !checkBank.trim()) {
+        setError('Enter the fictional name and bank for your demo check.')
+        return
+      }
+      if (!/^\d{1,10}$/.test(checkNumber.trim())) {
+        setError('Enter a demo check number using 1–10 digits.')
+        return
+      }
+    }
+
     submitting.current = true
     setSaving(true)
     setError('')
@@ -174,6 +188,7 @@ export default function MyBalance() {
   const isCard = ['Credit Card', 'Debit Card'].includes(
     selectedMethod?.methodName
   )
+  const isCheck = selectedMethod?.methodName === 'Check'
 
   return (
     <div className="panel">
@@ -328,6 +343,53 @@ export default function MyBalance() {
                       placeholder="123"
                       autoComplete="off"
                       maxLength={3}
+                      required
+                    />
+                  </div>
+                )}
+
+                {isCheck && (
+                  <div className="demo-check-section">
+                    <h4>Demo check information</h4>
+                    <p>
+                      Simulation only. Enter fictional check information.
+                      Do not enter real banking details.
+                    </p>
+
+                    <label htmlFor="demo-check-name">Name on check</label>
+                    <input
+                      id="demo-check-name"
+                      type="text"
+                      value={checkName}
+                      onChange={(e) => setCheckName(e.target.value)}
+                      placeholder="Demo Patient"
+                      autoComplete="off"
+                      maxLength={60}
+                      required
+                    />
+
+                    <label htmlFor="demo-check-bank">Bank name</label>
+                    <input
+                      id="demo-check-bank"
+                      type="text"
+                      value={checkBank}
+                      onChange={(e) => setCheckBank(e.target.value)}
+                      placeholder="Demo Bank"
+                      autoComplete="off"
+                      maxLength={60}
+                      required
+                    />
+
+                    <label htmlFor="demo-check-number">Check number</label>
+                    <input
+                      id="demo-check-number"
+                      type="text"
+                      inputMode="numeric"
+                      value={checkNumber}
+                      onChange={(e) => setCheckNumber(e.target.value)}
+                      placeholder="1001"
+                      autoComplete="off"
+                      maxLength={10}
                       required
                     />
                   </div>
