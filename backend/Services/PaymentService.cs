@@ -78,7 +78,8 @@ public class PaymentService
     }
     public async Task<int> CreateAsync(
         CreatePaymentRequest request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int? patientId = null)
     {
         if (request.PaymentDate is null)
             throw new ArgumentException("Payment date is required.");
@@ -96,7 +97,7 @@ public class PaymentService
         {
             appointmentCommand.Transaction = transaction;
             appointmentCommand.CommandText = """
-                SELECT a.AppointStatus, a.CancellationFee,
+                SELECT a.AppointStatus, a.CancellationFee, a.PatientID, a.TotalCost,
                     ISNULL((
                         SELECT SUM(pd.AmountApplied)
                         FROM dbo.Payment AS p
@@ -125,10 +126,32 @@ public class PaymentService
                 throw new KeyNotFoundException(
                     "Appointment was not found.");
 
+
+            if (patientId.HasValue)
+            {
+                if (reader.GetInt32(2) != patientId.Value)
+                    throw new KeyNotFoundException("Appointment was not found.");
+
+                string status = reader.GetString(0);
+                decimal charge = status == "Completed"
+                    ? reader.GetDecimal(3)
+                    : status == "Cancelled" && !reader.IsDBNull(1)
+                        ? reader.GetDecimal(1) : 0;
+                decimal remaining = Math.Max(0, charge - reader.GetDecimal(4));
+                decimal amount = request.Details.Sum(d => d.AmountApplied);
+
+                if (remaining == 0)
+                    throw new ArgumentException("This visit has no balance due.");
+
+                if (amount <= 0 || amount > remaining)
+                    throw new ArgumentException(
+                        $"Enter an amount up to ${remaining:0.00}.");
+            }
+
             if (reader.GetString(0) == "Cancelled")
             {
                 decimal fee = reader.IsDBNull(1) ? 0 : reader.GetDecimal(1);
-                decimal paid = reader.GetDecimal(2);
+                decimal paid = reader.GetDecimal(4);
                 decimal remaining = Math.Max(0, fee - paid);
                 decimal amount = request.Details.Sum(d => d.AmountApplied);
 
@@ -143,6 +166,23 @@ public class PaymentService
             }
         }
 
+
+
+        if (patientId.HasValue)
+        {
+            // The appointment lock remains held until this transaction commits.
+            using var next = connection.CreateCommand();
+            next.Transaction = transaction;
+            next.CommandText = """
+                SELECT ISNULL(MAX(InstallmentNumber), 0) + 1
+                FROM dbo.Payment
+                WHERE AppointmentID = @AppointmentID;
+                """;
+            next.Parameters.Add("@AppointmentID", SqlDbType.Int)
+                .Value = request.AppointmentID;
+            request.InstallmentNumber =
+                Convert.ToInt32(await next.ExecuteScalarAsync(cancellationToken));
+        }
 
         int paymentId;
 
@@ -226,4 +266,111 @@ public class PaymentService
 
         return paymentId;
     }
+
+    public async Task<List<object>> GetPatientChargesAsync(
+        int patientId, CancellationToken cancellationToken)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT a.AppointmentID, a.Date_Time, a.AppointStatus,
+                CASE WHEN a.AppointStatus = 'Cancelled'
+                    THEN ISNULL(a.CancellationFee, 0)
+                    ELSE a.TotalCost END AS Charge,
+                ISNULL((
+                    SELECT SUM(pd.AmountApplied)
+                    FROM dbo.Payment p
+                    JOIN dbo.PaymentDetail pd ON pd.PaymentID = p.PaymentID
+                    WHERE p.AppointmentID = a.AppointmentID
+                      AND p.PayStatus = 'Completed'
+                      AND p.DeletionFlag = 0
+                      AND pd.DeletionFlag = 0
+                ), 0) AS Paid
+            FROM dbo.Appointment a
+            WHERE a.PatientID = @PatientID
+              AND a.DeletionFlag = 0
+              AND (a.AppointStatus = 'Completed'
+                OR (a.AppointStatus = 'Cancelled'
+                    AND ISNULL(a.CancellationFee, 0) > 0))
+            ORDER BY a.Date_Time DESC, a.AppointmentID DESC;
+            """;
+        command.Parameters.Add("@PatientID", SqlDbType.Int).Value = patientId;
+        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        var rows = new List<object>();
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            decimal charge = reader.GetDecimal(3);
+            decimal paid = reader.GetDecimal(4);
+            rows.Add(new
+            {
+                appointmentID = reader.GetInt32(0),
+                appointmentDateTime = reader.GetDateTime(1),
+                status = reader.GetString(2),
+                charge,
+                paid,
+                remaining = Math.Max(0, charge - paid)
+            });
+        }
+        return rows;
+    }
+
+    public async Task<List<object>> GetPatientPaymentHistoryAsync(
+        int patientId, CancellationToken cancellationToken)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT p.PaymentID, p.AppointmentID, p.PaymentDate,
+                   p.PayStatus, a.Date_Time,
+                   pm.MethodName, pd.AmountApplied
+            FROM dbo.Payment p
+            JOIN dbo.Appointment a ON a.AppointmentID = p.AppointmentID
+            LEFT JOIN dbo.PaymentDetail pd
+                ON pd.PaymentID = p.PaymentID AND pd.DeletionFlag = 0
+            LEFT JOIN dbo.PaymentMethod pm ON pm.MethodID = pd.MethodID
+            WHERE a.PatientID = @PatientID
+              AND a.DeletionFlag = 0
+              AND p.DeletionFlag = 0
+            ORDER BY p.PaymentDate DESC, p.PaymentID DESC, pd.MethodID;
+            """;
+        command.Parameters.Add("@PatientID", SqlDbType.Int).Value = patientId;
+        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        var rows = new List<object>();
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            rows.Add(new
+            {
+                paymentID = reader.GetInt32(0),
+                appointmentID = reader.GetInt32(1),
+                paymentDate = reader.GetDateTime(2).ToString("yyyy-MM-dd"),
+                status = reader.GetString(3),
+                appointmentDateTime = reader.GetDateTime(4),
+                method = reader.IsDBNull(5) ? "Not recorded" : reader.GetString(5),
+                amount = reader.IsDBNull(6) ? 0m : reader.GetDecimal(6)
+            });
+        }
+        return rows;
+    }
+
+    public async Task<List<object>> GetPaymentMethodsAsync(
+        CancellationToken cancellationToken)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT MethodID, MethodName FROM dbo.PaymentMethod ORDER BY MethodID;";
+        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        var rows = new List<object>();
+        while (await reader.ReadAsync(cancellationToken))
+            rows.Add(new
+            {
+                methodID = reader.GetInt32(0),
+                methodName = reader.GetString(1)
+            });
+        return rows;
+    }
+
 }
