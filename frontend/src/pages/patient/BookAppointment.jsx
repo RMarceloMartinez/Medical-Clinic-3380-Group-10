@@ -27,6 +27,7 @@ export default function BookAppointment({ onBooked }) {
   const [choice, setChoice] = useState(null)
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
+  const [reason, setReason] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -53,6 +54,10 @@ export default function BookAppointment({ onBooked }) {
       setError('Pick a day and a time.')
       return
     }
+    if (reason.trim() === '') {
+      setError('Tell us the reason for your visit.')
+      return
+    }
     if (wrongDay) {
       setError(`${choice.doctorName} only works at this office on ${choice.workDays}.`)
       return
@@ -64,6 +69,7 @@ export default function BookAppointment({ onBooked }) {
         doctorID: choice.doctorID,
         officeID: choice.officeID,
         appointmentDateTime: `${date}T${time}:00`,
+        visitReason: reason.trim(),
       })
       const when = new Date(`${date}T${time}:00`).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
       onBooked(`Booked with ${choice.doctorName} on ${when} at ${choice.officeAddress}.`)
@@ -135,6 +141,15 @@ export default function BookAppointment({ onBooked }) {
           <option key={t} value={t}>{t}</option>
         ))}
       </select>
+
+      <label htmlFor="visitReason">Reason for visit</label>
+      <input
+        id="visitReason"
+        maxLength={200}
+        placeholder="e.g. Cough for two weeks"
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+      />
 
       <p className="field-hint">Visit fee: ${Number(choice.visitFee).toFixed(2)}</p>
 

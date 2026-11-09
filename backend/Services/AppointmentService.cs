@@ -121,7 +121,7 @@ public class AppointmentService
         INSERT INTO dbo.Appointment(
                                     OfficeID, DoctorID, PatientID, ReferralID,
                                     Date_Time, TotalCost, Channel,
-                                    AppointStatus, CancelReason, CancelledBy, DeletionFlag
+                                    AppointStatus, CancelReason, CancelledBy, VisitReason, DeletionFlag
                                     )
         OUTPUT INSERTED.AppointmentID
         INTO @NewAppointment(AppointmentID)
@@ -135,7 +135,7 @@ public class AppointmentService
            AND r.DeletionFlag = 0
            AND r.DateIssued <= CAST(@AppointmentDateTime AS DATE))),
            @AppointmentDateTime, sp.VisitFee, @Channel, 'Scheduled',
-           NULL, NULL, 0
+           NULL, NULL, @VisitReason, 0
         FROM dbo.Doctor AS d
         JOIN dbo.Specialty AS sp ON sp.SpecialtyName = d.Specialty
         WHERE d.DoctorID = @DoctorID;
@@ -151,6 +151,7 @@ public class AppointmentService
         command.Parameters.Add("@AppointmentDateTime", SqlDbType.DateTime2).Value = request.AppointmentDateTime.Value;
         
         command.Parameters.Add("@Channel", SqlDbType.VarChar, 10).Value = request.Channel;
+        command.Parameters.Add("@VisitReason", SqlDbType.VarChar, 200).Value = ReasonOrNull(request.VisitReason);
 
         var result = await command.ExecuteScalarAsync(cancellationToken);
 
@@ -351,7 +352,8 @@ public class AppointmentService
                                                       JOIN dbo.Specialty AS sp ON sp.SpecialtyName = d.Specialty
                                                       WHERE d.DoctorID = @DoctorID)
                                              END,
-                                Channel    = @Channel
+                                Channel    = @Channel,
+                                VisitReason = @VisitReason
                             WHERE AppointmentID = @AppointmentID
                               AND DeletionFlag = 0;
                             """;
@@ -363,6 +365,7 @@ public class AppointmentService
         command.Parameters.Add("@ReferralID", SqlDbType.Int).Value = (object?)request.ReferralID ?? DBNull.Value;
         command.Parameters.Add("@AppointmentDateTime", SqlDbType.DateTime2).Value = request.AppointmentDateTime.Value;
         command.Parameters.Add("@Channel", SqlDbType.VarChar, 10).Value = request.Channel;
+        command.Parameters.Add("@VisitReason", SqlDbType.VarChar, 200).Value = ReasonOrNull(request.VisitReason);
 
         int rowsChanged = await command.ExecuteNonQueryAsync(cancellationToken);
 
@@ -392,10 +395,22 @@ public class AppointmentService
         return rowChanged > 0;
     }
 
+    // Blank reason is stored as NULL
+    private static object ReasonOrNull(string? reason) =>
+        string.IsNullOrWhiteSpace(reason) ? DBNull.Value : reason.Trim();
+
     private static AppointmentResponse Map(SqlDataReader reader)
     {
+        // VisitReason is read only when the query returned it (every SELECT a.* does)
+        int? reasonColumn = null;
+        for (int i = 0; i < reader.FieldCount; i++)
+        {
+            if (reader.GetName(i) == "VisitReason") reasonColumn = i;
+        }
+
         return new AppointmentResponse
         {
+            VisitReason = reasonColumn is int rc && !reader.IsDBNull(rc) ? reader.GetString(rc) : null,
             AppointmentID = reader.GetInt32(reader.GetOrdinal("AppointmentID")),
             OfficeID = reader.GetInt32(reader.GetOrdinal("OfficeID")),
             DoctorID = reader.GetInt32(reader.GetOrdinal("DoctorID")),

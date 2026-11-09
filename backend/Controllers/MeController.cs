@@ -100,7 +100,8 @@ public class MeController : ControllerBase
             OfficeID = choice.OfficeID,
             ReferralID = choice.ReferralID,
             AppointmentDateTime = request.AppointmentDateTime,
-            Channel = "Web Portal"
+            Channel = "Web Portal",
+            VisitReason = request.VisitReason
         };
 
         try

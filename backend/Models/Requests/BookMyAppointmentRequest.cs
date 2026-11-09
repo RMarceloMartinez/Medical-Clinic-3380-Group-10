@@ -14,6 +14,10 @@ public class BookMyAppointmentRequest : IValidatableObject
     [Required]
     public DateTime? AppointmentDateTime { get; set; }
 
+    [Required(ErrorMessage = "Tell us the reason for your visit.")]
+    [StringLength(200, ErrorMessage = "Keep the reason for the visit under 200 characters.")]
+    public string? VisitReason { get; set; }
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         var now = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(

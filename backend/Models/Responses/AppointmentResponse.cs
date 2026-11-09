@@ -23,6 +23,8 @@ public class AppointmentResponse
     public string? CancelReason { get; set; }
 
     public string? CancelledBy { get; set; }
+
+    public string? VisitReason { get; set; }
     
     public string PatientName { get; set; } = string.Empty;
 
