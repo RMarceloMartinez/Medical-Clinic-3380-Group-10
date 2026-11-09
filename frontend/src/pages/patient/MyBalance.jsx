@@ -143,6 +143,12 @@ export default function MyBalance() {
   }
 
   const disabled = saving || loading || refreshRequired
+  const selectedMethod = data?.methods.find(
+    (item) => String(item.methodID) === method
+  )
+  const isCard = ['Credit Card', 'Debit Card'].includes(
+    selectedMethod?.methodName
+  )
 
   return (
     <div className="panel">
@@ -240,6 +246,48 @@ export default function MyBalance() {
                     </option>
                   ))}
                 </select>
+
+                {isCard && (
+                  <div className="demo-card-section">
+                    <h4>Demo card information</h4>
+                    <p>
+                      Simulation only. Use fictional test details.
+                      No real card information is collected or stored.
+                    </p>
+
+                    <label htmlFor="demo-card-name">Cardholder name</label>
+                    <input
+                      id="demo-card-name"
+                      type="text"
+                      value="DEMO PATIENT"
+                      readOnly
+                    />
+
+                    <label htmlFor="demo-card-number">Test card number</label>
+                    <input
+                      id="demo-card-number"
+                      type="text"
+                      value="4242 4242 4242 4242"
+                      readOnly
+                    />
+
+                    <label htmlFor="demo-card-expiry">Expiration date</label>
+                    <input
+                      id="demo-card-expiry"
+                      type="text"
+                      value="12/30"
+                      readOnly
+                    />
+
+                    <label htmlFor="demo-card-cvv">Security code</label>
+                    <input
+                      id="demo-card-cvv"
+                      type="text"
+                      value="123"
+                      readOnly
+                    />
+                  </div>
+                )}
 
                 <button type="submit">
                   {saving ? 'Saving…' : 'Save payment'}
