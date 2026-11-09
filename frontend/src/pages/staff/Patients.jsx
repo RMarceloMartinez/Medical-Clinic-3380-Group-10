@@ -15,19 +15,57 @@ function patientLabel(p) {
 
 function validate(form, isNew) {
   const errors = {}
+
   const required = {
-    firstName: 'the first name', lastName: 'the last name', streetAddress: 'the street address',
-    city: 'the city', state: 'the state', zipCode: 'the ZIP code', country: 'the country',
-    phone: 'the phone number', sex: 'the sex', dateOfBirth: 'the date of birth', email: 'a valid email',
+    firstName: 'Please enter a first name.',
+    lastName: 'Please enter a last name.',
+    streetAddress: 'Please enter a street address.',
+    city: 'Please enter a city.',
+    state: 'Please enter a state.',
+    zipCode: 'Please enter a ZIP code.',
+    country: 'Please enter a country.',
+    phone: 'Please enter a phone number.',
+    sex: 'Please select a sex.',
+    dateOfBirth: 'Please enter a date of birth.',
+    email: 'Please enter an email address.',
   }
-  Object.entries(required).forEach(([field, text]) => {
-    if (form[field].trim() === '') errors[field] = `Please enter ${text}.`
+
+  Object.entries(required).forEach(([field, message]) => {
+    if (!String(form[field] ?? '').trim()) {
+      errors[field] = message
+    }
   })
-  if (form.email && !form.email.includes('@')) errors.email = 'Please enter a valid email.'
-  if (isNew && form.primaryDoctorID === '') errors.primaryDoctorID = 'Please pick a primary doctor.'
-  if (isNew && form.ssn && !/^[0-9]{3}-[0-9]{2}-[0-9]{4}$/.test(form.ssn)) {
+  if (form.dateOfBirth) {
+    const dob = new Date(`${form.dateOfBirth}T00:00:00`)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    if (Number.isNaN(dob.getTime())) {
+      errors.dateOfBirth = 'Please enter a valid date of birth.'
+    } else if (dob > today) {
+      errors.dateOfBirth = 'Date of birth cannot be in the future.'
+    }
+  }
+  if (form.phone) {
+    const digits = form.phone.replace(/\D/g, '')
+    if (digits.length !== 10) {
+      errors.phone = 'Please enter a valid 10-digit phone number.'
+    }
+  }
+
+  
+  if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    errors.email = 'Please enter a valid email address.'
+  }
+
+  if (isNew && !form.primaryDoctorID) {
+    errors.primaryDoctorID = 'Please select a primary doctor.'
+  }
+
+  if (isNew && form.ssn && !/^\d{3}-\d{2}-\d{4}$/.test(form.ssn)) {
     errors.ssn = 'Use the format 123-45-6789.'
   }
+
   return errors
 }
 
@@ -64,6 +102,7 @@ export default function Patients() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [doctors, setDoctors] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('')
 
   async function loadPatients() {
     try {
@@ -104,17 +143,31 @@ export default function Patients() {
 
   // ----- Add -----
   async function handleAdd() {
-    const found = validate(form, true)
-    setErrors(found)
-    if (Object.keys(found).length > 0) return
+  const found = validate(form, true)
+  setErrors(found)
+  setError('')
 
-    try {
-      await api.post('/patients', toRequestBody(form, true))
-      await finish(`${form.firstName} ${form.lastName} was added.`)
-    } catch (e) {
-      setError(`Could not save patient: ${e.message}`)
-    }
+  if (Object.keys(found).length > 0) return
+
+  try {
+    const result = await api.post('/patients', toRequestBody(form, true))
+
+    const patientId =
+      result?.patientID ?? result?.patientId ?? result?.id
+
+    const doctor = doctors.find(
+      (d) => String(d.id) === String(form.primaryDoctorID)
+    )
+
+    const doctorName = doctor?.name || 'the selected doctor'
+
+    await finish(
+      `Added ${form.firstName} ${form.lastName} (patient ID ${patientId}). They can now book with ${doctorName}.`
+    )
+  } catch (e) {
+    setError(e.message || 'Could not save patient.')
   }
+}
 
   // ----- Edit -----
   async function loadForEdit(id) {
@@ -149,13 +202,14 @@ export default function Patients() {
   async function handleUpdate() {
     const found = validate(form, false)
     setErrors(found)
+    setError('')
     if (Object.keys(found).length > 0) return
 
     try {
       await api.put(`/patients/${selectedId}`, toRequestBody(form, false))
-      await finish(`${form.firstName} ${form.lastName} was updated.`)
+      await finish(`Saved changes to ${form.firstName} ${form.lastName}.`)
     } catch (e) {
-      setError(`Could not update patient: ${e.message}`)
+      setError(e.message || 'Could not update patient.')
     }
   }
 
@@ -173,16 +227,25 @@ export default function Patients() {
   }
 
   async function handleRemove() {
-    if (!selected) return
-    if (!window.confirm(`Are you sure you want to remove ${selected.firstName} ${selected.lastName}?`)) return
+  if (!selected) return
 
-    try {
-      await api.delete(`/patients/${selectedId}`)
-      await finish(`${selected.firstName} ${selected.lastName} was removed.`)
-    } catch (e) {
-      setError(`Could not remove patient: ${e.message}`)
-    }
+  const patientName = `${selected.firstName} ${selected.lastName}`
+
+  if (
+    !window.confirm(
+      `Delete ${patientName}? Her past visits stay in the records.`
+    )
+  ) {
+    return
   }
+
+  try {
+    await api.delete(`/patients/${selectedId}`)
+    await finish(`${patientName} was removed.`)
+  } catch (e) {
+    setError(e.message || 'Could not remove patient.')
+  }
+}
 
   // One label + input + error message
   function field(name, label, props = {}) {
@@ -249,7 +312,10 @@ export default function Patients() {
       </>
     )
   }
-
+    const filteredPatients = patients.filter((p) => {
+  const fullName = `${p.firstName} ${p.lastName}`.toLowerCase()
+  return fullName.includes(searchTerm.toLowerCase().trim())
+})
   return (
     <div className="patients-page">
       <h2>Patient Management</h2>
@@ -261,7 +327,16 @@ export default function Patients() {
             <button type="button" onClick={() => open('edit')}>Edit patient</button>
             <button type="button" onClick={() => open('remove')}>Remove patient</button>
           </div>
-
+          <div className="patient-search">
+            <label htmlFor="patientSearch">Search patients</label>
+              <input
+                id="patientSearch"
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by first or last name"
+              />
+          </div>
           {message && <p className="success-message">{message}</p>}
           {error && <p className="error-message">{error}</p>}
 
@@ -275,10 +350,14 @@ export default function Patients() {
               </tr>
             </thead>
             <tbody>
-              {patients.length === 0 ? (
-                <tr><td colSpan="4">No patients found.</td></tr>
-              ) : (
-                patients.map((p) => (
+              {filteredPatients.length === 0 ? (
+            <tr>
+              <td colSpan="4">
+                {searchTerm.trim()? `No patients match '${searchTerm}'.`: 'No patients found.'}
+              </td>
+            </tr>
+                  ) : (
+                  filteredPatients.map((p) => ( 
                   <tr key={p.patientID}>
                     <td>{p.firstName} {p.lastName}</td>
                     <td>{p.dateOfBirth}</td>
@@ -295,16 +374,21 @@ export default function Patients() {
       {view === 'add' && (
         <div className="add-Patient">
           <h2>Add New Patient</h2>
-          {patientFields(true)}
-          {error && <p className="error-message">{error}</p>}
-          <button type="button" onClick={handleAdd}>Save</button>
-          <button type="button" className="back-button" onClick={() => open('list')}>Back to patients</button>
+
+       {error && <div className="error-banner" role="alert">{error}</div>}
+
+       {patientFields(true)}
+       <button type="button" onClick={handleAdd}>Save</button>
+       <button type="button" className="back-button" onClick={() => open('list')}>
+        Back to patients
+       </button>
         </div>
-      )}
+)}
 
       {view === 'edit' && (
         <div className="edit-Patient">
           <h2>Edit Patient</h2>
+          {error && <div className="error-banner" role="alert">{error}</div>}
           {patientPicker(loadForEdit)}
           {selected && (
             <>
@@ -313,7 +397,6 @@ export default function Patients() {
               <button type="button" onClick={handleUpdate}>Save changes</button>
             </>
           )}
-          {error && <p className="error-message">{error}</p>}
           <button type="button" className="back-button" onClick={() => open('list')}>Back to patients</button>
         </div>
       )}
@@ -338,3 +421,4 @@ export default function Patients() {
     </div>
   )
 }
+
