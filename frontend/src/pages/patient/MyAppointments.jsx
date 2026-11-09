@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 import { useLocation } from 'react-router'
+import ChartRequests from './ChartRequests'
 
 function hoursUntilCentral(value) {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -127,11 +128,15 @@ export default function MyAppointments({ onBook }) {
         </button>
         <button type="button" className={view === 'past' ? 'active' : ''} onClick={() => setView('past')}>
           Past and cancelled ({past.length})
-        </button>
+              </button>
+        <button type="button" className={view === 'chart' ? 'active' : ''} onClick={() => setView('chart')}>
+                  Request chart
+              </button>
       </div>
 
       {message && <p className="success-message">{message}</p>}
-      {error && <p className="error-message">{error}</p>}
+          {error && <p className="error-message">{error}</p>}
+          {view === 'chart' && <ChartRequests />}
 
       {view === 'upcoming' && loaded && (
         upcoming.length === 0 ? (
