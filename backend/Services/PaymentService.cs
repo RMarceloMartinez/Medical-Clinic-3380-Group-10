@@ -132,7 +132,12 @@ public class PaymentService
                 decimal remaining = Math.Max(0, fee - paid);
                 decimal amount = request.Details.Sum(d => d.AmountApplied);
 
-                if (fee == 0 || amount > remaining)
+                // No fee: the insert goes on and trigger 50007 refuses it with its own message
+                if (fee > 0 && remaining == 0)
+                    throw new ArgumentException(
+                        $"The ${fee:0.00} cancellation fee for this visit is already paid.");
+
+                if (fee > 0 && amount > remaining)
                     throw new ArgumentException(
                         $"This visit was cancelled; only ${remaining:0.00} of the cancellation fee remains to be paid.");
             }

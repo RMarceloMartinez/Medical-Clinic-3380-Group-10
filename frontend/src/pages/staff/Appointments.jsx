@@ -377,7 +377,7 @@ export default function Appointments({ role }) {
                       {a.appointStatus === 'Scheduled' && isDoctor && (
                         <button type="button" onClick={() => handleComplete(a)}>Complete</button>
                       )}
-                      {isAdmin && a.appointStatus !== 'Completed' && a.hasCompletedPayments === false && (
+                      {isAdmin && a.appointStatus !== 'Completed' && (
                         <button type="button" className="danger-link" onClick={() => handleDelete(a)}>Delete</button>
                       )}
                     </td>

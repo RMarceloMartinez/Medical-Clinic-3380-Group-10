@@ -233,7 +233,7 @@ export default function Patients() {
 
   if (
     !window.confirm(
-      `Delete ${patientName}? Her past visits stay in the records.`
+      `Delete ${patientName}? Their past visits stay in the records.`
     )
   ) {
     return

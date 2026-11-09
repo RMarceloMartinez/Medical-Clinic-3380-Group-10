@@ -103,7 +103,7 @@ function StaffHome({ account, sections, onOpen }) {
     <div className="home">
       <div className="welcome-banner">
         <div>
-          <h2>{greeting()}, {account.username}</h2>
+          <h2>{greeting()}, {account.firstName || account.username}</h2>
           <p>{today} · Signed in as {role}</p>
         </div>
       </div>

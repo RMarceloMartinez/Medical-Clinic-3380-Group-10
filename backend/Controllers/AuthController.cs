@@ -47,7 +47,8 @@ public class AuthController : ControllerBase
                 account.AccountID.ToString()),
             new Claim("UserID", account.UserID.ToString()),
             new Claim(ClaimTypes.Name, account.Username),
-            new Claim(ClaimTypes.Role, account.Role)
+            new Claim(ClaimTypes.Role, account.Role),
+            new Claim(ClaimTypes.GivenName, account.FirstName)
         };
 
         var identity = new ClaimsIdentity(
@@ -137,7 +138,8 @@ public class AuthController : ControllerBase
             accountID = User.FindFirstValue(ClaimTypes.NameIdentifier),
             userID = User.FindFirstValue("UserID"),
             username = User.Identity?.Name,
-            role = User.FindFirstValue(ClaimTypes.Role)
+            role = User.FindFirstValue(ClaimTypes.Role),
+            firstName = User.FindFirstValue(ClaimTypes.GivenName)   // null for sessions from before this change
         });
 
     }

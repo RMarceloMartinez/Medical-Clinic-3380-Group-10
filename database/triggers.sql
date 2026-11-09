@@ -372,7 +372,7 @@ BEGIN
     WHERE d.AppointStatus = 'Scheduled'
         AND i.AppointStatus = 'Cancelled'
         AND ISNULL(i.CancelledBy, '') <> 'Doctor'
-        AND i.Date_Time >= @CentralNow
+        -- under 24 h away, or already past (a no-show)
         AND i.Date_Time < DATEADD(HOUR, 24, @CentralNow);
 END;
 GO

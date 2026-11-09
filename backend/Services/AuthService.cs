@@ -32,7 +32,7 @@ public class AuthService
         using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT ua.AccountID, ua.UserID, ua.Username,
-                   ua.PasswordHash, ua.Role, ua.IsActive
+                   ua.PasswordHash, ua.Role, ua.IsActive, m.FirstName
             FROM dbo.UserAccount AS ua
             INNER JOIN dbo.Member AS m
                 ON m.MemberID = ua.UserID
@@ -80,6 +80,7 @@ public class AuthService
             AccountID = reader.GetInt32(reader.GetOrdinal("AccountID")),
             UserID = reader.GetInt32(reader.GetOrdinal("UserID")),
             Username = reader.GetString(reader.GetOrdinal("Username")),
+            FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
             Role = reader.GetString(reader.GetOrdinal("Role"))
         };
     }
