@@ -171,4 +171,113 @@ public class MeController : ControllerBase
             return BadRequest(new { message = triggerError.Message });
         }
     }
+
+    [HttpGet("charges")]
+    public async Task<IActionResult> MyCharges(
+        [FromServices] PaymentService payments,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await payments.GetPatientChargesAsync(
+            CurrentPatientId(), cancellationToken));
+    }
+
+    [HttpGet("payments")]
+    public async Task<IActionResult> MyPaymentHistory(
+        [FromServices] PaymentService payments,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await payments.GetPatientPaymentHistoryAsync(
+            CurrentPatientId(), cancellationToken));
+    }
+
+    [HttpGet("payment-methods")]
+    public async Task<IActionResult> MyPaymentMethods(
+        [FromServices] PaymentService payments,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await payments.GetPaymentMethodsAsync(cancellationToken));
+    }
+
+    [HttpPost("payments")]
+    [Consumes("application/json")]
+    public async Task<IActionResult> PayMyVisit(
+        [FromBody] CreateMyPaymentRequest request,
+        [FromServices] PaymentService payments,
+        [FromServices] IAntiforgery antiforgery,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await antiforgery.ValidateRequestAsync(HttpContext);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return BadRequest(new { message = "Invalid or missing CSRF token." });
+        }
+
+        var centralNow = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
+            DateTimeOffset.UtcNow, "America/Chicago");
+
+        var payment = new CreatePaymentRequest
+        {
+            AppointmentID = request.AppointmentID,
+            InstallmentNumber = 1, // Assigned under the transaction lock.
+            PaymentDate = DateOnly.FromDateTime(centralNow.DateTime),
+            PayStatus = "Completed",
+            Details = new List<PaymentDetailRequest>
+            {
+                new()
+                {
+                    MethodID = request.MethodID,
+                    AmountApplied = request.AmountApplied
+                }
+            }
+        };
+
+        try
+        {
+            int id = await payments.CreateAsync(
+                payment, cancellationToken, CurrentPatientId());
+            return Ok(new { paymentID = id, amount = request.AmountApplied });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { message = "Appointment was not found." });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (SqlException ex) when (
+            ex.Errors.Cast<SqlError>().Any(e => e.Number == 50003))
+        {
+            return Conflict(new
+            {
+                message = "This payment exceeds the remaining balance. Refresh and try again."
+            });
+        }
+        catch (SqlException ex) when (
+            ex.Errors.Cast<SqlError>().Any(e => e.Number == 50007))
+        {
+            return Conflict(new
+            {
+                message = "This cancelled visit has no cancellation fee to pay."
+            });
+        }
+        catch (SqlException ex) when (ex.Number is 2601 or 2627)
+        {
+            return Conflict(new
+            {
+                message = "Another payment was recorded. Refresh before trying again."
+            });
+        }
+        catch (SqlException ex) when (ex.Number == 547)
+        {
+            return BadRequest(new
+            {
+                message = "The appointment or payment method is invalid."
+            });
+        }
+    }
+
 }
