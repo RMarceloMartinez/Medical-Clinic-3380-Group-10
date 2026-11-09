@@ -339,6 +339,8 @@ CREATE TABLE Appointment(
     CancelReason VARCHAR(200) NULL,
     CancelledBy VARCHAR(7) NULL,
     CancellationFee NUMERIC(10,2) NULL,
+    VisitReason VARCHAR(200) NULL,
+    CheckInStatus VARCHAR(16) NULL,
     DeletionFlag BIT NOT NULL,
         
     CONSTRAINT PK_Appointment PRIMARY KEY(AppointmentID),
@@ -360,6 +362,7 @@ CREATE TABLE Appointment(
             AND CancelledBy IS NULL)
     ),
     CONSTRAINT CK_Appointment_CancellationFee CHECK(CancellationFee >= 0),
+    CONSTRAINT CK_Appointment_CheckInStatus CHECK (CheckInStatus IN ('Checked in', 'Waiting', 'Ready for doctor')),
     CONSTRAINT CK_Appointment_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
@@ -376,6 +379,7 @@ CREATE TABLE MedicalRecord(
     HeightInches NUMERIC(4,1) NOT NULL,
     TreatmentPlan VARCHAR(200) NULL,
     FollowUp VARCHAR(200) NULL,
+    NursingNotes VARCHAR(500) NULL,
     DeletionFlag BIT NOT NULL,
         
     CONSTRAINT PK_MedicalRecord PRIMARY KEY(RecordID),
@@ -414,6 +418,7 @@ CREATE TABLE Prescription(
     Frequency VARCHAR(20) NOT NULL,
     Duration VARCHAR(20) NOT NULL,
     Instructions VARCHAR(100) NULL,
+    Pharmacy VARCHAR(60) NULL,
     DeletionFlag BIT NOT NULL,
 
     CONSTRAINT PK_Prescription PRIMARY KEY(PrescriptionID, RecordID),
@@ -467,6 +472,22 @@ CREATE TABLE PaymentDetail(
     CONSTRAINT FK_PaymentDetail_PaymentMethod FOREIGN KEY(MethodID) REFERENCES PaymentMethod(MethodID) ON DELETE NO ACTION,
     CONSTRAINT CK_PaymentDetail_AmountApplied CHECK(AmountApplied >= 0),
     CONSTRAINT CK_PaymentDetail_DeletionFlag CHECK (DeletionFlag IN (0, 1))
+);
+
+CREATE TABLE ChartRequest(
+    RequestID INT IDENTITY(1000000,1) NOT NULL,
+    PatientID INT NOT NULL,
+    DoctorID INT NOT NULL,
+    RequestDate DATE NOT NULL,
+    RequestStatus VARCHAR(9) NOT NULL,
+    DeletionFlag BIT NOT NULL,
+
+    CONSTRAINT PK_ChartRequest PRIMARY KEY(RequestID),
+    CONSTRAINT CK_ChartRequest_RequestID CHECK(RequestID BETWEEN 1000000 AND 9999999),
+    CONSTRAINT FK_ChartRequest_Patient FOREIGN KEY(PatientID) REFERENCES Patient(PatientID) ON DELETE NO ACTION,
+    CONSTRAINT FK_ChartRequest_Doctor FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE NO ACTION,
+    CONSTRAINT CK_ChartRequest_Status CHECK (RequestStatus IN ('Pending', 'Sent')),
+    CONSTRAINT CK_ChartRequest_DeletionFlag CHECK (DeletionFlag IN (0, 1))
 );
 
 CREATE TABLE AppointmentActivityReport(

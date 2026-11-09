@@ -16,7 +16,8 @@ public class LookupService
         return QueryAsync("""
             SELECT d.DoctorID AS Id,
                    m.FirstName + ' ' + m.LastName
-                   + ' (' + d.Specialty + ' · $' + FORMAT(sp.VisitFee, 'N0') + ')' AS Name
+                   + ' (' + d.Specialty + ')' AS Name,
+                   sp.VisitFee AS Fee
             FROM dbo.Doctor AS d
             JOIN dbo.Member AS m ON m.MemberID = d.DoctorID
             JOIN dbo.Specialty AS sp ON sp.SpecialtyName = d.Specialty
@@ -76,12 +77,20 @@ public class LookupService
         var items = new List<LookupItem>();
         using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
+        // Only some lists have a Fee column (the doctors list)
+        int? feeColumn = null;
+        for (int i = 0; i < reader.FieldCount; i++)
+        {
+            if (reader.GetName(i) == "Fee") feeColumn = i;
+        }
+
         while (await reader.ReadAsync(cancellationToken))
         {
             items.Add(new LookupItem
             {
                 Id = reader.GetInt32(reader.GetOrdinal("Id")),
-                Name = reader.GetString(reader.GetOrdinal("Name"))
+                Name = reader.GetString(reader.GetOrdinal("Name")),
+                Fee = feeColumn is int f && !reader.IsDBNull(f) ? reader.GetDecimal(f) : null
             });
         }
 

@@ -26,6 +26,24 @@ const NOTE_FIELDS = [
 
 const emptyNotes = { clinicalNotes: '', treatmentPlan: '', followUp: '' }
 
+// Prescription form. Max lengths match the Prescription columns.
+const RX_FIELDS = [
+  { key: 'medicationName', label: 'Medication', max: 50, placeholder: 'e.g. Amoxicillin' },
+  { key: 'dosage', label: 'Dosage', max: 20, placeholder: 'e.g. 500 mg' },
+  { key: 'frequency', label: 'How often', max: 20, placeholder: 'e.g. Twice a day' },
+  { key: 'duration', label: 'For how long', max: 20, placeholder: 'e.g. 7 days' },
+  { key: 'instructions', label: 'Instructions (optional)', max: 100, placeholder: 'e.g. Take with food' },
+]
+
+const PHARMACIES = [
+  'CVS Pharmacy, Main Street',
+  'Walgreens, Westheimer Road',
+  'H-E-B Pharmacy, Richmond Avenue',
+  'Clarity Health Pharmacy, Main Street',
+]
+
+const emptyRx = { medicationName: '', dosage: '', frequency: '', duration: '', instructions: '', pharmacy: '' }
+
 // checks api's central local time and current central time
 // (same check as the Complete button on the Appointments page)
 function hasAppointmentStarted(value) {
@@ -83,6 +101,10 @@ export default function DoctorVisits() {
   const [loadingRecord, setLoadingRecord] = useState(false)
   const [notes, setNotes] = useState(emptyNotes)
   const [saving, setSaving] = useState(false)
+  const [rx, setRx] = useState(emptyRx)          // the prescription form
+  const [rxWarning, setRxWarning] = useState('') // allergy warning waiting for the doctor's answer
+  const [rxError, setRxError] = useState('')
+  const [rxSaving, setRxSaving] = useState(false)
 
   // First load
   useEffect(() => {
@@ -112,6 +134,7 @@ export default function DoctorVisits() {
     setSelected(null)
     setRecord(null)
     setNotes(emptyNotes)
+    resetRx()
     setView('list')
     loadVisits()
   }
@@ -123,6 +146,7 @@ export default function DoctorVisits() {
     setSelected(visit)
     setRecord(null)
     setNotes(emptyNotes)
+    resetRx()
     setView('visit')
 
     // No vitals yet: nothing to load, and the form stays disabled
@@ -177,6 +201,43 @@ export default function DoctorVisits() {
     setMessage(`Notes saved and visit completed for ${selected.patientName}, ${when}.`)
     setSaving(false)
     showList()
+  }
+
+  // ----- Prescriptions -----
+  function resetRx() {
+    setRx(emptyRx)
+    setRxWarning('')
+    setRxError('')
+  }
+
+  // confirmAllergy = true only after the doctor saw the allergy warning and chose to go ahead
+  async function handlePrescribe(confirmAllergy) {
+    const missing = ['medicationName', 'dosage', 'frequency', 'duration', 'pharmacy'].filter((k) => !rx[k].trim())
+    if (missing.length > 0) {
+      setRxError('Fill in the medication, dosage, how often, for how long and the pharmacy.')
+      return
+    }
+
+    setRxSaving(true)
+    setRxError('')
+    setMessage('')
+    try {
+      await api.post(`/doctor/appointments/${selected.appointmentID}/prescriptions`, { ...rx, confirmAllergy })
+      setMessage(
+        `Prescribed ${rx.medicationName} ${rx.dosage}, ${rx.frequency.toLowerCase()} for ${rx.duration} `
+        + `to ${selected.patientName}. Sent to ${rx.pharmacy}.`
+      )
+      resetRx()
+      setRecord(await api.get(`/doctor/appointments/${selected.appointmentID}/record`)) // refresh the list
+    } catch (e) {
+      if (e.status === 409) {
+        setRxWarning(e.message) // the allergy warning: ask before prescribing
+      } else {
+        setRxError(e.message)
+      }
+    } finally {
+      setRxSaving(false)
+    }
   }
 
   const visitColumns = [
@@ -303,6 +364,87 @@ export default function DoctorVisits() {
             )}
             <button type="button" onClick={showList} disabled={saving}>Back to visits</button>
           </div>
+
+          {/* ---------- Allergies and prescriptions ---------- */}
+          {record && (
+            <>
+              <h3>Allergies</h3>
+              {record.allergies.length === 0 ? (
+                <p className="field-hint">No known allergies.</p>
+              ) : (
+                <div className="error-banner" role="note">
+                  Allergic to:{' '}
+                  {record.allergies.map((a) => `${a.allergen} (${a.severity}, ${a.reactionType})`).join('; ')}
+                </div>
+              )}
+
+              <h3>Prescriptions for this visit</h3>
+              {record.prescriptions.length === 0 ? (
+                <p className="field-hint">None yet.</p>
+              ) : (
+                <ul>
+                  {record.prescriptions.map((p) => (
+                    <li key={p.prescriptionID}>
+                      <strong>{p.medicationName}</strong> {p.dosage}, {p.frequency} for {p.duration}
+                      {p.instructions ? ` · ${p.instructions}` : ''}
+                      {p.pharmacy ? ` · ${p.pharmacy}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <h3>Prescribe medication</h3>
+              <div className="form-grid">
+                {RX_FIELDS.map((f) => (
+                  <div className="form-field" key={f.key}>
+                    <label htmlFor={`rx-${f.key}`}>{f.label}</label>
+                    <input
+                      id={`rx-${f.key}`}
+                      maxLength={f.max}
+                      placeholder={f.placeholder}
+                      disabled={rxSaving}
+                      value={rx[f.key]}
+                      onChange={(e) => { setRx({ ...rx, [f.key]: e.target.value }); setRxWarning('') }}
+                    />
+                  </div>
+                ))}
+                <div className="form-field">
+                  <label htmlFor="rx-pharmacy">Pharmacy</label>
+                  <select
+                    id="rx-pharmacy"
+                    disabled={rxSaving}
+                    value={rx.pharmacy}
+                    onChange={(e) => setRx({ ...rx, pharmacy: e.target.value })}
+                  >
+                    <option value="">Choose a pharmacy</option>
+                    {PHARMACIES.map((ph) => <option key={ph} value={ph}>{ph}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {rxError && <p className="error-message">{rxError}</p>}
+
+              {rxWarning ? (
+                <div className="error-banner" role="alert">
+                  <p>{rxWarning}</p>
+                  <div className="page-actions">
+                    <button type="button" className="danger-link" disabled={rxSaving} onClick={() => handlePrescribe(true)}>
+                      Prescribe anyway
+                    </button>
+                    <button type="button" disabled={rxSaving} onClick={() => setRxWarning('')}>
+                      Don't prescribe
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="page-actions">
+                  <button type="button" className="primary-button" disabled={rxSaving} onClick={() => handlePrescribe(false)}>
+                    {rxSaving ? 'Saving…' : 'Prescribe'}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
