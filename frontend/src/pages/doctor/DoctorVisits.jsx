@@ -251,6 +251,11 @@ export default function DoctorVisits() {
     { key: 'officeAddress', label: 'Office' },
     { key: 'appointStatus', label: 'Status' },
     {
+      key: 'checkInStatus',
+      label: 'Check-in',
+      format: (v) => (v.appointStatus === 'Scheduled' ? v.checkInStatus ?? 'Not checked in' : '—'),
+    },
+    {
       key: 'vitalsRecorded',
       label: 'Vitals',
       format: (v) => (v.vitalsRecorded ? 'Recorded' : 'Waiting for nurse'),
@@ -328,6 +333,15 @@ export default function DoctorVisits() {
                 </div>
               ))}
             </div>
+          )}
+
+          {record && (
+            <>
+              <h3>Nursing notes</h3>
+              <p className={record.nursingNotes ? '' : 'field-hint'}>
+                {record.nursingNotes || 'The nurse has not written notes for this visit.'}
+              </p>
+            </>
           )}
 
           <h3>Notes</h3>

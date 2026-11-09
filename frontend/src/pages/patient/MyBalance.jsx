@@ -197,7 +197,7 @@ export default function MyBalance() {
       {message && <p className="success-message" role="status">{message}</p>}
       {error && <p className="error-message" role="alert">{error}</p>}
 
-      <button type="button" onClick={refresh} disabled={saving || loading}>
+      <button type="button" className="secondary-button" onClick={refresh} disabled={saving || loading}>
         {loading ? 'Loading…' : 'Refresh'}
       </button>
 
@@ -223,15 +223,15 @@ export default function MyBalance() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Visit</th><th>Date</th><th>Charge type</th>
+                    <th>Visit date</th><th>Doctor</th><th>Charge type</th>
                     <th>Charged</th><th>Paid</th><th>Remaining</th><th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.charges.map((visit) => (
                     <tr key={visit.appointmentID}>
-                      <td>{visit.appointmentID}</td>
                       <td>{date(visit.appointmentDateTime)}</td>
+                      <td>{visit.doctorName}</td>
                       <td>{visit.status === 'Cancelled' ? 'Late-cancel fee' : 'Visit'}</td>
                       <td>{money(visit.charge)}</td>
                       <td>{money(visit.paid)}</td>
@@ -240,9 +240,10 @@ export default function MyBalance() {
                         {Number(visit.remaining) > 0 ? (
                           <button
                             type="button"
+                            className="primary-button"
                             disabled={disabled}
                             onClick={() => chooseVisit(visit)}
-                            aria-label={`Pay for visit ${visit.appointmentID}`}
+                            aria-label={`Pay for the ${date(visit.appointmentDateTime)} visit with ${visit.doctorName}`}
                           >
                             Pay
                           </button>
@@ -257,7 +258,7 @@ export default function MyBalance() {
 
           {selected && (
             <form onSubmit={pay}>
-              <h3>Pay for visit {selected.appointmentID}</h3>
+              <h3>Pay for the {date(selected.appointmentDateTime)} visit with {selected.doctorName}</h3>
               <p>Remaining: {money(selected.remaining)}</p>
               <fieldset disabled={saving || loading || refreshRequired}>
                 <legend>Payment details</legend>
@@ -395,10 +396,10 @@ export default function MyBalance() {
                   </div>
                 )}
 
-                <button type="submit">
+                <button type="submit" className="primary-button">
                   {saving ? 'Saving…' : 'Save payment'}
                 </button>
-                <button type="button" onClick={() => setSelected(null)}>
+                <button type="button" className="secondary-button" onClick={() => setSelected(null)}>
                   Cancel
                 </button>
               </fieldset>
@@ -413,17 +414,16 @@ export default function MyBalance() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Payment</th><th>Payment date</th><th>Visit</th>
-                    <th>Visit date</th><th>Amount</th><th>Method</th><th>Status</th>
+                    <th>Paid on</th><th>Visit date</th><th>Doctor</th>
+                    <th>Amount</th><th>Method</th><th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.history.map((payment, index) => (
                     <tr key={`${payment.paymentID}-${index}`}>
-                      <td>{payment.paymentID}</td>
                       <td>{date(payment.paymentDate)}</td>
-                      <td>{payment.appointmentID}</td>
                       <td>{date(payment.appointmentDateTime)}</td>
+                      <td>{payment.doctorName}</td>
                       <td>{money(payment.amount)}</td>
                       <td>{payment.method}</td>
                       <td>{payment.status}</td>
