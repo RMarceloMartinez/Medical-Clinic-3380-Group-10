@@ -172,6 +172,7 @@ public class MeController : ControllerBase
         }
     }
 
+
     [HttpGet("charges")]
     public async Task<IActionResult> MyCharges(
         [FromServices] PaymentService payments,
@@ -279,5 +280,63 @@ public class MeController : ControllerBase
             });
         }
     }
+
+// GET /api/me/medical-records
+    [HttpGet("medical-records")]
+    public async Task<IActionResult> MyMedicalRecords(
+        [FromServices] PatientMedicalRecordService medicalRecordService,
+        CancellationToken cancellationToken)
+    {
+        var records = await medicalRecordService.GetRecordsAsync(
+            CurrentPatientId(), cancellationToken);
+
+        return Ok(records);
+    }
+
+    [HttpGet("chart-requests")]
+    public async Task<IActionResult> MyChartRequests(
+        [FromServices] ChartRequestService chartRequestService,
+        CancellationToken cancellationToken)
+    {
+        var requests = await chartRequestService.GetRequestsAsync(
+            CurrentPatientId(), cancellationToken);
+
+        return Ok(requests);
+    }
+
+    [HttpPost("chart-requests")]
+    public async Task<IActionResult> CreateChartRequest(
+        [FromBody] CreateChartRequestDto request,
+        [FromServices] ChartRequestService chartRequestService,
+        CancellationToken cancellationToken)
+    {
+        if (request.DoctorID <= 0)
+            return BadRequest("Please select a valid doctor.");
+
+        try
+        {
+            var requestId = await chartRequestService.CreateRequestAsync(
+                CurrentPatientId(),
+                request.DoctorID,
+                cancellationToken);
+
+            return Ok(new
+            {
+                requestID = requestId,
+                status = "Pending",
+                message = "Chart request submitted successfully."
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    public class CreateChartRequestDto
+    {
+        public int DoctorID { get; set; }
+    }
+
 
 }

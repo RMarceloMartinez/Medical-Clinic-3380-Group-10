@@ -1,6 +1,6 @@
 namespace ClinicApi.Models;
 
-// A completed visit, with the vitals and the doctor's notes from it (if no record kept then null)
+// A completed visit, with the vitals and the doctor's notes from it (null if no record was kept)
 public class PastVisitRow
 {
     public int AppointmentID { get; set; }
@@ -10,6 +10,7 @@ public class PastVisitRow
     public short? SystolicBP { get; set; }
     public short? DiastolicBP { get; set; }
     public short? HeartRate { get; set; }
+    public decimal? Temperature { get; set; }
     public decimal? WeightPounds { get; set; }
     public string? ClinicalNotes { get; set; }
     public string? TreatmentPlan { get; set; }
