@@ -376,3 +376,43 @@ BEGIN
         AND i.Date_Time < DATEADD(HOUR, 24, @CentralNow);
 END;
 GO
+
+-- A doctor cannot have two scheduled visits less than 30 minutes apart (booking slots are 30 minutes)
+CREATE OR ALTER TRIGGER dbo.TR_Appointment_NoDoubleBook
+ON dbo.Appointment
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM inserted) RETURN;
+
+    IF NOT (
+        UPDATE(DoctorID)
+        OR UPDATE(Date_Time)
+        OR UPDATE(AppointStatus)
+        OR UPDATE(DeletionFlag)
+    ) RETURN;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted AS i
+        JOIN dbo.Appointment AS a WITH (UPDLOCK, HOLDLOCK)
+            ON a.DoctorID = i.DoctorID
+           AND a.AppointmentID <> i.AppointmentID
+           AND a.Date_Time > DATEADD(MINUTE, -30, i.Date_Time)
+           AND a.Date_Time < DATEADD(MINUTE, 30, i.Date_Time)
+        WHERE i.DeletionFlag = 0
+          AND i.AppointStatus = 'Scheduled'
+          AND a.DeletionFlag = 0
+          AND a.AppointStatus = 'Scheduled'
+    )
+    BEGIN
+        ROLLBACK TRANSACTION;
+
+        THROW 50010,
+            'This doctor already has an appointment at that time. Choose another time.',
+            1;
+    END;
+END;
+GO

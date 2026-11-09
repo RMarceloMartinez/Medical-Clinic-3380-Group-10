@@ -198,10 +198,20 @@ public class MeController : ControllerBase
     public async Task<IActionResult> CreateChartRequest(
         [FromBody] CreateChartRequestDto request,
         [FromServices] ChartRequestService chartRequestService,
+        [FromServices] IAntiforgery antiforgery,
         CancellationToken cancellationToken)
     {
+        try
+        {
+            await antiforgery.ValidateRequestAsync(HttpContext);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return BadRequest(new { message = "Invalid or missing CSRF token." });
+        }
+
         if (request.DoctorID <= 0)
-            return BadRequest("Please select a valid doctor.");
+            return BadRequest(new { message = "Please select a valid doctor." });
 
         try
         {
@@ -219,7 +229,7 @@ public class MeController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(new { message = ex.Message });
         }
     }
 
@@ -228,5 +238,122 @@ public class MeController : ControllerBase
         public int DoctorID { get; set; }
     }
 
+    [HttpGet("charges")]
+    public async Task<IActionResult> MyCharges(
+        [FromServices] PaymentService payments,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await payments.GetPatientChargesAsync(
+            CurrentPatientId(), cancellationToken));
+    }
+
+    [HttpGet("payments")]
+    public async Task<IActionResult> MyPaymentHistory(
+        [FromServices] PaymentService payments,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await payments.GetPatientPaymentHistoryAsync(
+            CurrentPatientId(), cancellationToken));
+    }
+
+    [HttpGet("payment-methods")]
+    public async Task<IActionResult> MyPaymentMethods(
+        [FromServices] PaymentService payments,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await payments.GetPaymentMethodsAsync(cancellationToken));
+    }
+
+    [HttpPost("payments")]
+    [Consumes("application/json")]
+    public async Task<IActionResult> PayMyVisit(
+        [FromBody] CreateMyPaymentRequest request,
+        [FromServices] PaymentService payments,
+        [FromServices] IAntiforgery antiforgery,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await antiforgery.ValidateRequestAsync(HttpContext);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return BadRequest(new { message = "Invalid or missing CSRF token." });
+        }
+
+        if (request.MethodID is not (2 or 3))
+        {
+            return BadRequest(new { message = "Online payments take a credit card or debit card." });
+        }
+
+        var centralNow = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
+            DateTimeOffset.UtcNow, "America/Chicago");
+
+        var payment = new CreatePaymentRequest
+        {
+            AppointmentID = request.AppointmentID,
+            InstallmentNumber = 1, // Assigned under the transaction lock.
+            PaymentDate = DateOnly.FromDateTime(centralNow.DateTime),
+            PayStatus = "Completed",
+            Details = new List<PaymentDetailRequest>
+            {
+                new()
+                {
+                    MethodID = request.MethodID,
+                    AmountApplied = request.AmountApplied
+                }
+            }
+        };
+
+        try
+        {
+            int id = await payments.CreateAsync(
+                payment, cancellationToken, CurrentPatientId());
+            return Ok(new { paymentID = id, amount = request.AmountApplied });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { message = "Appointment was not found." });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (SqlException ex) when (
+            ex.Errors.Cast<SqlError>().Any(e => e.Number == 50003))
+        {
+            return Conflict(new
+            {
+                message = "This payment exceeds the remaining balance. Refresh and try again."
+            });
+        }
+        catch (SqlException ex) when (
+            ex.Errors.Cast<SqlError>().Any(e => e.Number == 50007))
+        {
+            return Conflict(new
+            {
+                message = "This cancelled visit has no cancellation fee to pay."
+            });
+        }
+        catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number >= 50000))
+        {
+            // Any other business rule: show its own message
+            return BadRequest(new { message = ex.Errors.Cast<SqlError>().First(e => e.Number >= 50000).Message });
+        }
+        catch (SqlException ex) when (ex.Number is 2601 or 2627)
+        {
+            return Conflict(new
+            {
+                message = "Another payment was recorded. Refresh before trying again."
+            });
+        }
+        catch (SqlException ex) when (ex.Number == 547)
+        {
+            return BadRequest(new
+            {
+                message = "The appointment or payment method is invalid."
+            });
+        }
+    }
 
 }
