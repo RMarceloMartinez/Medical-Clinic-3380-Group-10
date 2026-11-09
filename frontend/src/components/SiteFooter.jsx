@@ -18,9 +18,9 @@ export default function SiteFooter() {
         </div>
 
         <div>
-          <h4>Doctor hours</h4>
-          <p><Icon name="clock" size={16} /> Main Street: Mon, Wed, Fri 8 am – 5 pm</p>
-          <p><Icon name="clock" size={16} /> Westheimer: Tue, Thu 9 am – 6 pm</p>
+          <h4>Office hours</h4>
+          <p><Icon name="clock" size={16} /> Main Street: Mon – Fri, 8 am – 5 pm</p>
+          <p><Icon name="clock" size={16} /> Westheimer: Mon – Fri, 9 am – 6 pm</p>
         </div>
 
         <div>
