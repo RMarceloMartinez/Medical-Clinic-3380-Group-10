@@ -71,7 +71,7 @@ useEffect(() => {
 
       const patient = patients.find((p) => p.id === patientId)
       const specialist = specialists.find((s) => s.id === Number(specialistId))
-      setMessage(`Referral sent: ${patient.name} to Dr. ${specialist.name}, ${formatDate(new Date())}.`)
+      setMessage(`Referral sent: ${patient.name.split(' (')[0]} to Dr. ${specialist.name}, ${formatDate(new Date())}.`)
 
       setPatientId(null)
       setSpecialistId('')

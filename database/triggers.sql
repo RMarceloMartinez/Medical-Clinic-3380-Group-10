@@ -27,7 +27,7 @@ IF EXISTS(
 
 BEGIN
     ROLLBACK TRANSACTION;
-        THROW 50001, 'The Doctor is not scheduled at this office that day', 1;
+        THROW 50001, 'This doctor doesn''t work at this office on that day. Pick another day or office.', 1;
     END;
 
     IF EXISTS(
@@ -41,7 +41,7 @@ BEGIN
     )
     BEGIN
         ROLLBACK TRANSACTION;
-        THROW 50002, 'The Office is not open at that time', 1;
+        THROW 50002, 'The office is closed at that time. Pick a time within its opening hours.', 1;
         END;
     END;
     GO

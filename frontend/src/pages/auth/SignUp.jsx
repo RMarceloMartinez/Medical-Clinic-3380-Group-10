@@ -23,7 +23,9 @@ function validate(form) {
     country: 'country', primaryDoctorID: 'primary doctor', username: 'username', password: 'password',
   }
   Object.entries(required).forEach(([field, label]) => {
-    if (form[field].trim() === '') errors[field] = `Enter your ${label}.`
+    // Dropdowns are chosen, text boxes are typed
+    const verb = field === 'sex' || field === 'primaryDoctorID' ? 'Choose' : 'Enter'
+    if (form[field].trim() === '') errors[field] = `${verb} your ${label}.`
   })
 
   if (/[0-9]/.test(form.firstName + form.middleName + form.lastName)) {
