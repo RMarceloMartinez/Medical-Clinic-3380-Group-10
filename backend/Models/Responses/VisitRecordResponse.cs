@@ -12,4 +12,10 @@ public class VisitRecordResponse
     public string? ClinicalNotes { get; set; }
     public string? TreatmentPlan { get; set; }
     public string? FollowUp { get; set; }
+
+    // The patient's allergies, shown before prescribing
+    public List<AllergyRow> Allergies { get; set; } = new();
+
+    // Prescriptions already written for this visit
+    public List<VisitPrescriptionRow> Prescriptions { get; set; } = new();
 }

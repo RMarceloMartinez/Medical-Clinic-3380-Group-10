@@ -93,6 +93,52 @@ public class DoctorController : ControllerBase
         }
     }
 
+    // POST api/doctor/appointments/1000005/prescriptions
+    // If the medication matches one of the patient's allergies, the first try returns 409 with a
+    // warning; the page shows it and sends again with ConfirmAllergy = true if the doctor still wants it.
+    [HttpPost("appointments/{appointmentId:int}/prescriptions")]
+    public async Task<IActionResult> AddPrescription(
+        int appointmentId,
+        [FromBody] CreatePrescriptionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var denied = await CheckOwnershipAsync(appointmentId, cancellationToken);
+        if (denied is not null)
+        {
+            return denied;
+        }
+
+        var conflicts = await _doctorService.GetAllergyConflictsAsync(
+            appointmentId, request.MedicationName, cancellationToken);
+
+        if (conflicts.Count > 0 && !request.ConfirmAllergy)
+        {
+            return Conflict(new
+            {
+                message = $"Allergy warning: this patient is allergic to {string.Join(", ", conflicts)}. "
+                        + $"Check before prescribing {request.MedicationName.Trim()}.",
+                allergyWarning = true
+            });
+        }
+
+        try
+        {
+            var prescriptionId = await _doctorService.AddPrescriptionAsync(
+                CurrentDoctorId, appointmentId, request, cancellationToken);
+
+            if (prescriptionId is null)
+            {
+                return NotFound(new { message = NoVitalsMessage });
+            }
+
+            return Ok(new { prescriptionID = prescriptionId });
+        }
+        catch (SqlException ex) when (ex.Number >= 50000)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     // 404 if the visit does not exist, 403 if it belongs to another doctor, otherwise null.
     private async Task<IActionResult?> CheckOwnershipAsync(int appointmentId, CancellationToken cancellationToken)
     {

@@ -412,6 +412,13 @@ export default function Appointments({ role }) {
                   <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
+              {/* The fee shows only once a doctor is picked for this booking */}
+              {(() => {
+                const doctor = lookups.doctors.find((d) => String(d.id) === String(form.doctorID))
+                return doctor?.fee != null && (
+                  <p className="field-hint">Visit fee: ${Number(doctor.fee).toFixed(2)}</p>
+                )
+              })()}
             </div>
             <div className="form-field">
               <label htmlFor="office">Office</label>

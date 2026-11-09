@@ -1,5 +1,6 @@
 ﻿USE MedicalClinic;
 GO
+DROP TABLE IF EXISTS ChartRequest;
 DROP TABLE IF EXISTS PaymentDetail;
 DROP TABLE IF EXISTS Payment;
 DROP TABLE IF EXISTS PaymentMethod;
