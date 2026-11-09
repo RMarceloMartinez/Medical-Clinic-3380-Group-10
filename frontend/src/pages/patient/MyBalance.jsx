@@ -23,6 +23,10 @@ export default function MyBalance() {
   const [selected, setSelected] = useState(null)
   const [amount, setAmount] = useState('')
   const [method, setMethod] = useState('')
+  const [cardName, setCardName] = useState('')
+  const [cardNumber, setCardNumber] = useState('')
+  const [cardExpiry, setCardExpiry] = useState('')
+  const [cardCvv, setCardCvv] = useState('')
   const [refreshRequired, setRefreshRequired] = useState(false)
   const submitting = useRef(false)
 
@@ -93,6 +97,27 @@ export default function MyBalance() {
     if (!data.methods.some((item) => String(item.methodID) === method)) {
       setError('Choose a payment method.')
       return
+    }
+
+    if (isCard) {
+      const digits = cardNumber.replace(/ /g, '')
+
+      if (!cardName.trim()) {
+        setError('Enter a fictional cardholder name.')
+        return
+      }
+      if (digits !== '4242424242424242') {
+        setError('Use the demo test card number: 4242 4242 4242 4242.')
+        return
+      }
+      if (cardExpiry !== '12/30') {
+        setError('Use the demo expiration date: 12/30.')
+        return
+      }
+      if (cardCvv !== '123') {
+        setError('Use the demo security code: 123.')
+        return
+      }
     }
 
     submitting.current = true
@@ -251,40 +276,59 @@ export default function MyBalance() {
                   <div className="demo-card-section">
                     <h4>Demo card information</h4>
                     <p>
-                      Simulation only. Use fictional test details.
-                      No real card information is collected or stored.
+                      Demo only — enter fictional test information.
+                      Do not enter real card details. No card details are
+                      transmitted or stored.
                     </p>
 
                     <label htmlFor="demo-card-name">Cardholder name</label>
                     <input
                       id="demo-card-name"
                       type="text"
-                      value="DEMO PATIENT"
-                      readOnly
+                      value={cardName}
+                      onChange={(e) => setCardName(e.target.value)}
+                      placeholder="DEMO PATIENT"
+                      autoComplete="off"
+                      maxLength={60}
+                      required
                     />
 
                     <label htmlFor="demo-card-number">Test card number</label>
                     <input
                       id="demo-card-number"
                       type="text"
-                      value="4242 4242 4242 4242"
-                      readOnly
+                      inputMode="numeric"
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(e.target.value)}
+                      placeholder="4242 4242 4242 4242"
+                      autoComplete="off"
+                      maxLength={19}
+                      required
                     />
 
                     <label htmlFor="demo-card-expiry">Expiration date</label>
                     <input
                       id="demo-card-expiry"
                       type="text"
-                      value="12/30"
-                      readOnly
+                      value={cardExpiry}
+                      onChange={(e) => setCardExpiry(e.target.value)}
+                      placeholder="12/30"
+                      autoComplete="off"
+                      maxLength={5}
+                      required
                     />
 
-                    <label htmlFor="demo-card-cvv">Security code</label>
+                    <label htmlFor="demo-card-cvv">Demo security code</label>
                     <input
                       id="demo-card-cvv"
                       type="text"
-                      value="123"
-                      readOnly
+                      inputMode="numeric"
+                      value={cardCvv}
+                      onChange={(e) => setCardCvv(e.target.value)}
+                      placeholder="123"
+                      autoComplete="off"
+                      maxLength={3}
+                      required
                     />
                   </div>
                 )}
