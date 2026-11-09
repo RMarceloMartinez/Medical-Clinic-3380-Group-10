@@ -242,7 +242,9 @@ export default function Appointments({ role }) {
     const ok = await run(
       () => api.post(`/appointments/${toCancel.appointmentID}/cancel`, { cancelReason: cancelReason.trim(), cancelledBy }),
       feeApplies
-        ? `Cancelled. A $25 late-cancellation fee was added to ${toCancel.patientName}'s balance.`
+        ? (hoursUntil < 0
+            ? `Cancelled. $25 no-show charge added to ${toCancel.patientName}'s balance because the visit time had already passed.`
+            : `Cancelled. $25 charge added to ${toCancel.patientName}'s balance because the visit was cancelled within 24 hours of the appointment.`)
         : `Cancelled ${toCancel.patientName}'s appointment on ${formatDateTime(toCancel.appointmentDateTime)}.`)
     if (ok) showList()
   }

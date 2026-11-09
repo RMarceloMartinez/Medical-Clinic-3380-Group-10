@@ -531,6 +531,7 @@ function VisitDetails({ report, visits, from, to }) {
                 columns={visitColumns}
                 rows={shown}
                 rowKey={(v) => v.appointmentID}
+                initialSort={report === 'revenue' ? 'officeStreetAddress' : null}
                 filterLabel="Filter visits"
                 emptyMessage={empty}
             />

@@ -7,10 +7,11 @@ export default function DataTable({
   rowKey,
   filterLabel = 'Filter',
   emptyMessage = 'No rows to show.',
+  initialSort = null, // optional column key the table starts sorted by
 }) {
   const filterId = useId() // several tables can share a page, so ids must be unique
   const [filter, setFilter] = useState('')
-  const [sort, setSort] = useState({ key: null, dir: 'asc' })
+  const [sort, setSort] = useState({ key: initialSort, dir: 'asc' })
 
   const textOf = (col, row) => (col.format ? col.format(row) : String(row[col.key] ?? ''))
   const isSortable = (col) => col.sortable !== false && (!col.render || Boolean(col.sortValue))

@@ -82,7 +82,7 @@ export default function MyAppointments({ onBook }) {
     try {
       await api.post(`/me/appointments/${toCancel.appointmentID}/cancel`, { cancelReason: reason.trim() })
       setMessage(feeApplies
-        ? 'Your appointment was cancelled. A $25 late-cancellation fee was added to your balance.'
+        ? 'Your appointment was cancelled. $25 charge added because you cancelled within 24 hours of your appointment.'
         : `Your appointment on ${formatDateTime(toCancel.appointmentDateTime)} was cancelled.`)
       setToCancel(null)
       setView('upcoming')
