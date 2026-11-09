@@ -5,6 +5,7 @@ import Layout from '../../components/Layout'
 import MyAppointments from './MyAppointments'
 import BookAppointment from './BookAppointment'
 import MyBalance from './MyBalance'
+import MedicalRecords from './MedicalRecords'
 import { Navigate, useNavigate, useParams } from 'react-router'
 
 // The patient side of the app. Every page here calls /api/me/...,
@@ -14,6 +15,7 @@ const PAGES = [
   { key: 'appointments', icon: 'calendar', label: 'My appointments' },
   { key: 'book', icon: 'calendarPlus', label: 'Book appointment' },
   { key: 'balance', icon: 'wallet', label: 'My balance' },
+  { key: 'records', icon: 'fileText', label: 'Medical records' },
 ]
 
 export default function PatientPortal({ account, onLogout }) {
@@ -31,6 +33,7 @@ export default function PatientPortal({ account, onLogout }) {
       case 'appointments': return <MyAppointments onBook={() => setPage('book')} />
       case 'book': return <BookAppointment onBooked={(text) => navigate('/portal/appointments', { state: { message: text } })} />
       case 'balance': return <MyBalance />
+      case 'records': return <MedicalRecords />
       default: return <PatientHome account={account} onOpen={setPage} />
     }
   }
@@ -131,7 +134,22 @@ function PatientHome({ account, onOpen }) {
           <span className="icon-circle"><Icon name="wallet" size={24} /></span>
           <span className="home-card-title">My balance</span>
           <span className="home-card-text">What you have been billed and paid.</span>
-        </button>
+              </button>
+              <button
+                  type="button"
+                  className="home-card"
+                  onClick={() => onOpen('records')}
+              >
+                  <span className="icon-circle">
+                      <Icon name="fileText" size={24} />
+                  </span>
+                  <span className="home-card-title">
+                      Medical records
+                  </span>
+                  <span className="home-card-text">
+                      View your past visits, diagnoses, and prescriptions.
+                  </span>
+              </button>
       </div>
     </div>
   )
