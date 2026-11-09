@@ -308,8 +308,18 @@ public class MeController : ControllerBase
     public async Task<IActionResult> CreateChartRequest(
         [FromBody] CreateChartRequestDto request,
         [FromServices] ChartRequestService chartRequestService,
+        [FromServices] IAntiforgery antiforgery,
         CancellationToken cancellationToken)
     {
+        try
+        {
+            await antiforgery.ValidateRequestAsync(HttpContext);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return BadRequest(new { message = "Invalid or missing CSRF token." });
+        }
+
         if (request.DoctorID <= 0)
             return BadRequest("Please select a valid doctor.");
 
