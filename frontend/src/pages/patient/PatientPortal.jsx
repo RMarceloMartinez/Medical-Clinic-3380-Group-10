@@ -83,7 +83,7 @@ function PatientHome({ account, onOpen }) {
     <div className="home">
       <div className="welcome-banner">
         <div>
-          <h2>Welcome back, {account.username}</h2>
+          <h2>Welcome back, {account.firstName || account.username}</h2>
           <p>Your visits and bills, all in one place.</p>
         </div>
         <button type="button" className="primary-button" onClick={() => onOpen('book')}>
