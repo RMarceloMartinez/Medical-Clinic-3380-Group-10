@@ -39,7 +39,11 @@ public class NurseService
                                    a.Date_Time,
                                    p.FirstName + ' ' + p.LastName AS PatientName,
                                    d.FirstName + ' ' + d.LastName AS DoctorName,
-                                   CASE WHEN mr.RecordID IS NULL THEN 0 ELSE 1 END AS VitalsRecorded
+                                   CASE WHEN mr.RecordID IS NULL THEN 0 ELSE 1 END AS VitalsRecorded,
+                                   CASE WHEN a.AppointStatus = 'Completed' THEN 'Seen'
+                                        WHEN mr.RecordID IS NULL THEN 'Waiting for nurse'
+                                        ELSE 'Waiting for doctor' END AS VisitStatus,
+                                   a.CheckInStatus
                             FROM dbo.Nurse AS n
                             JOIN dbo.Appointment AS a ON a.OfficeID = n.OfficeID
                             JOIN dbo.Member AS p ON p.MemberID = a.PatientID
@@ -49,7 +53,7 @@ public class NurseService
                                AND mr.DeletionFlag = 0
                             WHERE n.NurseID = @NurseID
                               AND n.DeletionFlag = 0
-                              AND a.AppointStatus = 'Scheduled'
+                              AND a.AppointStatus <> 'Cancelled'
                               AND a.DeletionFlag = 0
                               AND a.Date_Time >= @From
                               AND a.Date_Time <  DATEADD(DAY, @Days, @From)
@@ -72,7 +76,11 @@ public class NurseService
                 AppointmentDateTime = reader.GetDateTime(reader.GetOrdinal("Date_Time")),
                 PatientName = reader.GetString(reader.GetOrdinal("PatientName")),
                 DoctorName = reader.GetString(reader.GetOrdinal("DoctorName")),
-                VitalsRecorded = reader.GetInt32(reader.GetOrdinal("VitalsRecorded")) == 1
+                VitalsRecorded = reader.GetInt32(reader.GetOrdinal("VitalsRecorded")) == 1,
+                VisitStatus = reader.GetString(reader.GetOrdinal("VisitStatus")),
+                CheckInStatus = reader.IsDBNull(reader.GetOrdinal("CheckInStatus"))
+                    ? null
+                    : reader.GetString(reader.GetOrdinal("CheckInStatus"))
             });
         }
 
@@ -145,7 +153,7 @@ public class NurseService
 
         command.CommandText = """
                             SELECT mr.SystolicBP, mr.DiastolicBP, mr.HeartRate,
-                                   mr.Temperature, mr.WeightPounds, mr.HeightInches
+                                   mr.Temperature, mr.WeightPounds, mr.HeightInches, mr.NursingNotes
                             FROM dbo.MedicalRecord AS mr
                             JOIN dbo.Appointment AS a ON a.AppointmentID = mr.AppointmentID
                             JOIN dbo.Nurse AS n ON n.OfficeID = a.OfficeID
@@ -173,7 +181,10 @@ public class NurseService
             HeartRate = reader.GetInt16(reader.GetOrdinal("HeartRate")),
             Temperature = reader.GetDecimal(reader.GetOrdinal("Temperature")),
             WeightPounds = reader.GetDecimal(reader.GetOrdinal("WeightPounds")),
-            HeightInches = reader.GetDecimal(reader.GetOrdinal("HeightInches"))
+            HeightInches = reader.GetDecimal(reader.GetOrdinal("HeightInches")),
+            NursingNotes = reader.IsDBNull(reader.GetOrdinal("NursingNotes"))
+                ? null
+                : reader.GetString(reader.GetOrdinal("NursingNotes"))
         };
     }
 
@@ -218,6 +229,78 @@ public class NurseService
         AddDecimal(command, "@Temperature", 4, 1, request.Temperature);
         AddDecimal(command, "@WeightPounds", 5, 1, request.WeightPounds);
         AddDecimal(command, "@HeightInches", 4, 1, request.HeightInches);
+
+        int rowsChanged = await command.ExecuteNonQueryAsync(cancellationToken);
+
+        return rowsChanged > 0;
+    }
+
+    // Saves the nurse's notes on the visit's existing record (blank text is stored as NULL).
+    // Returns false when nothing was updated: the visit is not at this nurse's office, is no longer
+    // 'Scheduled', or has no record yet (the record is created when vitals are saved).
+    public async Task<bool> SaveNursingNotesAsync(
+        int nurseId,
+        int appointmentId,
+        SaveNursingNotesRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+
+        command.CommandText = """
+                            UPDATE mr
+                            SET mr.NursingNotes = @NursingNotes
+                            FROM dbo.MedicalRecord AS mr
+                            JOIN dbo.Appointment AS a ON a.AppointmentID = mr.AppointmentID
+                            JOIN dbo.Nurse AS n ON n.OfficeID = a.OfficeID
+                            WHERE mr.AppointmentID = @AppointmentID
+                              AND mr.DeletionFlag = 0
+                              AND a.AppointStatus = 'Scheduled'
+                              AND a.DeletionFlag = 0
+                              AND n.NurseID = @NurseID
+                              AND n.DeletionFlag = 0;
+                            """;
+
+        command.Parameters.Add("@NurseID", SqlDbType.Int).Value = nurseId;
+        command.Parameters.Add("@AppointmentID", SqlDbType.Int).Value = appointmentId;
+        command.Parameters.Add("@NursingNotes", SqlDbType.VarChar, 500).Value =
+            string.IsNullOrWhiteSpace(request.NursingNotes) ? DBNull.Value : (object)request.NursingNotes.Trim();
+
+        int rowsChanged = await command.ExecuteNonQueryAsync(cancellationToken);
+
+        return rowsChanged > 0;
+    }
+
+    // Sets the visit's check-in status. Returns false when nothing was updated: the visit is not
+    // at this nurse's office, or is no longer 'Scheduled'.
+    public async Task<bool> SetCheckInStatusAsync(
+        int nurseId,
+        int appointmentId,
+        string checkInStatus,
+        CancellationToken cancellationToken = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+
+        command.CommandText = """
+                            UPDATE a
+                            SET a.CheckInStatus = @CheckInStatus
+                            FROM dbo.Appointment AS a
+                            JOIN dbo.Nurse AS n ON n.OfficeID = a.OfficeID
+                            WHERE a.AppointmentID = @AppointmentID
+                              AND a.AppointStatus = 'Scheduled'
+                              AND a.DeletionFlag = 0
+                              AND n.NurseID = @NurseID
+                              AND n.DeletionFlag = 0;
+                            """;
+
+        command.Parameters.Add("@NurseID", SqlDbType.Int).Value = nurseId;
+        command.Parameters.Add("@AppointmentID", SqlDbType.Int).Value = appointmentId;
+        command.Parameters.Add("@CheckInStatus", SqlDbType.VarChar, 16).Value = checkInStatus;
 
         int rowsChanged = await command.ExecuteNonQueryAsync(cancellationToken);
 
@@ -280,6 +363,7 @@ public class NurseService
                                    mr.SystolicBP,
                                    mr.DiastolicBP,
                                    mr.HeartRate,
+                                   mr.Temperature,
                                    mr.WeightPounds,
                                    mr.ClinicalNotes,
                                    mr.TreatmentPlan,
@@ -294,6 +378,23 @@ public class NurseService
                               AND a.AppointStatus = 'Completed'
                               AND a.DeletionFlag = 0
                             ORDER BY a.Date_Time DESC;
+
+                            SELECT rx.RecordID,
+                                   rx.PrescriptionID,
+                                   rx.MedicationName,
+                                   rx.Dosage,
+                                   rx.Frequency,
+                                   rx.Duration,
+                                   rx.Instructions,
+                                   a.Date_Time AS PrescribedOn,
+                                   d.FirstName + ' ' + d.LastName AS DoctorName
+                            FROM dbo.Prescription AS rx
+                            JOIN dbo.MedicalRecord AS mr ON mr.RecordID = rx.RecordID AND mr.DeletionFlag = 0
+                            JOIN dbo.Appointment AS a ON a.AppointmentID = mr.AppointmentID AND a.DeletionFlag = 0
+                            JOIN dbo.Member AS d ON d.MemberID = a.DoctorID
+                            WHERE a.PatientID = @PatientID
+                              AND rx.DeletionFlag = 0
+                            ORDER BY a.Date_Time DESC, rx.PrescriptionID;
                             """;
 
         command.Parameters.Add("@PatientID", SqlDbType.Int).Value = patientId;
@@ -352,6 +453,9 @@ public class NurseService
                 HeartRate = reader.IsDBNull(reader.GetOrdinal("HeartRate"))
                     ? null
                     : reader.GetInt16(reader.GetOrdinal("HeartRate")),
+                Temperature = reader.IsDBNull(reader.GetOrdinal("Temperature"))
+                    ? null
+                    : reader.GetDecimal(reader.GetOrdinal("Temperature")),
                 WeightPounds = reader.IsDBNull(reader.GetOrdinal("WeightPounds"))
                     ? null
                     : reader.GetDecimal(reader.GetOrdinal("WeightPounds")),
@@ -364,6 +468,27 @@ public class NurseService
                 FollowUp = reader.IsDBNull(reader.GetOrdinal("FollowUp"))
                     ? null
                     : reader.GetString(reader.GetOrdinal("FollowUp"))
+            });
+        }
+
+        // Result set 4: medications (prescriptions from past visits), newest first
+        await reader.NextResultAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            chart.Medications.Add(new MedicationRow
+            {
+                RecordID = reader.GetInt32(reader.GetOrdinal("RecordID")),
+                PrescriptionID = reader.GetInt32(reader.GetOrdinal("PrescriptionID")),
+                MedicationName = reader.GetString(reader.GetOrdinal("MedicationName")),
+                Dosage = reader.GetString(reader.GetOrdinal("Dosage")),
+                Frequency = reader.GetString(reader.GetOrdinal("Frequency")),
+                Duration = reader.GetString(reader.GetOrdinal("Duration")),
+                Instructions = reader.IsDBNull(reader.GetOrdinal("Instructions"))
+                    ? null
+                    : reader.GetString(reader.GetOrdinal("Instructions")),
+                PrescribedOn = reader.GetDateTime(reader.GetOrdinal("PrescribedOn")),
+                DoctorName = reader.GetString(reader.GetOrdinal("DoctorName"))
+                // Pharmacy: add it here and to the SELECT above once we know where it is stored
             });
         }
 

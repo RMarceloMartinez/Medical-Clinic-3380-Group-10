@@ -120,6 +120,67 @@ public class NurseController : ControllerBase
         }
     }
 
+    // PUT api/nurse/appointments/1000005/nursing-notes   (the "Nursing notes" tab)
+    [HttpPut("appointments/{appointmentId:int}/nursing-notes")]
+    public async Task<IActionResult> SaveNursingNotes(
+        int appointmentId,
+        [FromBody] SaveNursingNotesRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var saved = await _nurseService.SaveNursingNotesAsync(
+                CurrentNurseId, appointmentId, request, cancellationToken);
+
+            if (!saved)
+            {
+                return Conflict(new
+                {
+                    error = "Nursing notes were not saved. The visit may not be at your office, may no longer be scheduled, or may not have vitals yet."
+                });
+            }
+
+            return Ok(new { appointmentId });
+        }
+        catch (SqlException ex) when (ex.Number >= 50000)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    // PUT api/nurse/appointments/1000005/check-in   (Checked in / Waiting / Ready for doctor)
+    [HttpPut("appointments/{appointmentId:int}/check-in")]
+    public async Task<IActionResult> SetCheckIn(
+        int appointmentId,
+        [FromBody] SetCheckInRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.CheckInStatus is not ("Checked in" or "Waiting" or "Ready for doctor"))
+        {
+            return BadRequest(new { error = "Check-in status must be Checked in, Waiting or Ready for doctor." });
+        }
+
+        try
+        {
+            var updated = await _nurseService.SetCheckInStatusAsync(
+                CurrentNurseId, appointmentId, request.CheckInStatus, cancellationToken);
+
+            if (!updated)
+            {
+                return Conflict(new
+                {
+                    error = "Check-in status was not changed. The visit may not be at your office or may no longer be scheduled."
+                });
+            }
+
+            return Ok(new { appointmentId });
+        }
+        catch (SqlException ex) when (ex.Number >= 50000)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
     // GET api/nurse/patients/1000010/chart
     [HttpGet("patients/{patientId:int}/chart")]
     public async Task<IActionResult> GetPatientChart(

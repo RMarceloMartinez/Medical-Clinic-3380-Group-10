@@ -1,6 +1,6 @@
 namespace ClinicApi.Models;
 
-// I added this because Nurse didn't have a way to edit vitals in case of mistake
+// The vitals (and nursing notes) already saved for a visit, used to fill in the nurse's visit screen
 public class VitalsResponse
 {
     public short SystolicBP { get; set; }
@@ -9,4 +9,5 @@ public class VitalsResponse
     public decimal Temperature { get; set; }
     public decimal WeightPounds { get; set; }
     public decimal HeightInches { get; set; }
+    public string? NursingNotes { get; set; }
 }
