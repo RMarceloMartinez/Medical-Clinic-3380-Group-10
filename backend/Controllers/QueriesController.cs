@@ -19,7 +19,7 @@ public class QueriesController : ControllerBase
     }
 
     [HttpGet("patients")]
-    [Authorize(Roles = "Admin,Receptionist,Doctor")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor,Nurse")]
     public async Task<ActionResult<List<PatientSearchRow>>> SearchPatients([FromQuery] string? name,
                                                                           [FromQuery] DateOnly? dateOfBirth,
                                                                           CancellationToken cancellationToken)
@@ -54,7 +54,7 @@ public class QueriesController : ControllerBase
     }
 
     [HttpGet("doctor-week")]
-    [Authorize(Roles = "Admin,Receptionist,Doctor")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor,Nurse")]
     public async Task<ActionResult<List<DoctorWeekAppointmentRow>>> DoctorWeek([FromQuery] int doctorId,
                                                                               [FromQuery] DateOnly? weekStart,
                                                                               CancellationToken cancellationToken)
