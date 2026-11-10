@@ -416,3 +416,49 @@ BEGIN
     END;
 END;
 GO
+
+
+-- 50011: A doctor cannot prescribe a medicine the patient has a severe allergy to.
+-- The app warns the doctor about every allergy (mild ones can still be prescribed after
+-- "Prescribe anyway"); a Severe, Life Threatening or Fatal allergy is refused here, by name
+-- (Penicillin -> "Penicillin VK") or by drug family (Penicillin -> Amoxicillin).
+CREATE OR ALTER TRIGGER dbo.TR_Prescription_PreventSevereAllergy
+ON dbo.Prescription
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM inserted) RETURN;
+
+    DECLARE @Message NVARCHAR(400);
+
+    SELECT TOP 1 @Message = CONCAT(
+        'Not prescribed: this patient has a ', LOWER(al.Severity), ' allergy to ', al.Allergen,
+        ' (', al.ReactionType, '), and ', i.MedicationName, ' is not safe for them.')
+    FROM inserted AS i
+    JOIN dbo.MedicalRecord AS mr ON mr.RecordID = i.RecordID
+    JOIN dbo.Appointment AS a ON a.AppointmentID = mr.AppointmentID
+    JOIN dbo.Allergy AS al ON al.PatientID = a.PatientID
+    LEFT JOIN (VALUES
+        ('penicillin', 'amoxicillin'), ('penicillin', 'ampicillin'), ('penicillin', 'augmentin'),
+        ('penicillin', 'dicloxacillin'),
+        ('sulfa', 'sulfamethoxazole'), ('sulfa', 'bactrim'), ('sulfa', 'sulfasalazine'),
+        ('aspirin', 'ibuprofen'), ('aspirin', 'naproxen'), ('aspirin', 'advil'), ('aspirin', 'aleve'),
+        ('codeine', 'hydrocodone'), ('codeine', 'oxycodone'), ('codeine', 'morphine')
+    ) AS fam (Allergen, Drug)
+        ON fam.Allergen = LOWER(LTRIM(RTRIM(al.Allergen)))
+       AND LOWER(i.MedicationName) LIKE '%' + fam.Drug + '%'
+    WHERE i.DeletionFlag = 0
+      AND al.DeletionFlag = 0
+      AND al.Severity IN ('Severe', 'Life Threatening', 'Fatal')
+      AND (LOWER(i.MedicationName) LIKE '%' + LOWER(LTRIM(RTRIM(al.Allergen))) + '%'
+           OR fam.Drug IS NOT NULL);
+
+    IF @Message IS NOT NULL
+    BEGIN
+        ROLLBACK TRANSACTION;
+        THROW 50011, @Message, 1;
+    END;
+END;
+GO
