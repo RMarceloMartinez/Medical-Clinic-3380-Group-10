@@ -7,7 +7,7 @@ namespace ClinicApi.Controllers;
 
 [ApiController]
 [Route("api/lookups")]
-[Authorize(Roles = "Admin,Receptionist,Doctor")]
+[Authorize(Roles = "Admin,Receptionist,Doctor,Nurse")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class LookupsController : ControllerBase
 {

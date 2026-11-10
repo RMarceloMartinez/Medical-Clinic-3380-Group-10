@@ -24,9 +24,10 @@ const SECTIONS = [
     description: {default:'Add, edit and remove patient records.'} },
   { key: 'payments', icon: 'receipt', label: 'Payments', roles: ['Admin', 'Receptionist'],
     description: {default: 'Record payments for appointments.'} },
-  { key: 'queries', icon: 'search', label: 'Queries', roles: ['Admin', 'Receptionist', 'Doctor'],
+  { key: 'queries', icon: 'search', label: 'Queries', roles: ['Admin', 'Receptionist', 'Doctor', 'Nurse'],
     description: {
       Doctor: 'Search patients and see our week',
+      Nurse: 'Find a patient by name or birth date, and see a doctor\'s week.',
       default:'Search patients, check balances, see a doctor\'s week.'} },
   { key: 'reports', icon: 'chart', label: 'Reports', roles: ['Admin'],
     description: {default: 'Revenue, appointment activity and patient health summaries.'} },
