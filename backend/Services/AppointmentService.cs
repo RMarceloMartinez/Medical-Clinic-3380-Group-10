@@ -101,6 +101,102 @@ public class AppointmentService
 
         return rows;
     }
+
+    // Every other doctor (not the primary doctor, no open referral), so the patient can see
+    // the whole clinic. They are shown on the booking page but cannot be booked.
+    public async Task<List<OtherDoctorRow>> GetOtherDoctorsAsync(
+        int patientId,
+        CancellationToken cancellationToken = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+
+        command.CommandText = """
+            DECLARE @PrimaryName VARCHAR(60) = (
+                SELECT TOP 1 'Dr. ' + m.FirstName + ' ' + m.LastName
+                FROM dbo.PatientDoctor AS pd
+                JOIN dbo.Member AS m ON m.MemberID = pd.DoctorID
+                WHERE pd.PatientID = @PatientID
+                  AND pd.RolePlayed = 'Primary'
+                  AND pd.DeletionFlag = 0);
+
+            WITH Allowed AS (
+                SELECT pd.DoctorID
+                FROM dbo.PatientDoctor AS pd
+                WHERE pd.PatientID = @PatientID
+                  AND pd.RolePlayed = 'Primary'
+                  AND pd.DeletionFlag = 0
+
+                UNION
+
+                SELECT r.SpecialistID
+                FROM dbo.Referral AS r
+                WHERE r.PatientID = @PatientID
+                  AND r.RefStatus = 'Scheduled'
+                  AND r.DeletionFlag = 0
+            )
+            SELECT d.DoctorID,
+                   ds.OfficeID,
+                   m.FirstName + ' ' + m.LastName AS DoctorName,
+                   d.Specialty,
+                   o.StreetAddress + ', ' + o.City AS OfficeAddress,
+                   STRING_AGG(ds.DayOfWeek, ', ')
+                      WITHIN GROUP (ORDER BY (CHARINDEX(ds.DayOfWeek, 'MonTueWedThuFriSatSun') + 2) / 3)
+                      AS WorkDays,
+                   CONVERT(VARCHAR(5), o.OpeningTime, 108) + '-'
+                      + CONVERT(VARCHAR(5), o.ClosingTime, 108) AS OfficeHours,
+                   sp.VisitFee,
+                   sp.IsPrimaryCare,
+                   @PrimaryName AS PrimaryName
+            FROM dbo.Doctor AS d
+            JOIN dbo.Specialty AS sp ON sp.SpecialtyName = d.Specialty AND sp.DeletionFlag = 0
+            JOIN dbo.Member AS m ON m.MemberID = d.DoctorID AND m.DeletionFlag = 0
+            JOIN dbo.DoctorSchedule AS ds ON ds.DoctorID = d.DoctorID AND ds.DeletionFlag = 0
+            JOIN dbo.Office AS o ON o.OfficeID = ds.OfficeID AND o.DeletionFlag = 0
+            WHERE d.DeletionFlag = 0
+              AND d.DoctorID NOT IN (SELECT DoctorID FROM Allowed)
+            GROUP BY d.DoctorID, ds.OfficeID, m.FirstName, m.LastName, d.Specialty,
+                     o.StreetAddress, o.City, o.OpeningTime, o.ClosingTime, sp.VisitFee, sp.IsPrimaryCare
+            ORDER BY sp.IsPrimaryCare DESC, d.Specialty, m.LastName;
+            """;
+
+        command.Parameters.Add("@PatientID", SqlDbType.Int).Value = patientId;
+
+        var rows = new List<OtherDoctorRow>();
+        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            string? primaryName = reader.IsDBNull(reader.GetOrdinal("PrimaryName"))
+                ? null
+                : reader.GetString(reader.GetOrdinal("PrimaryName"));
+            bool isPrimaryCare = reader.GetBoolean(reader.GetOrdinal("IsPrimaryCare"));
+
+            rows.Add(new OtherDoctorRow
+            {
+                DoctorID = reader.GetInt32(reader.GetOrdinal("DoctorID")),
+                OfficeID = reader.GetInt32(reader.GetOrdinal("OfficeID")),
+                DoctorName = reader.GetString(reader.GetOrdinal("DoctorName")),
+                Specialty = reader.GetString(reader.GetOrdinal("Specialty")),
+                OfficeAddress = reader.GetString(reader.GetOrdinal("OfficeAddress")),
+                WorkDays = reader.GetString(reader.GetOrdinal("WorkDays")),
+                OfficeHours = reader.GetString(reader.GetOrdinal("OfficeHours")),
+                VisitFee = reader.GetDecimal(reader.GetOrdinal("VisitFee")),
+                Note = isPrimaryCare
+                    ? (primaryName is null
+                        ? "Not your primary doctor. Call the clinic to choose a primary doctor."
+                        : $"Not your primary doctor. Your primary care is with {primaryName}.")
+                    : (primaryName is null
+                        ? "Needs a referral from your primary doctor."
+                        : $"Needs a referral from your primary doctor, {primaryName}.")
+            });
+        }
+
+        return rows;
+    }
+
     public async Task<int> CreateAsync(
         CreateAppointmentRequest request,
         CancellationToken cancellationToken = default

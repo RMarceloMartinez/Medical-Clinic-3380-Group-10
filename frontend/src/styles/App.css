@@ -979,3 +979,25 @@
 .patient-search input {
   max-width: 350px;
 }
+
+/* Booking page: a doctor the patient needs a referral for (trying to book shows the rule) */
+.doctor-card-locked {
+  opacity: 0.75;
+  border: 1px dashed var(--border);
+}
+.doctor-card-locked .home-card-title {
+  font-size: 18px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--navy);
+}
+.doctor-card-locked .home-card-text {
+  color: var(--muted);
+  font-size: 15px;
+}
+.locked-note {
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy);
+}
