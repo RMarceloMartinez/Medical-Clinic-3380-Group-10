@@ -319,30 +319,35 @@ export default function DoctorVisits() {
             {selected.officeAddress} · {selected.appointStatus}
           </p>
 
-          <h3>Vitals (recorded by the nurse)</h3>
-          {!selected.vitalsRecorded && (
-            <p className="field-hint">Vitals not recorded yet; the nurse records them first.</p>
-          )}
-          {loadingRecord && <p>Loading the record…</p>}
-          {record && (
-            <div className="form-grid">
-              {VITALS.map((f) => (
-                <div className="form-field" key={f.key}>
-                  <label>{f.label}</label>
-                  <p>{record[f.key]} {f.unit}</p>
-                </div>
-              ))}
-            </div>
-          )}
+//changed so you can see nursing notes
+<h3>Vitals & Nursing Notes</h3>
 
-          {record && (
-            <>
-              <h3>Nursing notes</h3>
-              <p className={record.nursingNotes ? '' : 'field-hint'}>
-                {record.nursingNotes || 'The nurse has not written notes for this visit.'}
-              </p>
-            </>
-          )}
+{!selected.vitalsRecorded && (
+  <p className="field-hint">
+    Vitals not recorded yet; the nurse records them first.
+  </p>
+)}
+
+{loadingRecord && <p>Loading the record…</p>}
+
+{record && (
+  <div className="form-grid">
+    {VITALS.map((f) => (
+      <div className="form-field" key={f.key}>
+        <label>{f.label}</label>
+        <p>{record[f.key]} {f.unit}</p>
+      </div>
+    ))}
+
+    <div className="form-field">
+      <label>Nursing Notes</label>
+      <p className={record.nursingNotes ? '' : 'field-hint'}>
+        {record.nursingNotes ||
+          'The nurse has not written notes for this visit.'}
+      </p>
+    </div>
+  </div>
+)}
 
           <h3>Notes</h3>
           <div className="form-grid">
