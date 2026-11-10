@@ -14,6 +14,20 @@ const date = (value) => {
   return `${month}/${day}/${year}`
 }
 
+// Card numbers end in a check digit (the Luhn formula); this catches typos before submitting
+function passesLuhn(digits) {
+  let sum = 0
+  for (let i = 0; i < digits.length; i++) {
+    let d = Number(digits[digits.length - 1 - i])
+    if (i % 2 === 1) {
+      d *= 2
+      if (d > 9) d -= 9
+    }
+    sum += d
+  }
+  return sum % 10 === 0
+}
+
 export default function MyBalance() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -105,33 +119,39 @@ export default function MyBalance() {
     }
 
     if (isCard) {
-      const digits = cardNumber.replace(/ /g, '')
+      const digits = cardNumber.replace(/[ -]/g, '')
 
       if (!cardName.trim()) {
-        setError('Enter a fictional cardholder name.')
+        setError('Enter the name on the card.')
         return
       }
-      if (digits !== '4242424242424242') {
-        setError('Use the demo test card number: 4242 4242 4242 4242.')
+      if (!/^\d{13,19}$/.test(digits) || !passesLuhn(digits)) {
+        setError('Enter a valid card number.')
         return
       }
-      if (cardExpiry !== '12/30') {
-        setError('Use the demo expiration date: 12/30.')
+      const expiry = /^(0[1-9]|1[0-2])\/(\d{2})$/.exec(cardExpiry.trim())
+      if (!expiry) {
+        setError('Enter the expiration date as MM/YY.')
         return
       }
-      if (cardCvv !== '123') {
-        setError('Use the demo security code: 123.')
+      // a card is good through the last day of its expiration month
+      if (new Date(2000 + Number(expiry[2]), Number(expiry[1]), 1) <= new Date()) {
+        setError('This card has expired.')
+        return
+      }
+      if (!/^\d{3,4}$/.test(cardCvv.trim())) {
+        setError('Enter the 3- or 4-digit security code (CVV).')
         return
       }
     }
 
     if (isCheck) {
       if (!checkName.trim() || !checkBank.trim()) {
-        setError('Enter the fictional name and bank for your demo check.')
+        setError('Enter the name on the check and the bank name.')
         return
       }
       if (!/^\d{1,10}$/.test(checkNumber.trim())) {
-        setError('Enter a demo check number using 1–10 digits.')
+        setError('Enter the check number (1–10 digits).')
         return
       }
     }
@@ -160,14 +180,14 @@ export default function MyBalance() {
     setSelected(null)
     setAmount('')
     setMethod('')
-    setMessage(`Payment of ${money(value)} saved.`)
+    setMessage(`Payment of ${money(value)} received.`)
 
     try {
       const updated = await loadData()
       setData(updated)
       const remaining = Number(updated.balance.balance)
       setMessage(
-        `Payment of ${money(value)} saved. ` +
+        `Payment of ${money(value)} received. ` +
         (remaining > 0
           ? `You now owe ${money(remaining)}.`
           : remaining < 0
@@ -175,7 +195,7 @@ export default function MyBalance() {
             : 'You are all paid up. Thank you!')
       )
     } catch {
-      setError('Your payment was saved, but the page could not refresh. Refresh to see your updated balance and history.')
+      setError('Your payment was received, but the page could not refresh. Refresh to see your updated balance and history.')
       setRefreshRequired(true)
     } finally {
       setSaving(false)
@@ -323,101 +343,94 @@ export default function MyBalance() {
                 </select>
 
                 {isCard && (
-                  <div className="demo-card-section">
-                    <h4>Demo card information</h4>
-                    <p>
-                      Demo only — enter fictional test information.
-                      Do not enter real card details. No card details are
-                      transmitted or stored.
-                    </p>
+                  <div className="card-section">
+                    <h4>Card information</h4>
+                    <p className="field-hint">Card details are only used for this payment and are not saved.</p>
 
-                    <label htmlFor="demo-card-name">Cardholder name</label>
+                    <label htmlFor="card-name">Name on card</label>
                     <input
-                      id="demo-card-name"
+                      id="card-name"
                       type="text"
                       value={cardName}
                       onChange={(e) => setCardName(e.target.value)}
-                      placeholder="DEMO PATIENT"
+                      placeholder="Name as shown on the card"
                       autoComplete="off"
                       maxLength={60}
                       required
                     />
 
-                    <label htmlFor="demo-card-number">Test card number</label>
+                    <label htmlFor="card-number">Card number</label>
                     <input
-                      id="demo-card-number"
+                      id="card-number"
                       type="text"
                       inputMode="numeric"
                       value={cardNumber}
                       onChange={(e) => setCardNumber(e.target.value)}
-                      placeholder="4242 4242 4242 4242"
+                      placeholder="1234 5678 9012 3456"
                       autoComplete="off"
-                      maxLength={19}
+                      maxLength={23}
                       required
                     />
 
-                    <label htmlFor="demo-card-expiry">Expiration date</label>
+                    <label htmlFor="card-expiry">Expiration date (MM/YY)</label>
                     <input
-                      id="demo-card-expiry"
+                      id="card-expiry"
                       type="text"
                       value={cardExpiry}
                       onChange={(e) => setCardExpiry(e.target.value)}
-                      placeholder="12/30"
+                      placeholder="MM/YY"
                       autoComplete="off"
                       maxLength={5}
                       required
                     />
 
-                    <label htmlFor="demo-card-cvv">Demo security code</label>
+                    <label htmlFor="card-cvv">Security code (CVV)</label>
                     <input
-                      id="demo-card-cvv"
+                      id="card-cvv"
                       type="text"
                       inputMode="numeric"
                       value={cardCvv}
                       onChange={(e) => setCardCvv(e.target.value)}
-                      placeholder="123"
+                      placeholder="CVV"
                       autoComplete="off"
-                      maxLength={3}
+                      maxLength={4}
                       required
                     />
                   </div>
                 )}
 
                 {isCheck && (
-                  <div className="demo-check-section">
-                    <h4>Demo check information</h4>
-                    <p>
-                      Simulation only. Enter fictional check information.
-                      Do not enter real banking details.
-                    </p>
+                  <div className="check-section">
+                    <h4>Check information</h4>
+                    <p className="field-hint">Check details are only used for this payment and are not saved.</p>
 
-                    <label htmlFor="demo-check-name">Name on check</label>
+                    <label htmlFor="check-name">Name on check</label>
                     <input
-                      id="demo-check-name"
+                      id="check-name"
                       type="text"
                       value={checkName}
                       onChange={(e) => setCheckName(e.target.value)}
-                      placeholder="Demo Patient"
+                      placeholder="Name as printed on the check"
                       autoComplete="off"
                       maxLength={60}
                       required
                     />
 
-                    <label htmlFor="demo-check-bank">Bank name</label>
+                    <label htmlFor="check-bank">Bank name</label>
                     <input
-                      id="demo-check-bank"
+                      id="check-bank"
                       type="text"
                       value={checkBank}
                       onChange={(e) => setCheckBank(e.target.value)}
-                      placeholder="Demo Bank"
+                      placeholder="Bank name"
                       autoComplete="off"
                       maxLength={60}
                       required
                     />
 
-                    <label htmlFor="demo-check-number">Check number</label>
+                    <label htmlFor="check-number">Check number</label>
                     <input
-                      id="demo-check-number"
+                      id="check-number"
                       type="text"
                       inputMode="numeric"
                       value={checkNumber}
@@ -431,7 +444,7 @@ export default function MyBalance() {
                 )}
 
                 <button type="submit" className="primary-button">
-                  {saving ? 'Saving…' : 'Save payment'}
+                  {saving ? 'Processing payment…' : 'Submit payment'}
                 </button>
                 <button type="button" className="secondary-button" onClick={() => setSelected(null)}>
                   Cancel
