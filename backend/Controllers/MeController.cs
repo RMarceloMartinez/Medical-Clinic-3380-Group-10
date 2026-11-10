@@ -49,6 +49,14 @@ public class MeController : ControllerBase
             CurrentPatientId(), cancellationToken));
     }
 
+    [HttpGet("other-doctors")]                            // GET /api/me/other-doctors  (shown, not bookable)
+    public async Task<ActionResult<List<OtherDoctorRow>>> OtherDoctors(
+        CancellationToken cancellationToken)
+    {
+        return Ok(await _appointmentService.GetOtherDoctorsAsync(
+            CurrentPatientId(), cancellationToken));
+    }
+
     [HttpGet("balance")]                                  // GET /api/me/balance
     public async Task<ActionResult<PatientBalanceRow>> MyBalance(
         CancellationToken cancellationToken)
@@ -77,28 +85,38 @@ public class MeController : ControllerBase
 
         int patientId = CurrentPatientId();
 
-        // The doctor + office must be one of this patient's bookable choices
+        // The doctor + office must be a real doctor at an office where they work.
+        // A doctor the patient isn't allowed to see (no referral, not their primary doctor)
+        // is still sent to the database on purpose: the referral trigger (50006) refuses it
+        // and its message is shown to the patient.
         var choices = await _appointmentService.GetBookableDoctorsAsync(
             patientId, cancellationToken);
 
         var choice = choices.FirstOrDefault(c =>
             c.DoctorID == request.DoctorID && c.OfficeID == request.OfficeID);
 
+        int? referralId = choice?.ReferralID;
+
         if (choice is null)
         {
-            return BadRequest(new
+            var others = await _appointmentService.GetOtherDoctorsAsync(patientId, cancellationToken);
+
+            if (!others.Any(o => o.DoctorID == request.DoctorID && o.OfficeID == request.OfficeID))
             {
-                message = "You can book your primary doctor, or a specialist you have a referral to, at an office where they work."
-            });
+                return BadRequest(new
+                {
+                    message = "Pick a doctor at an office where they work."
+                });
+            }
         }
 
         // The server decides everything the patient must not choose
         var create = new CreateAppointmentRequest
         {
             PatientID = patientId,
-            DoctorID = choice.DoctorID,
-            OfficeID = choice.OfficeID,
-            ReferralID = choice.ReferralID,
+            DoctorID = request.DoctorID,
+            OfficeID = request.OfficeID,
+            ReferralID = referralId,
             AppointmentDateTime = request.AppointmentDateTime,
             Channel = "Web Portal",
             VisitReason = request.VisitReason

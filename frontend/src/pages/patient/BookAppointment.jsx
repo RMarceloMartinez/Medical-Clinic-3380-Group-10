@@ -19,10 +19,13 @@ function weekdayOf(dateText) {
 }
 
 // Two screens: 1) pick a doctor + office, 2) pick a day and time, then book.
-// The list comes from GET /api/me/doctors: the primary doctor, plus
-// specialists this patient has an open referral to.
+// The bookable list comes from GET /api/me/doctors: the primary doctor, plus
+// specialists this patient has an open referral to. Every other doctor comes from
+// GET /api/me/other-doctors and is shown greyed out with the reason it needs a referral.
+// The patient can still try one: the database's referral rule (trigger 50006) refuses it.
 export default function BookAppointment({ onBooked }) {
   const [choices, setChoices] = useState([])
+  const [others, setOthers] = useState([])
   const [loaded, setLoaded] = useState(false)
   const [choice, setChoice] = useState(null)
   const [date, setDate] = useState('')
@@ -32,8 +35,8 @@ export default function BookAppointment({ onBooked }) {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    api.get('/me/doctors')
-      .then(setChoices)
+    Promise.all([api.get('/me/doctors'), api.get('/me/other-doctors')])
+      .then(([mine, rest]) => { setChoices(mine); setOthers(rest) })
       .catch((e) => setError(e.message))
       .finally(() => setLoaded(true))
   }, [])
@@ -107,6 +110,30 @@ export default function BookAppointment({ onBooked }) {
             </button>
           ))}
         </div>
+
+        {others.length > 0 && (
+          <>
+            <h3 className="home-section-title">Other doctors at the clinic</h3>
+            <p className="field-hint">
+              You can book your primary doctor and any specialist your primary doctor refers you to.
+              Booking anyone else is refused until you have a referral.
+            </p>
+            <div className="home-cards">
+              {others.map((c) => (
+                <button key={`${c.doctorID}-${c.officeID}`} type="button" className="home-card doctor-card-locked" onClick={() => pick(c)}>
+                  <span className="home-card-title">{c.doctorName}</span>
+                  <span className="home-card-text">
+                    {c.specialty}<br />
+                    {c.officeAddress}<br />
+                    {c.workDays}, {c.officeHours}<br />
+                    Visit fee: ${Number(c.visitFee).toFixed(2)}
+                  </span>
+                  <span className="locked-note">{c.note}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     )
   }
@@ -119,6 +146,7 @@ export default function BookAppointment({ onBooked }) {
         {choice.specialty} · {choice.officeAddress}<br />
         Works here on <strong>{choice.workDays}</strong>, {choice.officeHours}
       </p>
+      {choice.note && <p className="locked-note">{choice.note}</p>}
 
       <label htmlFor="date">Day</label>
       <input
