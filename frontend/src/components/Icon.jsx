@@ -81,6 +81,12 @@ const ICONS = {
     </>
   ),
   arrowRight: <path d="M5 12h14M13 6l6 6-6 6" />,
+  fileText: (
+    <>
+      <path d="M14 3H6v18h12V7z" />
+      <path d="M14 3v4h4M9 12h6M9 16h6" />
+    </>
+  ),
 }
 
 export default function Icon({ name, size = 20 }) {
