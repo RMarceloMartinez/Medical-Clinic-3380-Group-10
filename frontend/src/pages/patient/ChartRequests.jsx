@@ -12,7 +12,7 @@ export default function ChartRequests() {
     const [error, setError] = useState('')
 
     async function loadRequests() {
-        const data = await api('/me/chart-requests')
+        const data = await api.get('/me/chart-requests')
         setRequests(data)
     }
 
@@ -20,13 +20,14 @@ export default function ChartRequests() {
         async function load() {
             try {
                 const [requestData, doctorData] = await Promise.all([
-                    api('/me/chart-requests'),
-                    api('/me/doctors')
+                    api.get('/me/chart-requests'),
+                    api.get('/me/doctors')
                 ])
                 setRequests(requestData)
-                setDoctors(doctorData)
-            } catch {
-                setError('Could not load chart requests.')
+                // /me/doctors has one row per doctor + office: keep each doctor once
+                setDoctors(doctorData.filter((d, i, all) => all.findIndex(x => x.doctorID === d.doctorID) === i))
+            } catch (err) {
+                setError(err.message || 'Could not load chart requests.')
             } finally {
                 setLoading(false)
             }
@@ -44,16 +45,13 @@ export default function ChartRequests() {
         setError('')
 
         try {
-            await api('/me/chart-requests', {
-                method: 'POST',
-                body: JSON.stringify({ doctorID: Number(doctorId) })
-            })
+            await api.post('/me/chart-requests', { doctorID: Number(doctorId) })
 
             await loadRequests()
             setDoctorId('')
             setMessage('Chart request submitted successfully.')
-        } catch {
-            setError('Could not submit chart request.')
+        } catch (err) {
+            setError(err.message || 'Could not submit chart request.')
         } finally {
             setSubmitting(false)
         }
@@ -64,7 +62,7 @@ export default function ChartRequests() {
             <h2>Request Medical Chart</h2>
             <p>Request a copy of your medical chart from your doctor.</p>
 
-            <div className="card">
+            <div className="panel">
                 <h3>New chart request</h3>
 
                 <form onSubmit={submitRequest}>
@@ -92,11 +90,11 @@ export default function ChartRequests() {
                     </button>
                 </form>
 
-                {message && <p role="status">{message}</p>}
-                {error && <p role="alert">{error}</p>}
+                {message && <p className="success-message" role="status">{message}</p>}
+                {error && <p className="error-message" role="alert">{error}</p>}
             </div>
 
-            <div className="card">
+            <div className="panel">
                 <h3>My chart requests</h3>
 
                 {loading ? (

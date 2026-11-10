@@ -10,10 +10,10 @@ export default function MedicalRecords() {
     useEffect(() => {
         async function loadRecords() {
             try {
-                const data = await api('/me/medical-records')
+                const data = await api.get('/me/medical-records')
                 setRecords(data)
             } catch (err) {
-                setError('Could not load medical records.')
+                setError(err.message || 'Could not load medical records.')
             } finally {
                 setLoading(false)
             }
@@ -64,7 +64,7 @@ export default function MedicalRecords() {
     )
 
     if (loading) return <p>Loading medical records...</p>
-    if (error) return <p role="alert">{error}</p>
+    if (error) return <p className="error-message" role="alert">{error}</p>
 
     return (
         <div className="page">
@@ -75,7 +75,7 @@ export default function MedicalRecords() {
                 <p>No medical records available.</p>
             ) : (
                 visits.map(visit => (
-                    <div className="card" key={visit.appointmentID}>
+                    <div className="panel" key={visit.appointmentID}>
                         <h3>
                             {new Date(visit.visitDate).toLocaleDateString()}
                         </h3>
