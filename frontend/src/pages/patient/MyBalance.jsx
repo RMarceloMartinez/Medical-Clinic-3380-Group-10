@@ -31,6 +31,7 @@ export default function MyBalance() {
   const [checkBank, setCheckBank] = useState('')
   const [checkNumber, setCheckNumber] = useState('')
   const [refreshRequired, setRefreshRequired] = useState(false)
+  const [view, setView] = useState('summary')   // 'summary' | 'pay' | 'history'
   const submitting = useRef(false)
 
   async function loadData() {
@@ -74,6 +75,7 @@ export default function MyBalance() {
   }
 
   function chooseVisit(visit) {
+    setView('pay')
     setSelected(visit)
     setAmount('')
     setMethod('')
@@ -190,19 +192,39 @@ export default function MyBalance() {
   )
   const isCheck = selectedMethod?.methodName === 'Check'
 
+  const owed = data ? data.charges.filter((visit) => Number(visit.remaining) > 0) : []
+
+  function show(next) {
+    setView(next)
+    setSelected(null)
+    setError('')
+    setMessage('')
+  }
+
   return (
-    <div className="panel">
+    <div className="my-appointments">
       <h2>My balance</h2>
+
+      <div className="page-actions">
+        <button type="button" className={view === 'summary' ? 'active' : ''} onClick={() => show('summary')}>
+          Summary
+        </button>
+        <button type="button" className={view === 'pay' ? 'active' : ''} onClick={() => show('pay')}>
+          Pay a bill{data ? ` (${owed.length})` : ''}
+        </button>
+        <button type="button" className={view === 'history' ? 'active' : ''} onClick={() => show('history')}>
+          Payment history{data ? ` (${data.history.length})` : ''}
+        </button>
+        <button type="button" onClick={refresh} disabled={saving || loading}>
+          {loading ? 'Loading…' : 'Refresh'}
+        </button>
+      </div>
 
       {message && <p className="success-message" role="status">{message}</p>}
       {error && <p className="error-message" role="alert">{error}</p>}
 
-      <button type="button" className="secondary-button" onClick={refresh} disabled={saving || loading}>
-        {loading ? 'Loading…' : 'Refresh'}
-      </button>
-
-      {data && (
-        <>
+      {data && view === 'summary' && (
+        <div className="panel">
           <table className="data-table balance-table">
             <tbody>
               <tr><th>Visits</th><td>{money(data.balance.visits)}</td></tr>
@@ -214,40 +236,52 @@ export default function MyBalance() {
               </tr>
             </tbody>
           </table>
+          {Number(data.balance.balance) > 0 ? (
+            <div className="page-actions">
+              <button type="button" className="primary-button" onClick={() => show('pay')}>
+                Pay a bill
+              </button>
+            </div>
+          ) : (
+            <p className="field-hint">You are all paid up. Thank you!</p>
+          )}
+        </div>
+      )}
 
-          <h3>Visit balances</h3>
-          {data.charges.length === 0 ? (
-            <p>No billed visits or cancellation fees yet.</p>
+      {data && view === 'pay' && (
+        <>
+          {owed.length === 0 ? (
+            <div className="panel">
+              <p>You don't owe anything right now.</p>
+            </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table className="data-table">
                 <thead>
                   <tr>
                     <th>Visit date</th><th>Doctor</th><th>Charge type</th>
-                    <th>Charged</th><th>Paid</th><th>Remaining</th><th>Action</th>
+                    <th>Charged</th><th>Paid</th><th>Owed</th><th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.charges.map((visit) => (
+                  {owed.map((visit) => (
                     <tr key={visit.appointmentID}>
                       <td>{date(visit.appointmentDateTime)}</td>
                       <td>{visit.doctorName}</td>
                       <td>{visit.status === 'Cancelled' ? 'Late-cancel fee' : 'Visit'}</td>
                       <td>{money(visit.charge)}</td>
                       <td>{money(visit.paid)}</td>
-                      <td>{money(visit.remaining)}</td>
+                      <td><strong>{money(visit.remaining)}</strong></td>
                       <td>
-                        {Number(visit.remaining) > 0 ? (
-                          <button
-                            type="button"
-                            className="primary-button"
-                            disabled={disabled}
-                            onClick={() => chooseVisit(visit)}
-                            aria-label={`Pay for the ${date(visit.appointmentDateTime)} visit with ${visit.doctorName}`}
-                          >
-                            Pay
-                          </button>
-                        ) : 'Paid'}
+                        <button
+                          type="button"
+                          className="primary-button"
+                          disabled={disabled || selected?.appointmentID === visit.appointmentID}
+                          onClick={() => chooseVisit(visit)}
+                          aria-label={`Pay for the ${date(visit.appointmentDateTime)} visit with ${visit.doctorName}`}
+                        >
+                          Pay
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -257,7 +291,7 @@ export default function MyBalance() {
           )}
 
           {selected && (
-            <form onSubmit={pay}>
+            <form className="panel" onSubmit={pay}>
               <h3>Pay for the {date(selected.appointmentDateTime)} visit with {selected.doctorName}</h3>
               <p>Remaining: {money(selected.remaining)}</p>
               <fieldset disabled={saving || loading || refreshRequired}>
@@ -406,7 +440,11 @@ export default function MyBalance() {
             </form>
           )}
 
-          <h3>Payment history</h3>
+        </>
+      )}
+
+      {data && view === 'history' && (
+        <>
           {data.history.length === 0 ? (
             <p>No payments recorded yet.</p>
           ) : (
