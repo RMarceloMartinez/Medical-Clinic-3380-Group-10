@@ -15,3 +15,5 @@ Thumbs.db
 backend/cookies.txt
 publish/
 app.zip
+# SQL dump: submitted separately, not kept in the repo
+database/MedicalClinic_dump.sql

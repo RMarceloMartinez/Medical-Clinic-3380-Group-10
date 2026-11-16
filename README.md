@@ -10,7 +10,7 @@ The free hosting plan sleeps when idle, so the first load after a quiet spell ca
 
 | File or folder | What it is |
 | --- | --- |
-| `database/MedicalClinic_dump.sql` | **SQL dump of the populated database**, taken from the live Azure database on Nov 15, 2026: 34 tables with all their rows (938), keys and indexes, 12 views, 14 stored procedures and the 13 triggers |
+| `MedicalClinic_dump.sql` (separate file in the submission folder, not in the repo) | **SQL dump of the populated database**, taken from the live Azure database on Nov 15, 2026: 34 tables with all their rows (938), keys and indexes, 12 views, 14 stored procedures and the 13 triggers |
 | `database/backup-azure.ps1` | The PowerShell script that made the dump (see "How the dump was made") |
 | `database/*.sql` | The source scripts the database was built from: schema, triggers, views, seed data, queries, reports, migrations |
 | `backend/` | ASP.NET Core API (C#, .NET 10) |
@@ -47,12 +47,12 @@ Other sample patients use their first initial and last name as the username (for
 
 ### 1. Database: restore the dump (recommended)
 
-From the repo root in PowerShell:
+In PowerShell, with `<folder>` = where you saved `MedicalClinic_dump.sql` from the submission:
 
 ```powershell
 $sql = "C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\180\Tools\Binn\SQLCMD.EXE"
 & $sql -S localhost\SQLEXPRESS -E -C -Q "CREATE DATABASE MedicalClinic"
-& $sql -S localhost\SQLEXPRESS -E -C -I -b -d MedicalClinic -i "database\MedicalClinic_dump.sql"
+& $sql -S localhost\SQLEXPRESS -E -C -I -b -d MedicalClinic -i "<folder>\MedicalClinic_dump.sql"
 ```
 
 - The database must be named `MedicalClinic` on `localhost\SQLEXPRESS`: that is what the API's
@@ -63,7 +63,7 @@ $sql = "C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\180\Tools\Binn\SQL
   so the existing data loads without tripping the business rules.
 - Check it: `& $sql -S localhost\SQLEXPRESS -E -C -d MedicalClinic -Q "SELECT COUNT(*) FROM sys.triggers"` prints 13.
 
-**Or rebuild from the source scripts** (sample data only, not the live data):
+**Or rebuild from the source scripts** (sample data only, not the live data), from the repo root:
 
 ```powershell
 foreach ($f in "reset","schema","triggers","views","seed","queries","reports") {
@@ -101,10 +101,10 @@ passes: tables with keys and indexes, then every row, then views and procedures,
 ```powershell
 Install-Module SqlServer -Scope CurrentUser
 az login --tenant <tenant id>
-.\database\backup-azure.ps1 -OutFile "$PWD\database\MedicalClinic_dump.sql"
+.\database\backup-azure.ps1 -OutFile "C:\Projects\Submission\MedicalClinic_dump.sql"
 ```
 
-The Azure SQL firewall must allow your IP address first.
+The Azure SQL firewall must allow your IP address first. The dump is kept out of the repo (`.gitignore`).
 
 ## Project structure
 
@@ -133,8 +133,7 @@ frontend/                React + Vite website (React Router for page addresses)
     styles/              app-wide CSS: index.css (colors, fonts, spacing tokens), App.css
 
 database/                SQL scripts
-  MedicalClinic_dump.sql full copy of the live database (restore with step 1 above)
-  backup-azure.ps1       makes that dump from Azure
+  backup-azure.ps1       makes the SQL dump of the live database (the dump itself is submitted separately)
   reset, schema, triggers, views, seed, queries, reports   full rebuild, in this order (local only)
   health-trends.sql      views and procedures for the Health trends report
   migrate-*.sql          changes to an existing database (safe to run more than once)
